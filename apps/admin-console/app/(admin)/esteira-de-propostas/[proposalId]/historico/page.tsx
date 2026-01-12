@@ -1,23 +1,43 @@
 "use client";
 
-import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState, use } from "react";
+import { useCallback, useEffect, useMemo, useState, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock3, User, Car, Building2, Mic, Square, Send } from "lucide-react";
+import { ArrowLeft, StickyNote } from "lucide-react";
 import { Proposal, ProposalEvent, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { fetchProposalTimeline, fetchProposals } from "@/application/services/Proposals/proposalService";
-import { Badge, Button, Card, Divider, Input, Skeleton, Tag, Typography } from "antd";
-import { REALTIME_CHANNELS, useRealtimeChannel } from "@grota/realtime-client";
-import { getRealtimeUrl } from "@/application/config/realtime";
-import { formatDateTime, formatTime } from "@/presentation/features/esteira-propostas/utils/date";
+import {
+  fetchProposalTimeline,
+  fetchProposals,
+  updateProposalStatus,
+} from "@/application/services/Proposals/proposalService";
+import { getAllLogistics } from "@/application/services/Logista/logisticService";
+import { getAllSellers } from "@/application/services/Seller/sellerService";
+import { useToast } from "@/application/core/hooks/use-toast";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Divider,
+  Empty,
+  Input,
+  Modal,
+  Row,
+  Select,
+  Skeleton,
+  Space,
+  Statistic,
+  Tag,
+  Timeline,
+  Typography,
+} from "antd";
+import { formatDateTime } from "@/presentation/features/esteira-propostas/utils/date";
 
 type Params = Promise<{
   proposalId: string;
 }>;
 
 const { Paragraph, Text, Title } = Typography;
-const cardBodyStyle = { background: "rgba(255,255,255,0.08)", color: "#fff" };
-const cardStyle = { background: "transparent", borderColor: "rgba(255,255,255,0.1)" };
 
 const statusLabel: Record<ProposalStatus, string> = {
   SUBMITTED: "Enviada",
@@ -25,6 +45,33 @@ const statusLabel: Record<ProposalStatus, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
   PAID: "Paga",
+};
+
+const statusOptions: ProposalStatus[] = [
+  "SUBMITTED",
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "PAID",
+];
+
+const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+const labelStyle = { color: "#64748b" };
+const valueStyle = { color: "#0F456A", fontWeight: 600 };
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "--";
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const date = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return DATE_FORMATTER.format(date);
 };
 
 const formatCurrency = (value?: number | null) =>
@@ -42,354 +89,135 @@ const maskCpf = (cpf?: string) => {
   return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 };
 
-const blobToDataUrl = (blob: Blob) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === "string") resolve(reader.result);
-      else reject(new Error("Erro ao ler audio"));
-    };
-    reader.onerror = () => reject(new Error("Erro ao converter audio"));
-    reader.readAsDataURL(blob);
-  });
+const parseMetadata = (metadata?: Proposal["metadata"]) => {
+  if (!metadata) return null;
+  if (typeof metadata === "string") {
+    try {
+      return JSON.parse(metadata) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof metadata === "object") return metadata as Record<string, unknown>;
+  return null;
+};
 
-const formatSeconds = (valueSeconds?: number) => {
-  if (!valueSeconds || Number.isNaN(valueSeconds)) return "0:00";
-  const minutes = Math.floor(valueSeconds / 60);
-  const seconds = Math.floor(valueSeconds % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${minutes}:${seconds}`;
+const extractMotherName = (metadata: Record<string, unknown> | null) => {
+  if (!metadata) return "--";
+  const direct = metadata.motherName;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  const personal = metadata.personal;
+  if (personal && typeof personal === "object") {
+    const nested = (personal as Record<string, unknown>).motherName;
+    if (typeof nested === "string" && nested.trim()) return nested.trim();
+  }
+  return "--";
 };
 
 export default function ProposalHistoryPage({ params }: { params: Params }) {
   const resolvedParams = use(params);
   const proposalId = Number(resolvedParams.proposalId);
   const isValidId = Number.isFinite(proposalId);
+  const { toast } = useToast();
 
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [timeline, setTimeline] = useState<ProposalEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [chatInput, setChatInput] = useState("");
-  const [chatError, setChatError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<BlobPart[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const recordingStartRef = useRef<number | null>(null);
-  const recordingTimerRef = useRef<number | null>(null);
-  const playingAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-
-  const dealerLabel = useMemo(() => {
-    if (!proposal?.dealerId) return "Lojista nao informado";
-    return proposal.dealerId ? `Lojista #${proposal.dealerId}` : "Lojista nao informado";
-  }, [proposal]);
-
-  const chatIdentity = useMemo(
-    () => (isValidId ? `admin-ficha-${proposalId}` : "admin-ficha"),
-    [isValidId, proposalId],
-  );
-
-  const { messages, sendMessage, status: chatStatus, participants } = useRealtimeChannel({
-    channel: REALTIME_CHANNELS.CHAT,
-    identity: chatIdentity,
-    url: getRealtimeUrl(),
-    metadata: { proposalId },
-    historyLimit: 100,
+  const [noteDraft, setNoteDraft] = useState("");
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [dealerIndex, setDealerIndex] = useState<Record<number, { name: string; enterprise?: string }>>({});
+  const [sellerIndex, setSellerIndex] = useState<Record<number, string>>({});
+  const [contractNumberModal, setContractNumberModal] = useState<{
+    open: boolean;
+    nextStatus: ProposalStatus | null;
+    contractNumber: string;
+  }>({
+    open: false,
+    nextStatus: null,
+    contractNumber: "",
   });
 
-  const filteredMessages = useMemo(
-    () =>
-      messages.filter(
-        (msg) =>
-          msg?.meta?.proposalId === proposalId ||
-          msg?.meta?.proposalId === String(proposalId),
-      ),
-    [messages, proposalId],
-  );
+  const metadata = useMemo(() => parseMetadata(proposal?.metadata), [proposal?.metadata]);
+  const motherName = useMemo(() => extractMotherName(metadata), [metadata]);
 
-  const sortedMessages = useMemo(
+  const dealerLabel = useMemo(() => {
+    if (!proposal?.dealerId) return "Loja nao informada";
+    const dealer = dealerIndex[proposal.dealerId];
+    return dealer?.enterprise ?? dealer?.name ?? `Lojista #${proposal.dealerId}`;
+  }, [dealerIndex, proposal?.dealerId]);
+
+  const sellerLabel = useMemo(() => {
+    if (!proposal?.sellerId) return "Vendedor nao informado";
+    return sellerIndex[proposal.sellerId] ?? `Vendedor #${proposal.sellerId}`;
+  }, [proposal?.sellerId, sellerIndex]);
+
+  const timelineItems = useMemo(
     () =>
-      [...filteredMessages].sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      ),
-    [filteredMessages],
+      timeline.map((event) => {
+        const title =
+          event.type === "STATUS_UPDATED"
+            ? `Status: ${event.statusFrom ? statusLabel[event.statusFrom] ?? event.statusFrom : "--"} -> ${event.statusTo ? statusLabel[event.statusTo] ?? event.statusTo : "--"}`
+            : event.type === "CREATED"
+              ? "Ficha criada"
+              : event.type;
+
+        return {
+          color: event.type === "STATUS_UPDATED" ? "blue" : "gray",
+          content: (
+            <div className="space-y-1">
+              <Space size={8} wrap>
+                <Text className="text-xs uppercase text-slate-500">
+                  {formatDateTime(event.createdAt)}
+                </Text>
+                {event.actor ? <Tag>{event.actor}</Tag> : null}
+              </Space>
+              <Text className="block font-semibold text-slate-700">{title}</Text>
+              {event.note ? (
+                <Text className="block text-sm text-slate-500">{event.note}</Text>
+              ) : null}
+            </div>
+          ),
+        };
+      }),
+    [timeline],
   );
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [sortedMessages]);
+    const loadNames = async () => {
+      try {
+        const [dealers, sellers] = await Promise.all([getAllLogistics(), getAllSellers()]);
 
-  type AudioBubbleProps = {
-    id: string;
-    src: string;
-    durationMs?: number;
-    timestamp?: string;
-    isSelf: boolean;
-    isActive: boolean;
-    formatSeconds: (v?: number) => string;
-    formatTime: (v?: string) => string;
-    onPlayRequest: (id: string, audio: HTMLAudioElement, start: () => void) => void;
-    onStop: (id: string, audio: HTMLAudioElement) => void;
-  };
+        const dealerMap = dealers.reduce<Record<number, { name: string; enterprise?: string }>>((acc, dealer) => {
+          if (dealer.id) {
+            const name = dealer.fullName || dealer.enterprise || `Lojista #${dealer.id}`;
+            acc[dealer.id] = {
+              name,
+              enterprise: dealer.enterprise || undefined,
+            };
+          }
+          return acc;
+        }, {});
 
-  const AudioBubble = ({
-    id,
-    src,
-    durationMs,
-    timestamp,
-    isActive,
-    formatSeconds,
-    formatTime,
-    onPlayRequest,
-    onStop,
-  }: AudioBubbleProps) => {
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [progress, setProgress] = useState(0);
-    const [duration, setDuration] = useState<number>(durationMs ? durationMs / 1000 : 0);
-    const [isPlaying, setIsPlaying] = useState(false);
+        const sellerMap = sellers.reduce<Record<number, string>>((acc, seller) => {
+          if (seller.id) {
+            const name = seller.fullName || seller.email || `Vendedor #${seller.id}`;
+            acc[seller.id] = name;
+          }
+          return acc;
+        }, {});
 
-    useEffect(() => {
-      const audio = new Audio(src);
-      audio.preload = "auto";
-      audioRef.current = audio;
-
-      const handleTime = () => {
-        setProgress(audio.currentTime);
-        if (!Number.isNaN(audio.duration) && audio.duration > 0) {
-          setDuration(audio.duration);
-        }
-      };
-      const handleLoaded = () => {
-        if (!Number.isNaN(audio.duration) && audio.duration > 0) {
-          setDuration(audio.duration);
-        }
-      };
-      const handleEnded = () => {
-        setIsPlaying(false);
-        setProgress(0);
-        onStop(id, audio);
-      };
-      audio.addEventListener("timeupdate", handleTime);
-      audio.addEventListener("loadedmetadata", handleLoaded);
-      audio.addEventListener("ended", handleEnded);
-      audio.addEventListener("error", handleEnded);
-
-      return () => {
-        audio.pause();
-        audio.src = "";
-        audio.removeEventListener("timeupdate", handleTime);
-        audio.removeEventListener("loadedmetadata", handleLoaded);
-        audio.removeEventListener("ended", handleEnded);
-        audio.removeEventListener("error", handleEnded);
-      };
-    }, [id, src, onStop]);
-
-    useEffect(() => {
-      if (!isActive && isPlaying && audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        setIsPlaying(false);
-        setProgress(0);
-      }
-    }, [isActive, isPlaying]);
-
-    const togglePlay = () => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      if (isPlaying) {
-        audio.pause();
-        setIsPlaying(false);
-        onStop(id, audio);
-      } else {
-        onPlayRequest(id, audio, () => {
-          audio
-            .play()
-            .then(() => setIsPlaying(true))
-            .catch(() => setIsPlaying(false));
-        });
+        setDealerIndex(dealerMap);
+        setSellerIndex(sellerMap);
+      } catch (err) {
+        console.warn("[Admin Historico] Nao foi possivel carregar nomes de lojas/vendedores", err);
       }
     };
 
-    const progressPct =
-      duration && duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
-
-    return (
-      <div className="flex w-[260px] flex-col rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={togglePlay}
-            className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white shadow ${
-              isPlaying ? "play-pulse" : ""
-            }`}
-            aria-label={isPlaying ? "Pausar audio" : "Reproduzir audio"}
-          >
-            {isPlaying ? (
-              <Square className="size-4" />
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-4 w-4 translate-x-[1px] fill-current">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </button>
-
-          <div className="flex flex-1 flex-col gap-1">
-            <div className="relative h-[3px] overflow-hidden rounded-full bg-white/20">
-              <div
-                className="absolute left-0 top-0 h-full rounded-full bg-white/80 transition-all"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-
-            <div className="flex justify-between text-[10px] text-white/70">
-              <span>{formatSeconds(duration)}</span>
-              <span>{formatTime(timestamp)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const handleSend = useCallback(
-    (evt?: React.FormEvent) => {
-      evt?.preventDefault();
-      const content = chatInput.trim();
-      if (!content || !isValidId) return;
-      const ok = sendMessage(content, {
-        proposalId,
-        fromName: "Admin",
-      });
-      if (!ok) {
-        setChatError("Nao foi possivel enviar. Verifique a conexao.");
-      } else {
-        setChatError(null);
-        setChatInput("");
-      }
-    },
-    [chatInput, isValidId, proposalId, sendMessage],
-  );
-
-  const stopRecording = useCallback(async () => {
-    const recorder = mediaRecorderRef.current;
-    if (!recorder) return;
-    try {
-      recorder.stop();
-    } catch (_err) {
-      // ignore stop errors
-    }
+    void loadNames();
   }, []);
-
-  const handleAudioStop = useCallback(async () => {
-    setIsRecording(false);
-    if (recordingTimerRef.current) {
-      window.clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-    const durationMs =
-      recordingStartRef.current !== null
-        ? Date.now() - recordingStartRef.current
-        : 0;
-    recordingStartRef.current = null;
-    const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-    audioChunksRef.current = [];
-    if (!blob.size) return;
-    try {
-      const dataUrl = await blobToDataUrl(blob);
-      const ok = sendMessage("audio", {
-        proposalId,
-        fromName: "Admin",
-        audio: true,
-        mimeType: blob.type,
-        durationMs,
-        dataUrl,
-      });
-      if (!ok) {
-        setChatError("Nao foi possivel enviar o audio.");
-      }
-    } catch (err) {
-      setChatError(err instanceof Error ? err.message : "Erro ao enviar audio.");
-    }
-  }, [proposalId, sendMessage]);
-
-  const toggleRecording = useCallback(async () => {
-    if (isRecording) {
-      await stopRecording();
-      return;
-    }
-    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setChatError("Audio nao suportado neste dispositivo.");
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-      recordingStartRef.current = Date.now();
-      setRecordingSeconds(0);
-      setIsRecording(true);
-      recordingTimerRef.current = window.setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-      }, 1000);
-
-      recorder.ondataavailable = (event) => {
-        if (event.data?.size) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-      recorder.onerror = () => {
-        setChatError("Erro na gravacao de audio.");
-        setIsRecording(false);
-      };
-      recorder.onstop = () => {
-        handleAudioStop();
-      };
-      recorder.start();
-    } catch (err) {
-      setChatError(err instanceof Error ? err.message : "Permissao de audio negada.");
-      setIsRecording(false);
-    }
-  }, [handleAudioStop, isRecording, stopRecording]);
-
-  useEffect(() => {
-    if (chatError && chatStatus === "connected") {
-      setChatError(null);
-    }
-  }, [chatError, chatStatus]);
-
-  const handlePlayRequest = useCallback(
-    (id: string, audio: HTMLAudioElement, startPlayback: () => void) => {
-      if (playingAudioRef.current && playingAudioRef.current !== audio) {
-        try {
-          playingAudioRef.current.pause();
-          playingAudioRef.current.currentTime = 0;
-        } catch (_err) {
-          // ignore
-        }
-      }
-      playingAudioRef.current = audio;
-      setPlayingId(id);
-      startPlayback();
-    },
-    [],
-  );
-
-  const handleAudioStopPlayback = useCallback(
-    (id: string, audio: HTMLAudioElement) => {
-      if (playingAudioRef.current === audio) {
-        playingAudioRef.current = null;
-        setPlayingId((current) => (current === id ? null : current));
-      }
-    },
-    [],
-  );
 
   useEffect(() => {
     if (!isValidId) return;
@@ -421,365 +249,391 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
     };
   }, [isValidId, proposalId]);
 
-  const chatStatusLabel =
-    chatStatus === "connected"
-      ? "Conectado"
-      : chatStatus === "connecting"
-        ? "Conectando..."
-        : "Offline";
+  useEffect(() => {
+    if (!proposal) return;
+    setNoteDraft(proposal.notes ?? "");
+  }, [proposal?.id, proposal?.notes]);
 
-  const chatStatusBadge =
-    chatStatus === "connected"
-      ? "success"
-      : chatStatus === "connecting"
-        ? "processing"
-        : "error";
+  const reloadTimeline = useCallback(async () => {
+    if (!isValidId) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      const events = await fetchProposalTimeline(proposalId);
+      setTimeline(events);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Nao foi possivel carregar o historico.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isValidId, proposalId]);
+
+  const performStatusUpdate = useCallback(
+    async (nextStatus: ProposalStatus, contractNumber?: string) => {
+      if (!proposal) return;
+      setIsUpdatingStatus(true);
+      try {
+        const note = noteDraft.trim();
+        const updated = await updateProposalStatus(proposal.id, {
+          status: nextStatus,
+          notes: note ? note : undefined,
+          actor: "admin-console",
+          contractNumber,
+        });
+        setProposal(updated);
+        setNoteDraft(updated.notes ?? "");
+        toast({
+          title: "Status atualizado",
+          description: `A ficha agora esta ${statusLabel[nextStatus] ?? nextStatus}.`,
+        });
+        await reloadTimeline();
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Nao foi possivel atualizar o status.";
+        toast({
+          title: "Erro ao atualizar status",
+          description: message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsUpdatingStatus(false);
+      }
+    },
+    [noteDraft, proposal, reloadTimeline, toast],
+  );
+
+  const handleStatusChange = useCallback(
+    (value: ProposalStatus) => {
+      if (!proposal) return;
+      if (value === "PAID" && proposal.status !== "PAID") {
+        setContractNumberModal({
+          open: true,
+          nextStatus: value,
+          contractNumber: "",
+        });
+        return;
+      }
+      void performStatusUpdate(value);
+    },
+    [performStatusUpdate, proposal],
+  );
+
+  const handleContractNumberOk = async () => {
+    if (!contractNumberModal.nextStatus) return;
+    const contractNumber = contractNumberModal.contractNumber.trim() || undefined;
+    const nextStatus = contractNumberModal.nextStatus;
+    setContractNumberModal({ open: false, nextStatus: null, contractNumber: "" });
+    await performStatusUpdate(nextStatus, contractNumber);
+  };
+
+  const handleContractNumberCancel = () => {
+    setContractNumberModal({ open: false, nextStatus: null, contractNumber: "" });
+  };
+
+  const handleSaveMessage = async () => {
+    if (!proposal) return;
+    setIsSavingNote(true);
+    try {
+      const note = noteDraft.trim();
+      const updated = await updateProposalStatus(proposal.id, {
+        status: proposal.status,
+        notes: note || undefined,
+        actor: "admin-console",
+      });
+      setProposal(updated);
+      setNoteDraft(updated.notes ?? "");
+      setMessageOpen(false);
+      toast({
+        title: "Mensagem salva",
+        description: "Atualizamos a mensagem da analise.",
+      });
+      await reloadTimeline();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Nao foi possivel salvar a mensagem.";
+      toast({
+        title: "Erro ao salvar mensagem",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const statusText = proposal?.status ? statusLabel[proposal.status] ?? proposal.status : "--";
+  const financedText = proposal ? formatCurrency(proposal.financedValue) : "--";
+  const updatedAtText = proposal ? formatDateTime(proposal.updatedAt) : "--";
 
   return (
     <>
-      <main className="min-h-screen bg-[#0F456A] px-4 py-6 text-white">
+      <main className="min-h-screen bg-slate-50 px-4 py-6">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
               <Link href="/esteira-de-propostas">
-                <Button
-                  size="small"
-                  className="border border-white/40 bg-white text-[#0F456A] shadow-sm hover:bg-white/90 hover:text-[#0F456A]"
-                >
-                  <ArrowLeft className="size-4" />
-                  Voltar
-                </Button>
+                <Button icon={<ArrowLeft className="size-4" />}>Voltar</Button>
               </Link>
               <div>
-                <Text className="text-xs uppercase tracking-wide !text-white/70">
+                <Text className="text-xs uppercase tracking-wide text-slate-500">
                   Ficha #{isValidId ? proposalId : "--"}
                 </Text>
-                <Title level={2} className="!m-0 text-2xl font-semibold !text-white">
+                <Title level={2} className="!m-0 text-[#134B73]">
                   Historico e dados da ficha
                 </Title>
-                <Paragraph className="!m-0 text-sm !text-white/80">
+                <Paragraph className="!mt-2 text-sm text-slate-600">
                   Visao completa dos dados preenchidos e auditoria da ficha.
                 </Paragraph>
               </div>
             </div>
+
+            <Space wrap>
+              <Select
+                value={proposal?.status}
+                onChange={(value) => handleStatusChange(value as ProposalStatus)}
+                disabled={!proposal || isUpdatingStatus}
+                style={{ minWidth: 180 }}
+                options={statusOptions.map((status) => ({
+                  value: status,
+                  label: statusLabel[status],
+                }))}
+              />
+              <Button
+                icon={<StickyNote className="size-4" />}
+                onClick={() => setMessageOpen(true)}
+                disabled={!proposal || isSavingNote}
+              >
+                Mensagem da analise
+              </Button>
+            </Space>
           </div>
 
+          <Card className="shadow-sm">
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={8}>
+                <Statistic title="Status atual" value={statusText} styles={{ content: valueStyle }} />
+              </Col>
+              <Col xs={24} sm={8}>
+                <Statistic title="Atualizado em" value={updatedAtText} styles={{ content: valueStyle }} />
+              </Col>
+              <Col xs={24} sm={8}>
+                <Statistic title="Valor financiado" value={financedText} styles={{ content: valueStyle }} />
+              </Col>
+            </Row>
+          </Card>
+
           {proposal ? (
-            <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <Card className="rounded-xl shadow-sm" styles={{ body: cardBodyStyle }} style={cardStyle}>
-                <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-white/80">
-                  <User className="size-4" /> Cliente & Contato
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg bg-white/15 px-4 py-3 text-white">
-                    <Text className="text-[11px] uppercase tracking-wide !text-white/70">Cliente</Text>
-                    <Text className="block text-sm font-semibold !text-white">{proposal.customerName}</Text>
-                    <Text className="block text-xs !text-white/70">{maskCpf(proposal.customerCpf)}</Text>
-                    <Text className="block text-xs !text-white/70">{proposal.customerPhone}</Text>
-                    <Text className="block text-xs !text-white/70">{proposal.customerEmail}</Text>
-                  </div>
-                  <div className="rounded-lg bg-white/15 px-4 py-3 text-white">
-                    <Text className="text-[11px] uppercase tracking-wide !text-white/70">Lojista / Empresa</Text>
-                    <Text className="block text-sm font-semibold !text-white">{dealerLabel}</Text>
-                    <Text className="block text-xs !text-white/70">
-                      Responsavel: {proposal.sellerId ? `Responsavel #${proposal.sellerId}` : "Nao informado"}
-                    </Text>
-                  </div>
-                </div>
-              </Card>
+            <>
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={16}>
+                  <Card title="Dados do cliente" className="shadow-sm">
+                    <Descriptions column={2} size="small" styles={{ label: labelStyle }}>
+                      <Descriptions.Item label="Nome">
+                        {proposal.customerName}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="CPF">
+                        {maskCpf(proposal.customerCpf)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Contato">
+                        {proposal.customerPhone}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="E-mail">
+                        {proposal.customerEmail}
+                      </Descriptions.Item>
+                    </Descriptions>
 
-              <Card className="rounded-xl shadow-sm" styles={{ body: cardBodyStyle }} style={cardStyle}>
-                <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-white/80">
-                  <Car className="size-4" /> Veiculo & Valores
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg bg-white/15 px-4 py-3 text-white">
-                    <Text className="text-[11px] uppercase tracking-wide !text-white/70">Veiculo</Text>
-                    <Text className="block text-sm font-semibold !text-white">
-                      {proposal.vehicleBrand} {proposal.vehicleModel}
-                    </Text>
-                    <Text className="block text-xs !text-white/70">
-                      Ano: {proposal.vehicleYear ?? "--"} | Placa: {proposal.vehiclePlate}
-                    </Text>
-                    <Text className="block text-xs !text-white/70">FIPE codigo: {proposal.fipeCode}</Text>
-                  </div>
-                  <div className="rounded-lg bg-white/15 px-4 py-3 text-white">
-                    <Text className="text-[11px] uppercase tracking-wide !text-white/70">Valores</Text>
-                    <Text className="block text-sm font-semibold !text-white">
-                      Financiado: {formatCurrency(proposal.financedValue)}
-                    </Text>
-                    <Text className="block text-xs !text-white/70">FIPE: {formatCurrency(proposal.fipeValue)}</Text>
-                    <Text className="block text-xs !text-white/70">Parcelas: {proposal.termMonths ?? "--"}</Text>
-                  </div>
-                </div>
-              </Card>
+                    <Divider className="my-3" />
 
-              <Card className="rounded-xl shadow-sm lg:col-span-2" styles={{ body: cardBodyStyle }} style={cardStyle}>
-                <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-white/80">
-                  <Building2 className="size-4" /> Endereco & Renda
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="rounded-lg bg-white/15 px-4 py-3 text-white lg:col-span-2">
-                    <Text className="text-[11px] uppercase tracking-wide !text-white/70">Endereco</Text>
-                    <Text className="block text-sm !text-white">
-                      {proposal.address ?? "--"}, {proposal.addressNumber ?? "--"} {proposal.addressComplement ?? ""}
+                    <Text className="text-xs uppercase tracking-wide text-slate-500">
+                      Dados pessoais
                     </Text>
-                    <Text className="block text-xs !text-white/70">
-                      {proposal.neighborhood ?? "--"} | {proposal.city ?? "--"} / {proposal.uf ?? "--"} | CEP: {proposal.cep ?? "--"}
-                    </Text>
-                  </div>
-                  <div className="rounded-lg bg-white/15 px-4 py-3 text-white">
-                    <Text className="text-[11px] uppercase tracking-wide !text-white/70">Renda e notas</Text>
-                    <Text className="block text-sm !text-white">
-                      Renda: {proposal.income ? formatCurrency(proposal.income) : "--"}
-                    </Text>
-                    <Text className="block text-xs !text-white/70">
-                      Outras rendas: {proposal.otherIncomes ? formatCurrency(proposal.otherIncomes) : "--"}
-                    </Text>
-                    {proposal.notes ? (
-                      <Text className="mt-1 block text-xs !text-white/70">Observacoes: {proposal.notes}</Text>
-                    ) : null}
-                  </div>
-                </div>
-              </Card>
-            </section>
+                    <Descriptions column={2} size="small" styles={{ label: labelStyle }} className="mt-2">
+                      <Descriptions.Item label="Nome da mae">
+                        {motherName}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Nascimento">
+                        {formatDate(proposal.customerBirthDate)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="CNH">
+                        {proposal.hasCnh ? "Sim" : "Nao"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Categoria">
+                        {proposal.cnhCategory ? proposal.cnhCategory : "--"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                </Col>
+
+                <Col xs={24} lg={8}>
+                  <Card title="Loja e vendedor" className="shadow-sm">
+                    <Descriptions column={1} size="small" styles={{ label: labelStyle }}>
+                      <Descriptions.Item label="Loja">
+                        {dealerLabel}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="ID loja">
+                        {proposal.dealerId ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Vendedor">
+                        {sellerLabel}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="ID vendedor">
+                        {proposal.sellerId ?? "--"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                </Col>
+              </Row>
+
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={12}>
+                  <Card title="Veiculo e valores" className="shadow-sm">
+                    <Descriptions column={2} size="small" styles={{ label: labelStyle }}>
+                      <Descriptions.Item label="Veiculo" span={2}>
+                        {proposal.vehicleBrand} {proposal.vehicleModel}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Ano">
+                        {proposal.vehicleYear ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Placa">
+                        {proposal.vehiclePlate}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="FIPE codigo">
+                        {proposal.fipeCode}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Valor financiado">
+                        {formatCurrency(proposal.financedValue)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Valor FIPE">
+                        {formatCurrency(proposal.fipeValue)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Entrada">
+                        {formatCurrency(proposal.downPaymentValue)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Parcelas" span={2}>
+                        {proposal.termMonths ?? "--"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                </Col>
+
+                <Col xs={24} lg={12}>
+                  <Card title="Endereco e renda" className="shadow-sm">
+                    <Descriptions column={2} size="small" styles={{ label: labelStyle }}>
+                      <Descriptions.Item label="Endereco" span={2}>
+                        {proposal.address ?? "--"}, {proposal.addressNumber ?? "--"} {proposal.addressComplement ?? ""}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Bairro">
+                        {proposal.neighborhood ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Cidade/UF">
+                        {proposal.city ?? "--"} / {proposal.uf ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="CEP">
+                        {proposal.cep ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Renda">
+                        {proposal.income ? formatCurrency(proposal.income) : "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Outras rendas" span={2}>
+                        {proposal.otherIncomes ? formatCurrency(proposal.otherIncomes) : "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Observacoes" span={2}>
+                        {proposal.notes ?? "--"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                </Col>
+              </Row>
+            </>
           ) : null}
 
-          <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-            <Card className="rounded-xl shadow-sm text-white" styles={{ body: cardBodyStyle }} style={cardStyle}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Text className="text-xs uppercase tracking-wide !text-white/70">Linha do tempo</Text>
-                  <Text className="block text-lg font-semibold !text-white">Auditoria</Text>
-                </div>
-                <Text className="text-[11px] uppercase tracking-wide !text-white/70">
-                  Atualizacoes da ficha
-                </Text>
+          <Card
+            className="shadow-sm"
+            title="Linha do tempo"
+            extra={
+              <Text className="text-xs uppercase tracking-wide text-slate-500">
+                Atualizacoes da ficha
+              </Text>
+            }
+          >
+            {isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} active paragraph={{ rows: 2 }} />
+                ))}
               </div>
-
-              {isLoading ? (
-                <div className="mt-3 space-y-3">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-16 w-full" />
-                  ))}
-                </div>
-              ) : error ? (
-                <Paragraph className="mt-3 text-sm text-destructive">{error}</Paragraph>
-              ) : timeline.length === 0 ? (
-                <Paragraph className="mt-3 text-sm !text-white/80">
-                  Nenhum evento registrado para esta ficha.
-                </Paragraph>
-              ) : (
-                <div className="mt-3 max-h-[420px] space-y-3 overflow-y-auto pr-1 scrollbar-hide">
-                  {timeline.map((event, index) => (
-                    <div
-                      key={event.id}
-                      className="relative overflow-hidden rounded-lg border border-white/10 bg-white/10 p-3 shadow-sm"
-                    >
-                      <span className="absolute -left-[9px] top-4 h-3 w-3 rounded-full border-2 border-[#0F456A] bg-white" />
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1 rounded-full border border-white/20 bg-white/10 p-2 text-white shadow-xs">
-                          <Clock3 className="size-4" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide text-white/70">
-                            <span>{formatDateTime(event.createdAt)}</span>
-                            {event.actor ? <Tag>{event.actor}</Tag> : null}
-                          </div>
-                          <Text className="block text-sm font-semibold !text-white leading-snug">
-                            {event.type === "STATUS_UPDATED"
-                              ? `Status: ${event.statusFrom ? statusLabel[event.statusFrom] ?? event.statusFrom : "--"} -> ${event.statusTo ? statusLabel[event.statusTo] ?? event.statusTo : "--"}`
-                              : event.type === "CREATED"
-                                ? "Ficha criada"
-                                : event.type}
-                          </Text>
-                          {event.note ? (
-                            <Text className="block text-sm !text-white/80 leading-relaxed">{event.note}</Text>
-                          ) : null}
-                        </div>
-                      </div>
-                      {index < timeline.length - 1 ? <Divider className="mt-3" /> : null}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            <Card className="rounded-xl shadow-sm text-white" styles={{ body: cardBodyStyle }} style={cardStyle}>
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <Text className="text-xs uppercase tracking-wide !text-white/70">Chat</Text>
-                  <Text className="block text-lg font-semibold !text-white">Admin e Lojista</Text>
-                  <Paragraph className="!m-0 text-xs !text-white/70">
-                    Canal dedicado desta ficha para comunicacao em tempo real.
-                  </Paragraph>
-                </div>
+            ) : error ? (
+              <Alert type="error" message={error} />
+            ) : timeline.length === 0 ? (
+              <Empty description="Nenhum evento registrado para esta ficha." />
+            ) : (
+              <div style={{ maxHeight: 520, overflowY: "auto", paddingRight: 8 }}>
+                <Timeline items={timelineItems} />
               </div>
-              <div className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-wide text-white/70">
-                <Badge status={chatStatusBadge} text={chatStatusLabel} />
-                <Text className="text-[11px] uppercase tracking-wide !text-white/70">
-                  {participants.length} conectado(s)
-                </Text>
-              </div>
-
-              <div className="flex h-[480px] flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 shadow-inner">
-                <div className="flex-1 space-y-3 overflow-y-auto pr-2 scrollbar-hide">
-                  {sortedMessages.length === 0 ? (
-                    <div className="flex h-48 items-center justify-center text-center text-sm text-white/70">
-                      Nenhuma mensagem ainda. Envie a primeira atualizacao desta ficha.
-                    </div>
-                  ) : (
-                    sortedMessages.map((msg) => {
-                      const isSelf = msg.sender === chatIdentity;
-                      const author =
-                        (msg.meta?.fromName as string | undefined) ??
-                        (isSelf ? "Voce" : msg.sender);
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`flex w-full ${isSelf ? "justify-end" : "justify-start"}`}
-                        >
-                          <Card
-                            className={`max-w-[78%] ${isSelf ? "bg-white/15" : "bg-white/10"}`}
-                            styles={{ body: { padding: 12 } }}
-                            style={{ borderColor: "rgba(255,255,255,0.15)", background: isSelf ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.1)" }}
-                          >
-                            <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-semibold text-white/70">
-                              <Text className="!text-white/80">{author}</Text>
-                              <Text className="!text-white/60">{formatTime(msg.timestamp)}</Text>
-                            </div>
-                            {msg.meta?.audio ? (
-                              <AudioBubble
-                                id={msg.id}
-                                isSelf={isSelf}
-                                src={(msg.meta?.dataUrl as string | undefined) ?? ""}
-                                durationMs={
-                                  typeof msg.meta?.durationMs === "number"
-                                    ? (msg.meta.durationMs as number)
-                                    : undefined
-                                }
-                                timestamp={msg.timestamp}
-                                formatSeconds={formatSeconds}
-                                formatTime={formatTime}
-                                onPlayRequest={handlePlayRequest}
-                                onStop={handleAudioStopPlayback}
-                                isActive={playingId === msg.id}
-                              />
-                            ) : (
-                              <Text className="block whitespace-pre-line break-words leading-relaxed !text-white">
-                                {msg.body}
-                              </Text>
-                            )}
-                          </Card>
-                        </div>
-                      );
-                    })
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                <form
-                  onSubmit={handleSend}
-                  className="flex items-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-3 py-2"
-                >
-                  <Button
-                    type="text"
-                    shape="circle"
-                    size="small"
-                    className={`h-10 w-10 rounded-full text-white hover:bg-white/20 ${
-                      isRecording ? "animate-pulse" : ""
-                    }`}
-                    onClick={toggleRecording}
-                    icon={isRecording ? <Square className="size-5" /> : <Mic className="size-5" />}
-                  />
-                  <div className="relative flex-1">
-                    <Input.TextArea
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder={isRecording ? "Gravando..." : "Digite uma mensagem"}
-                      className="w-full"
-                      variant="borderless"
-                      styles={{
-                        textarea: {
-                          background: "rgba(255,255,255,0.15)",
-                          color: "#fff",
-                          borderRadius: 12,
-                          padding: "8px 12px",
-                        },
-                      }}
-                      disabled={chatStatus === "connecting" || isRecording}
-                      autoSize={{ minRows: 1, maxRows: 3 }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          handleSend();
-                          e.preventDefault();
-                        }
-                      }}
-                    />
-                    {isRecording ? (
-                      <div className="pointer-events-none absolute right-3 top-1/2 flex h-4 -translate-y-1/2 items-end gap-[3px]">
-                        {[0, 1, 2, 3, 4].map((idx) => (
-                          <span
-                            key={idx}
-                            className="wave-bar h-4 w-[3px] rounded-full bg-rose-300"
-                            style={{ animationDelay: `${idx * 0.12}s` }}
-                          />
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                  <Button
-                    htmlType="submit"
-                    shape="circle"
-                    size="small"
-                    className="h-10 w-10 rounded-full border border-white/40 bg-white/20 text-white shadow-sm hover:bg-white/30"
-                    disabled={(!chatInput.trim() && !isRecording) || chatStatus === "connecting"}
-                    icon={<Send className="size-4" />}
-                  />
-                </form>
-                <div className="text-[11px] text-white/70">
-                  {isRecording
-                    ? `Gravando audio${recordingSeconds ? ` (${recordingSeconds}s)` : ""}`
-                    : chatError ?? ""}
-                </div>
-              </div>
-            </Card>
-          </section>
+            )}
+          </Card>
         </div>
       </main>
-      <style jsx global>{`
-        @keyframes chat-wave {
-          0% {
-            transform: scaleY(0.6);
-            opacity: 0.6;
-          }
-          50% {
-            transform: scaleY(1.2);
-            opacity: 1;
-          }
-          100% {
-            transform: scaleY(0.6);
-            opacity: 0.6;
-          }
-        }
-        .wave-bar {
-          animation: chat-wave 1s ease-in-out infinite;
-        }
-        @keyframes chat-play-pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35);
-          }
-          70% {
-            box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
-          }
-        }
-        .play-pulse {
-          animation: chat-play-pulse 1.4s ease-out infinite;
-        }
-      `}</style>
+
+      <Modal
+        open={messageOpen}
+        onCancel={() => setMessageOpen(false)}
+        title="Mensagem para a loja"
+        okText={isSavingNote ? "Salvando..." : "Salvar mensagem"}
+        onOk={handleSaveMessage}
+        okButtonProps={{ disabled: !proposal || isSavingNote }}
+        cancelText="Fechar"
+        cancelButtonProps={{ disabled: isSavingNote }}
+      >
+        <div className="space-y-2">
+          <Input.TextArea
+            value={noteDraft}
+            onChange={(event) => setNoteDraft(event.target.value)}
+            placeholder="Ex.: Santander recusou, BV recusou, Banco do Brasil em analise."
+            autoSize={{ minRows: 4 }}
+            disabled={isSavingNote}
+          />
+          <Text className="text-xs text-slate-500">
+            A loja vera essa mensagem em qualquer status.
+          </Text>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Inserir numero do contrato"
+        open={contractNumberModal.open}
+        onOk={handleContractNumberOk}
+        onCancel={handleContractNumberCancel}
+        okText="Confirmar"
+        cancelText="Cancelar"
+        confirmLoading={isUpdatingStatus}
+      >
+        <div className="space-y-4 py-4">
+          <p>
+            A proposta sera marcada como paga. Insira o numero do contrato ou deixe em branco
+            para gerar automaticamente.
+          </p>
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Numero do contrato
+            </label>
+            <Input
+              placeholder="Deixe em branco para gerar automaticamente"
+              value={contractNumberModal.contractNumber}
+              onChange={(e) =>
+                setContractNumberModal((prev) => ({
+                  ...prev,
+                  contractNumber: e.target.value,
+                }))
+              }
+              onPressEnter={handleContractNumberOk}
+              autoFocus
+            />
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

@@ -442,6 +442,7 @@ export default function Step4Review({
           operationType: formData.operationType,
           vehicleCategory: formData.vehicleCategory,
           additionalInfo: formData.additionalInfo,
+          motherName: formData.personal.motherName,
           vehicleCodes: {
             brandCode: formData.vehicle.brandCode,
             modelCode: formData.vehicle.modelCode,

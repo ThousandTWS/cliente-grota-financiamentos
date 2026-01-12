@@ -145,6 +145,53 @@ export async function generateContractReportPDF(
 
   // Parcelas
   if (contract.installments.length > 0) {
+    const tableWidth = pageWidth - marginX * 2;
+    const columnWidths = [60, 120, 140, tableWidth - 320];
+    const headerHeight = 22;
+    const rowHeight = 20;
+
+    const drawHeader = () => {
+      if (cursorY + headerHeight > pageHeight - 40) {
+        doc.addPage();
+        cursorY = 40;
+      }
+      doc.setFillColor(245, 248, 252);
+      doc.rect(marginX, cursorY, tableWidth, headerHeight, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(marginX, cursorY, tableWidth, headerHeight);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+      let colX = marginX + 8;
+      doc.text("Numero", colX, cursorY + 14);
+      colX += columnWidths[0];
+      doc.text("Valor", colX, cursorY + 14);
+      colX += columnWidths[1];
+      doc.text("Vencimento", colX, cursorY + 14);
+      colX += columnWidths[2];
+      doc.text("Status", colX, cursorY + 14);
+      cursorY += headerHeight;
+    };
+
+    const drawRow = (values: [string, string, string, string]) => {
+      if (cursorY + rowHeight > pageHeight - 40) {
+        doc.addPage();
+        cursorY = 40;
+        drawHeader();
+      }
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(marginX, cursorY, tableWidth, rowHeight);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+      let colX = marginX + 8;
+      values.forEach((value, index) => {
+        doc.text(value, colX, cursorY + 13);
+        colX += columnWidths[index];
+      });
+      cursorY += rowHeight;
+    };
+
     ensureSpace(60);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
@@ -152,27 +199,16 @@ export async function generateContractReportPDF(
     doc.text("Parcelas", marginX, cursorY);
     cursorY += 24;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
-
-    contract.installments.slice(0, 10).forEach((installment) => {
-      ensureSpace(20);
+    drawHeader();
+    contract.installments.forEach((installment) => {
       const status = installment.paid ? "Pago" : "Pendente";
-      doc.text(
-        `Parcela ${installment.number}: ${formatCurrency(installment.amount)} - Vencimento: ${formatDate(installment.dueDate)} - ${status}`,
-        marginX,
-        cursorY,
-        { maxWidth: pageWidth - marginX * 2 },
-      );
-      cursorY += 20;
+      drawRow([
+        String(installment.number),
+        formatCurrency(installment.amount),
+        formatDate(installment.dueDate),
+        status,
+      ]);
     });
-
-    if (contract.installments.length > 10) {
-      ensureSpace(20);
-      doc.text(`... e mais ${contract.installments.length - 10} parcelas`, marginX, cursorY);
-      cursorY += 20;
-    }
     cursorY += 12;
   }
 

@@ -108,6 +108,13 @@ const formatPhoneForWhatsApp = (phone?: string | null) => {
   return digits.length >= 10 ? `55${digits}` : "";
 };
 
+const primaryActionClass =
+  "border-[#134B73] bg-[#134B73] text-white hover:bg-[#0F456A] hover:border-[#0F456A]";
+const secondaryActionClass =
+  "border-[#134B73] text-[#134B73] hover:border-[#0F456A] hover:text-[#0F456A]";
+const ghostActionClass =
+  "border-slate-200 text-slate-600 hover:border-[#134B73] hover:text-[#134B73]";
+
 export default function ContractDetailsPage() {
   const params = useParams();
   const rawId = params?.contractId;
@@ -397,7 +404,8 @@ export default function ContractDetailsPage() {
           <div className="flex gap-2">
             <Button
               type="default"
-              icon={<FileText />}
+              className={primaryActionClass}
+              icon={<FileText className="size-4" />}
               onClick={async () => {
                 if (!contract) return;
                 try {
@@ -413,7 +421,8 @@ export default function ContractDetailsPage() {
             </Button>
             <Button
               type="default"
-              icon={<FileText />}
+              className={secondaryActionClass}
+              icon={<FileText className="size-4" />}
               onClick={async () => {
                 if (!contract) return;
                 try {
@@ -428,7 +437,7 @@ export default function ContractDetailsPage() {
               Gerar Word
             </Button>
             <Link href="/cobrancas">
-              <Button>Voltar para cobrancas</Button>
+              <Button type="default" className={ghostActionClass}>Voltar para cobrancas</Button>
             </Link>
           </div>
         </div>
@@ -964,26 +973,79 @@ export default function ContractDetailsPage() {
               label: "Cliente",
               children: (
                 <Card>
-                  <Descriptions column={2}>
+                  <Descriptions title="Dados do cliente" column={2}>
                     <Descriptions.Item label="Nome">
                       {contract.customer.name}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Documento">
+                    <Descriptions.Item label="CPF/CNPJ">
                       {contract.customer.document}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Telefones">
+                    <Descriptions.Item label="Nascimento">
+                      {contract.customer.birthDate
+                        ? formatDate(contract.customer.birthDate)
+                        : "--"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Contato">
                       {contract.customer.phone ?? "--"}
                     </Descriptions.Item>
                     <Descriptions.Item label="E-mail">
                       {contract.customer.email ?? "--"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Endereco">
-                      {contract.customer.address ?? "--"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Cidade">
-                      {contract.customer.city ?? "--"} / {contract.customer.state ?? "--"}
+                      {contract.customer.address ?? "--"}, {contract.customer.city ?? "--"}{" "}
+                      / {contract.customer.state ?? "--"}
                     </Descriptions.Item>
                   </Descriptions>
+                  <div className="mt-4">
+                    <Typography.Text className="text-xs uppercase tracking-wide text-slate-500">
+                      Dados profissionais
+                    </Typography.Text>
+                    <Descriptions column={2} className="mt-2">
+                      <Descriptions.Item label="Empresa">
+                        {contract.professionalData?.enterprise ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Funcao">
+                        {contract.professionalData?.function ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Data de admissao">
+                        {contract.professionalData?.admissionDate
+                          ? formatDate(contract.professionalData.admissionDate)
+                          : "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Estado civil">
+                        {contract.professionalData?.maritalStatus ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Renda">
+                        {contract.professionalData?.income
+                          ? formatCurrency(contract.professionalData.income)
+                          : "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Outras rendas">
+                        {contract.professionalData?.otherIncomes
+                          ? formatCurrency(contract.professionalData.otherIncomes)
+                          : "--"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </div>
+                  <div className="mt-4">
+                    <Typography.Text className="text-xs uppercase tracking-wide text-slate-500">
+                      Dados da loja
+                    </Typography.Text>
+                    <Descriptions column={2} className="mt-2">
+                      <Descriptions.Item label="Empresa">
+                        {contract.dealer?.enterprise ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Razao Social">
+                        {contract.dealer?.fullNameEnterprise ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="CNPJ">
+                        {contract.dealer?.cnpj ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Telefone">
+                        {contract.dealer?.phone ?? "--"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </div>
                 </Card>
               ),
             },

@@ -158,7 +158,7 @@ public class BillingService {
 
         LocalDate firstDueDate = resolveDate(metadata, "firstDueDate", "vencimento");
         if (firstDueDate == null) {
-            firstDueDate = startDate.plusMonths(1);
+            firstDueDate = startDate;
         }
 
         List<BillingInstallment> installments = buildInstallments(contract, installmentValue, installmentsTotal, firstDueDate);
@@ -590,12 +590,12 @@ public class BillingService {
         List<BillingInstallment> generated = new ArrayList<>();
         LocalDate firstDueDate = dto.firstDueDate() != null
                 ? dto.firstDueDate()
-                : dto.startDate().plusMonths(1);
+                : dto.startDate();
         for (int i = 0; i < dto.installmentsTotal(); i++) {
             BillingInstallment installment = new BillingInstallment();
             installment.setContract(contract);
             installment.setNumber(i + 1);
-            installment.setDueDate(firstDueDate.plusMonths(i));
+            installment.setDueDate(firstDueDate.plusDays(30L * i));
             installment.setAmount(dto.installmentValue());
             installment.setPaid(false);
             generated.add(installment);
@@ -615,7 +615,7 @@ public class BillingService {
             BillingInstallment installment = new BillingInstallment();
             installment.setContract(contract);
             installment.setNumber(i + 1);
-            installment.setDueDate(firstDueDate.plusMonths(i));
+            installment.setDueDate(firstDueDate.plusDays(30L * i));
             installment.setAmount(installmentValue);
             installment.setPaid(false);
             generated.add(installment);
