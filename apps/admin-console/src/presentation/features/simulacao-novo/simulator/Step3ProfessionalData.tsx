@@ -3,6 +3,7 @@ import { Button, Card, DatePicker, Input, Select, Typography } from "antd";
 import { ArrowRight, ArrowLeft, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 import { formatNumberToBRL, parseBRL } from "@/lib/formatters";
 import { SimulatorFormData, UpdateSimulatorFormData } from "../hooks/useSimulator";
 
@@ -37,6 +38,11 @@ type CityOption = {
 };
 
 const CITY_CACHE_KEY = "ibge-cities-v1";
+const ADMISSION_DATE_FORMAT = "DD/MM/YYYY";
+const ADMISSION_DATE_STORAGE_FORMAT = "YYYY-MM-DD";
+const ADMISSION_DATE_PARSE_FORMATS = [ADMISSION_DATE_FORMAT, ADMISSION_DATE_STORAGE_FORMAT];
+
+dayjs.extend(customParseFormat);
 
 const buildCityOption = (city: IbgeCity) => {
   const name = city.nome?.trim() ?? "";
@@ -47,6 +53,14 @@ const buildCityOption = (city: IbgeCity) => {
   if (!name || !uf) return null;
   const label = `${name}/${uf}`;
   return { label, value: label };
+};
+
+const parseAdmissionDateInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const parsed = dayjs(trimmed, ADMISSION_DATE_PARSE_FORMATS, true);
+  if (!parsed.isValid()) return null;
+  return parsed.format(ADMISSION_DATE_STORAGE_FORMAT);
 };
 
 export default function Step3ProfessionalData({
@@ -211,19 +225,25 @@ export default function Step3ProfessionalData({
             <div className="space-y-2">
               <Typography.Text>Data de Admissao</Typography.Text>
               <DatePicker
-                format="DD/MM/YYYY"
+                format={ADMISSION_DATE_FORMAT}
                 value={
                   formData.professional.admissionDate
-                    ? dayjs(formData.professional.admissionDate, "YYYY-MM-DD")
+                    ? dayjs(formData.professional.admissionDate, ADMISSION_DATE_STORAGE_FORMAT)
                     : null
                 }
                 onChange={(date) => {
                   updateFormData("professional", {
-                    admissionDate: date ? date.format("YYYY-MM-DD") : "",
+                    admissionDate: date ? date.format(ADMISSION_DATE_STORAGE_FORMAT) : "",
                   });
+                }}
+                onBlur={(event) => {
+                  const parsed = parseAdmissionDateInput(event.currentTarget.value);
+                  if (parsed === null) return;
+                  updateFormData("professional", { admissionDate: parsed });
                 }}
                 placeholder="dd/mm/aaaa"
                 className={`w-full ${blueInputClass}`}
+                inputReadOnly={false}
                 getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}
               />
             </div>
