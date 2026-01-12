@@ -66,12 +66,38 @@ const valueStyle = { color: "#0F456A", fontWeight: 600 };
 
 const formatDate = (value?: string | null) => {
   if (!value) return "--";
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  const date = match
-    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-    : new Date(value);
-  if (Number.isNaN(date.getTime())) return "--";
-  return DATE_FORMATTER.format(date);
+  const trimmed = value.trim();
+  if (!trimmed) return "--";
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const date = new Date(
+      Number(isoMatch[1]),
+      Number(isoMatch[2]) - 1,
+      Number(isoMatch[3]),
+    );
+    return Number.isNaN(date.getTime()) ? "--" : DATE_FORMATTER.format(date);
+  }
+
+  const brMatch = trimmed.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/);
+  if (brMatch) {
+    const date = new Date(
+      Number(brMatch[3]),
+      Number(brMatch[2]) - 1,
+      Number(brMatch[1]),
+    );
+    return Number.isNaN(date.getTime()) ? trimmed : DATE_FORMATTER.format(date);
+  }
+
+  if (/^\d{10,13}$/.test(trimmed)) {
+    const timestamp = Number(trimmed);
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime()) ? trimmed : DATE_FORMATTER.format(date);
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return trimmed;
+  return DATE_FORMATTER.format(parsed);
 };
 
 const formatCurrency = (value?: number | null) =>
