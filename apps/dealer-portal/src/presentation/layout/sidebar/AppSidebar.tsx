@@ -200,7 +200,7 @@ const AppSidebar = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-[#134B73] text-white h-screen transition-all duration-300 ease-in-out z-50 border-r border-[#0f3c5a] 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 dealer-sidebar text-white h-screen transition-all duration-300 ease-in-out z-50 
         ${isExpanded || isMobileOpen
           ? "w-[290px]"
           : isHovered
@@ -287,7 +287,7 @@ const AppSidebar = () => {
             </div>
           </div>
         </nav>
-        <div className="mt-auto py-4 text-xs text-white/80 space-y-2 border-t border-[#0f3c5a]">
+        <div className="mt-auto py-4 text-xs text-white/80 space-y-2 border-t border-white/10">
           <div className="flex items-center justify-between">
             <span>Versão</span>
             <span className="font-semibold">2.0.2</span>

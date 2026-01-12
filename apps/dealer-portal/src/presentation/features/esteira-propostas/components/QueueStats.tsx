@@ -1,7 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/presentation/ui/card";
-import { Skeleton } from "@/presentation/ui/skeleton";
+import { Card, Progress, Skeleton, Typography } from "antd";
 import { ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { StatusBadge } from "./status-badge";
+
+const { Text } = Typography;
+
+const statusColors: Record<ProposalStatus, string> = {
+  SUBMITTED: "#0EA5E9",
+  PENDING: "#F59E0B",
+  APPROVED: "#10B981",
+  REJECTED: "#EF4444",
+  PAID: "#14B8A6",
+};
 
 export type ProposalsDashboardSummary = {
   overallTotal: number;
@@ -28,69 +37,50 @@ type QueueStatsProps = {
 
 export function QueueStats({ summary, isLoading }: QueueStatsProps) {
   const tickets = summary.myTickets;
+  const total = summary.overallTotal;
 
-  if (isLoading && summary.overallTotal === 0) {
+  if (isLoading && total === 0) {
     return (
-      <Card className="h-full">
-        <CardHeader>
-          <Skeleton className="h-5 w-32" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-10 w-full" />
-          ))}
-        </CardContent>
+      <Card className="h-full" data-oid="queue-stats">
+        <Skeleton active title paragraph={{ rows: 3 }} />
       </Card>
     );
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">
-              Minhas fichas
-            </p>
-            <CardTitle className="text-3xl font-semibold">
-              {tickets[0]?.value ?? 0}
-            </CardTitle>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground uppercase">
-              Enviadas
-            </p>
-            <p className="text-lg font-semibold">
-              {summary.overallTotal ?? tickets[0]?.total ?? 0}
-            </p>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 pt-2">
-        {tickets.map((ticket, index) => (
-          <div
-            key={`${ticket.label}-${index}`}
-            className="flex items-center justify-between rounded-md border px-3 py-2"
-          >
-            <div className="flex items-center gap-3">
-              <StatusBadge
-                status={ticket.status ?? ticket.label}
-                className="shadow-none px-3 py-1 text-xs"
-              >
-                {ticket.label}
-              </StatusBadge>
-            </div>
-            <div className="text-sm font-semibold">
-              {ticket.value}
-              {ticket.total ? (
-                <span className="ml-1 text-xs font-medium text-muted-foreground">
-                  / {ticket.total}
+    <Card className="h-full overflow-hidden" data-oid="queue-stats" styles={{ body: { padding: 0 } }}>
+      <div className="dealer-hero-card px-5 py-6 text-white">
+        <Text className="text-xs font-semibold uppercase tracking-[0.4em] !text-white/80">
+          Fluxo do lojista
+        </Text>
+        <p className="text-4xl font-semibold text-white">{total}</p>
+        <Text className="text-sm !text-white/80">Ficha(s) na sua esteira</Text>
+      </div>
+      <div className="space-y-3 border-t border-slate-200/60 p-4">
+        {tickets.map((ticket) => {
+          const percent = total ? Math.round((ticket.value / total) * 100) : 0;
+          const strokeColor = ticket.status ? statusColors[ticket.status] : "var(--dealer-accent)";
+          return (
+            <div key={ticket.label} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <StatusBadge status={ticket.status ?? ticket.label} className="px-3 py-1 text-xs">
+                  {ticket.label}
+                </StatusBadge>
+                <span className="text-sm font-semibold text-slate-700">
+                  {ticket.value} / {ticket.total ?? total}
                 </span>
-              ) : null}
+              </div>
+              <Progress
+                percent={percent}
+                showInfo={false}
+                strokeColor={strokeColor}
+                railColor="#e5e7eb"
+                size="small"
+              />
             </div>
-          </div>
-        ))}
-      </CardContent>
+          );
+        })}
+      </div>
     </Card>
   );
 }

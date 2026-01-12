@@ -1,17 +1,11 @@
+import { useMemo } from "react";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/presentation/ui/table";
-import { ScrollArea } from "@/presentation/ui/scroll-area";
-import { Skeleton } from "@/presentation/ui/skeleton";
+import { Card, Empty, Skeleton, Typography } from "antd";
 import { Clock3 } from "lucide-react";
 import { StatusBadge } from "./status-badge";
 import { ProposalTimelineSheet } from "./ProposalTimelineSheet";
+
+const { Text } = Typography;
 
 type ProposalsTableProps = {
   proposals: Proposal[];
@@ -55,149 +49,138 @@ export function ProposalsTable({
   dealersById = {},
   sellersById = {},
 }: ProposalsTableProps) {
+  const cards = useMemo(() => {
+    return proposals.map((proposal) => {
+      const dealerLabel = proposal.dealerId
+        ? dealersById[proposal.dealerId]?.enterprise ??
+          dealersById[proposal.dealerId]?.name ??
+          `Lojista #${proposal.dealerId}`
+        : "Lojista nao informado";
+      const sellerLabel = proposal.sellerId
+        ? sellersById[proposal.sellerId] ?? `Vendedor #${proposal.sellerId}`
+        : "Vendedor nao informado";
+
+      return {
+        ...proposal,
+        dealerLabel,
+        sellerLabel,
+      };
+    });
+  }, [dealersById, proposals, sellersById]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Card key={`skeleton-${index}`} className="dealer-proposal-card">
+            <Skeleton active title paragraph={{ rows: 4 }} />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (cards.length === 0) {
+    return (
+      <Card className="dealer-proposal-card">
+        <Empty description="Nenhuma proposta encontrada com os filtros selecionados." />
+      </Card>
+    );
+  }
+
   return (
-    <div className="rounded-lg border bg-card shadow-sm">
-      <ScrollArea className="w-full">
-        <Table className="min-w-[1050px]">
-          <TableHeader>
-            <TableRow className="bg-slate-50 text-slate-600">
-              <TableHead className="w-12" />
-              <TableHead className="font-semibold">Nome / CPF</TableHead>
-              <TableHead className="font-semibold">Valor</TableHead>
-              <TableHead className="font-semibold">Lojista</TableHead>
-              <TableHead className="font-semibold">FIPE</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold">Enviado / Operador</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <TableRow key={`skeleton-${index}`}>
-                    {Array.from({ length: 7 }).map((__, colIndex) => (
-                      <TableCell key={colIndex}>
-                        <Skeleton className="h-12 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : proposals.map((proposal) => {
-                  const hasNote = Boolean(proposal.notes?.trim());
-                  return (
-                    <TableRow
-                      key={proposal.id}
-                      className="align-top border-b hover:bg-slate-50/60 transition-colors"
-                    >
-                      <TableCell className="pt-5">
-                        <div className="flex items-start justify-center">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 bg-slate-100">
-                            <Clock3 className="size-4" />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="pt-5">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold uppercase tracking-tight text-[#134B73]">
-                            {proposal.customerName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {maskCpf(proposal.customerCpf)}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="pt-5">
-                        <div className="space-y-1 text-sm">
-                          <p className="text-xs text-muted-foreground">
-                            Valor financiado
-                          </p>
-                          <p className="text-sm font-semibold text-emerald-600">
-                            {formatCurrency(proposal.financedValue)}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="pt-5">
-                        <div className="text-sm">
-                          <p className="font-medium">
-                            {proposal.dealerId
-                              ? dealersById[proposal.dealerId]?.name ??
-                                `Lojista #${proposal.dealerId}`
-                              : "Lojista não informado"}
-                          </p>
-                          {proposal.dealerId && dealersById[proposal.dealerId]?.enterprise ? (
-                            <p className="text-xs text-muted-foreground">
-                              {dealersById[proposal.dealerId]?.enterprise}
-                            </p>
-                          ) : null}
-                          {proposal.vehiclePlate ? (
-                            <p className="text-xs text-muted-foreground">
-                              Placa {proposal.vehiclePlate}
-                            </p>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="pt-5">
-                        <div className="text-sm">
-                          <p className="text-xs text-muted-foreground">FIPE</p>
-                          <p className="font-semibold">
-                            {formatCurrency(proposal.fipeValue)}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="pt-5">
-                        <div className="space-y-2 rounded-md border px-3 py-2 text-sm">
-                          <StatusBadge
-                            status={proposal.status}
-                            className="shadow-none px-2.5 py-1 text-[11px]"
-                          >
-                            {statusLabels[proposal.status]}
-                          </StatusBadge>
-                          <p className="text-xs">
-                            Atualizado em {formatDateTime(proposal.updatedAt)}
-                          </p>
-                          <p className="text-xs font-semibold uppercase">
-                            Equipe Grota
-                          </p>
-                          <ProposalTimelineSheet proposalId={proposal.id} />
-                          {proposal.status === "PENDING" || hasNote ? (
-                            <div className="rounded-md border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">
-                              <p className="mb-1 text-[10px] font-semibold uppercase text-slate-500">
-                                Mensagem da analise
-                              </p>
-                              <p>
-                                {hasNote
-                                  ? proposal.notes
-                                  : "Nenhuma mensagem registrada ainda."}
-                              </p>
-                            </div>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="pt-5">
-                        <div className="space-y-1 text-sm">
-                          <p className="font-semibold">
-                            {formatDateTime(proposal.createdAt)}
-                          </p>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">
-                            {proposal.sellerId
-                              ? sellersById[proposal.sellerId] ??
-                                `Vendedor #${proposal.sellerId}`
-                              : "Vendedor não informado"}
-                          </p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-            {!isLoading && proposals.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  Nenhuma proposta encontrada com os filtros selecionados.
-                </TableCell>
-              </TableRow>
-            ) : null}
-          </TableBody>
-        </Table>
-      </ScrollArea>
+    <div className="space-y-4">
+      {cards.map((proposal, index) => {
+        const hasNote = Boolean(proposal.notes?.trim());
+        const showNote = proposal.status === "PENDING" || hasNote;
+        return (
+          <Card
+            key={proposal.id}
+            className="dealer-proposal-card animate-in fade-in slide-in-from-bottom-2 duration-500"
+            style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
+          >
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <Text className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                  {proposal.customerCpf ? maskCpf(proposal.customerCpf) : "CPF nao informado"}
+                </Text>
+                <p className="text-lg font-semibold text-[#134B73]">
+                  {proposal.customerName || "--"}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                  <Clock3 className="size-4" />
+                  {formatDateTime(proposal.createdAt)}
+                </div>
+                <StatusBadge status={proposal.status} className="px-3 py-1 text-xs">
+                  {statusLabels[proposal.status]}
+                </StatusBadge>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <Text className="text-xs text-muted-foreground">Lojista</Text>
+                    <p className="font-semibold text-slate-700">{proposal.dealerLabel}</p>
+                    {proposal.vehiclePlate ? (
+                      <Text className="text-xs text-muted-foreground">
+                        Placa {proposal.vehiclePlate}
+                      </Text>
+                    ) : null}
+                  </div>
+                  <div>
+                    <Text className="text-xs text-muted-foreground">Operador</Text>
+                    <p className="font-semibold text-slate-700">{proposal.sellerLabel}</p>
+                  </div>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm">
+                    <Text className="text-xs text-muted-foreground">Valor financiado</Text>
+                    <p className="font-semibold text-emerald-600">
+                      {formatCurrency(proposal.financedValue)}
+                    </p>
+                  </div>
+                  <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm">
+                    <Text className="text-xs text-muted-foreground">Valor FIPE</Text>
+                    <p className="font-semibold text-slate-700">
+                      {formatCurrency(proposal.fipeValue)}
+                    </p>
+                  </div>
+                  <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm">
+                    <Text className="text-xs text-muted-foreground">Status atualizado</Text>
+                    <p className="font-semibold text-slate-700">
+                      {formatDateTime(proposal.updatedAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm">
+                  <Text className="text-xs text-muted-foreground">Equipe Grota</Text>
+                  <p className="font-semibold text-slate-700">Acompanhamento central</p>
+                </div>
+                <ProposalTimelineSheet proposalId={proposal.id} />
+                {showNote ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                    <p className="mb-1 text-[10px] font-semibold uppercase text-slate-500">
+                      Mensagem da analise
+                    </p>
+                    <p>
+                      {hasNote
+                        ? proposal.notes
+                        : "Nenhuma mensagem registrada ainda."}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }

@@ -1,14 +1,8 @@
-import { Input } from "@/presentation/ui/input";
-import { Button } from "@/presentation/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/presentation/ui/select";
-import { Filter, Plus, RefreshCw, Search } from "lucide-react";
 import { ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
+import { Button, Input, Select, Typography } from "antd";
+import { Filter, Plus, RefreshCw, Search } from "lucide-react";
+
+const { Text } = Typography;
 
 type QueueFiltersProps = {
   filters: {
@@ -37,7 +31,7 @@ export function QueueFilters({
   onCreate,
   isRefreshing,
 }: QueueFiltersProps) {
-  const handleResetFilters = () => {
+  const handleReset = () => {
     onFiltersChange({
       search: "",
       operatorId: undefined,
@@ -48,140 +42,90 @@ export function QueueFilters({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
-        <div className="flex flex-col gap-4 lg:flex-row">
-          <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Nome/CPF
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Pesquise por nome do cliente ou CPF"
-                value={filters.search ?? ""}
-                onChange={(event) => onFiltersChange({ search: event.target.value })}
-                className="pl-9"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Operador
-            </label>
+    <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+        <div className="flex-1 space-y-1">
+          <Text className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Foco no cliente
+          </Text>
+          <Input
+            placeholder="Pesquise por cliente, CPF ou placa"
+            value={filters.search}
+            onChange={(event) => onFiltersChange({ search: event.target.value })}
+            prefix={<Search className="size-4 text-muted-foreground" />}
+            allowClear
+          />
+        </div>
+        <div className="grid flex-1 grid-cols-2 gap-3 lg:grid-cols-3">
+          <div className="space-y-1">
+            <Text className="text-xs font-medium text-muted-foreground">Operador</Text>
             <Select
               value={filters.operatorId ?? "all"}
-              onValueChange={(value) =>
-                onFiltersChange({
-                  operatorId: value === "all" ? undefined : value,
-                })
+              onChange={(value) =>
+                onFiltersChange({ operatorId: value === "all" ? undefined : value })
               }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="(todos)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">(todos)</SelectItem>
-                {operators.map((operator) => (
-                  <SelectItem key={operator.value} value={operator.value}>
-                    {operator.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={[{ value: "all", label: "(todos)" }, ...operators]}
+              className="w-full"
+              showSearch
+              optionFilterProp="label"
+            />
           </div>
-
-          <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Lojista
-            </label>
+          <div className="space-y-1">
+            <Text className="text-xs font-medium text-muted-foreground">Lojista</Text>
             <Select
               value={filters.dealerId ?? "all"}
-              onValueChange={(value) =>
-                onFiltersChange({
-                  dealerId: value === "all" ? undefined : value,
-                })
+              onChange={(value) =>
+                onFiltersChange({ dealerId: value === "all" ? undefined : value })
               }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="(todos)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">(todos)</SelectItem>
-                {dealers.map((dealer) => (
-                  <SelectItem key={dealer.value} value={dealer.value}>
-                    {dealer.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={[{ value: "all", label: "(todos)" }, ...dealers]}
+              className="w-full"
+              showSearch
+              optionFilterProp="label"
+            />
           </div>
-        </div>
-
-        <div className="mt-2 flex flex-col gap-4 lg:mt-4 lg:flex-row">
-          <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Status
-            </label>
-            <Select
-              value={filters.status}
-              onValueChange={(value) =>
-                onFiltersChange({
-                  status: value as ProposalStatus | "ALL",
-                })
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="(todos)" />
-              </SelectTrigger>
-              <SelectContent>
-                {statuses.map((status) => (
-                  <SelectItem key={status.value} value={status.value}>
-                    {status.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Código Lojista
-            </label>
+          <div className="space-y-1">
+            <Text className="text-xs font-medium text-muted-foreground">Codigo lojista</Text>
             <Input
               placeholder="0000"
               value={filters.dealerCode ?? ""}
               onChange={(event) =>
                 onFiltersChange({ dealerCode: event.target.value })
               }
+              allowClear
             />
           </div>
+        </div>
+      </div>
 
-          <div className="mt-6 flex w-full flex-col items-stretch gap-2 self-end sm:flex-row sm:justify-end lg:mt-6 lg:w-auto">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className="size-4" />
-              Atualizar
-            </Button>
-            <Button className="gap-2" onClick={onCreate}>
-              <Plus className="size-4" />
-              Nova Ficha
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="shrink-0"
-              onClick={handleResetFilters}
-              aria-label="Limpar filtros"
-            >
-              <Filter className="size-4" />
-            </Button>
-          </div>
+      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-1 lg:min-w-[260px] lg:flex-1">
+          <Text className="text-xs font-medium text-muted-foreground">Status</Text>
+          <Select
+            value={filters.status}
+            onChange={(value) =>
+              onFiltersChange({ status: value as ProposalStatus | "ALL" })
+            }
+            options={statuses}
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <Button
+            icon={<RefreshCw className="size-4" />}
+            onClick={onRefresh}
+            loading={isRefreshing}
+          >
+            Atualizar
+          </Button>
+          <Button type="primary" icon={<Plus className="size-4" />} onClick={onCreate}>
+            Nova ficha
+          </Button>
+          <Button
+            icon={<Filter className="size-4" />}
+            onClick={handleReset}
+            aria-label="Limpar filtros"
+          />
         </div>
       </div>
     </div>

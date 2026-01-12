@@ -1,13 +1,15 @@
-import { cn } from "@/lib/utils";
+import { Card, Empty, Progress, Typography } from "antd";
 import { ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { ProposalsDashboardSummary } from "./QueueStats";
 
+const { Text } = Typography;
+
 const statusColors: Record<ProposalStatus, string> = {
-  SUBMITTED: "bg-sky-500",
-  PENDING: "bg-amber-400",
-  APPROVED: "bg-emerald-500",
-  REJECTED: "bg-red-500",
-  PAID: "bg-teal-500",
+  SUBMITTED: "#0EA5E9",
+  PENDING: "#F59E0B",
+  APPROVED: "#10B981",
+  REJECTED: "#EF4444",
+  PAID: "#14B8A6",
 };
 
 type StatusLegendProps = {
@@ -18,41 +20,51 @@ export function StatusLegend({ summary }: StatusLegendProps) {
   const items = summary.statusTotals;
 
   return (
-    <div className="space-y-3 rounded-lg border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Status geral
-        </p>
-        <span className="text-sm text-muted-foreground">
-          Total {summary.overallTotal}
-        </span>
-      </div>
-
-      <div className="space-y-2">
+    <Card
+      className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white shadow-sm"
+      data-oid="status-legend"
+    >
+      <Text className="mb-4 block text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">
+        Radar de status
+      </Text>
+      <div className="space-y-4 text-sm">
         {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nenhum status disponivel.
-          </p>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Nenhuma ficha recebida no momento."
+          />
         ) : (
-          items.map((item) => (
-            <div key={item.key} className="space-y-1">
-              <div className="flex items-center justify-between text-sm font-semibold">
-                <span>{item.label}</span>
-                <span>
-                  {item.value}
-                  {item.total ? ` / ${item.total}` : ""}
-                </span>
+          items.map((item) => {
+            const percentage =
+              summary.overallTotal > 0
+                ? Math.round((item.value / summary.overallTotal) * 100)
+                : 0;
+            return (
+              <div key={item.key} className="space-y-1">
+                <div className="flex items-center justify-between font-semibold text-slate-600">
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="inline-flex h-2 w-2 rounded-full"
+                      style={{ backgroundColor: statusColors[item.key] }}
+                    />
+                    {item.label}
+                  </span>
+                  <span>
+                    {item.value} / {percentage}%
+                  </span>
+                </div>
+                <Progress
+                  percent={percentage}
+                  showInfo={false}
+                  strokeColor={statusColors[item.key]}
+                  railColor="#e5e7eb"
+                  size="small"
+                />
               </div>
-              <div
-                className={cn(
-                  "h-3 rounded-full bg-gradient-to-r",
-                  statusColors[item.key],
-                )}
-              />
-            </div>
-          ))
+            );
+          })
         )}
       </div>
-    </div>
+    </Card>
   );
 }

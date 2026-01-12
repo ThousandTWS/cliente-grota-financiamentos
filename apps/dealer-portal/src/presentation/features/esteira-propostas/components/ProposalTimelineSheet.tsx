@@ -1,25 +1,23 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { History } from "lucide-react";
-import { Button } from "@/presentation/ui/button";
+import { Button } from "antd";
 
 type ProposalTimelineSheetProps = {
   proposalId: number;
 };
 
 export function ProposalTimelineSheet({ proposalId }: ProposalTimelineSheetProps) {
+  const router = useRouter();
+
   return (
     <Button
-      asChild
-      variant="outline"
-      size="sm"
-      className="w-full justify-center gap-2 border-[#0F456A] bg-[#134B73] text-white hover:bg-[#0F456A] hover:text-white"
+      className="w-full justify-center"
+      icon={<History className="size-4" />}
+      onClick={() => router.push(`/esteira-propostas/${proposalId}/historico`)}
     >
-      <Link href={`/esteira-propostas/${proposalId}/historico`}>
-        <History className="size-4" />
-        Histórico
-      </Link>
+      Historico
     </Button>
   );
 }
