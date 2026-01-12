@@ -114,6 +114,64 @@ const extractMotherName = (metadata: Record<string, unknown> | null) => {
   return "--";
 };
 
+const readString = (value: unknown) => {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  return "";
+};
+
+const pickFirstString = (...values: unknown[]) => {
+  for (const value of values) {
+    const text = readString(value);
+    if (text) return text;
+  }
+  return null;
+};
+
+const extractProfessionalData = (metadata: Record<string, unknown> | null) => {
+  if (!metadata) {
+    return { enterprise: null, enterpriseFunction: null, admissionDate: null };
+  }
+  const professional = metadata.professional ?? metadata.professionalData;
+  const professionalRecord =
+    professional && typeof professional === "object"
+      ? (professional as Record<string, unknown>)
+      : null;
+
+  return {
+    enterprise: pickFirstString(
+      metadata.enterprise,
+      metadata.empresa,
+      metadata.professionalEnterprise,
+      professionalRecord?.enterprise,
+      professionalRecord?.empresa,
+      professionalRecord?.professionalEnterprise,
+    ),
+    enterpriseFunction: pickFirstString(
+      metadata.enterpriseFunction,
+      metadata.funcao,
+      metadata.function,
+      metadata.cargo,
+      metadata.professionalFunction,
+      professionalRecord?.enterpriseFunction,
+      professionalRecord?.funcao,
+      professionalRecord?.function,
+      professionalRecord?.cargo,
+      professionalRecord?.professionalFunction,
+    ),
+    admissionDate: pickFirstString(
+      metadata.admissionDate,
+      metadata.dataAdmissao,
+      metadata.admissao,
+      metadata.professionalAdmissionDate,
+      professionalRecord?.admissionDate,
+      professionalRecord?.dataAdmissao,
+      professionalRecord?.admissao,
+      professionalRecord?.professionalAdmissionDate,
+    ),
+  };
+};
+
 const extractSellerName = (metadata: Record<string, unknown> | null) => {
   if (!metadata) return null;
   const candidates = [metadata.sellerName, metadata.vendedor, metadata.seller];
@@ -188,6 +246,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
 
   const metadata = useMemo(() => parseMetadata(proposal?.metadata), [proposal?.metadata]);
   const motherName = useMemo(() => extractMotherName(metadata), [metadata]);
+  const professionalData = useMemo(() => extractProfessionalData(metadata), [metadata]);
   const sellerNameFromMetadata = useMemo(() => extractSellerName(metadata), [metadata]);
   const sellerIdFromMetadata = useMemo(() => extractSellerId(metadata), [metadata]);
   const createdByActor = useMemo(() => {
@@ -596,6 +655,17 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
                       </Descriptions.Item>
                       <Descriptions.Item label="CEP">
                         {proposal.cep ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Empresa">
+                        {professionalData.enterprise ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Funcao">
+                        {professionalData.enterpriseFunction ?? "--"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Data de admissao">
+                        {professionalData.admissionDate
+                          ? formatDate(professionalData.admissionDate)
+                          : "--"}
                       </Descriptions.Item>
                       <Descriptions.Item label="Renda">
                         {proposal.income ? formatCurrency(proposal.income) : "--"}
