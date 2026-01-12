@@ -114,6 +114,52 @@ const extractMotherName = (metadata: Record<string, unknown> | null) => {
   return "--";
 };
 
+const extractSellerName = (metadata: Record<string, unknown> | null) => {
+  if (!metadata) return null;
+  const candidates = [metadata.sellerName, metadata.vendedor, metadata.seller];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      if (trimmed) return trimmed;
+    }
+    if (candidate && typeof candidate === "object") {
+      const record = candidate as Record<string, unknown>;
+      const nested =
+        record.name ??
+        record.fullName ??
+        record.nome ??
+        record.email;
+      if (typeof nested === "string" && nested.trim()) {
+        return nested.trim();
+      }
+    }
+  }
+  return null;
+};
+
+const extractSellerId = (metadata: Record<string, unknown> | null) => {
+  if (!metadata) return null;
+  const candidate = metadata.sellerId;
+  if (typeof candidate === "number" && Number.isFinite(candidate)) {
+    return candidate;
+  }
+  if (typeof candidate === "string") {
+    const parsed = Number(candidate);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const extractActorName = (actor?: string | null) => {
+  if (!actor) return null;
+  const trimmed = actor.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(" - ");
+  if (parts.length <= 1) return trimmed;
+  const name = parts.slice(1).join(" - ").trim();
+  return name || trimmed;
+};
+
 export default function ProposalHistoryPage({ params }: { params: Params }) {
   const resolvedParams = use(params);
   const proposalId = Number(resolvedParams.proposalId);
@@ -142,6 +188,13 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
 
   const metadata = useMemo(() => parseMetadata(proposal?.metadata), [proposal?.metadata]);
   const motherName = useMemo(() => extractMotherName(metadata), [metadata]);
+  const sellerNameFromMetadata = useMemo(() => extractSellerName(metadata), [metadata]);
+  const sellerIdFromMetadata = useMemo(() => extractSellerId(metadata), [metadata]);
+  const createdByActor = useMemo(() => {
+    const created = timeline.find((event) => event.type === "CREATED" && event.actor);
+    return created?.actor ?? null;
+  }, [timeline]);
+  const sellerNameFromActor = useMemo(() => extractActorName(createdByActor), [createdByActor]);
 
   const dealerLabel = useMemo(() => {
     if (!proposal?.dealerId) return "Loja nao informada";
@@ -150,9 +203,20 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   }, [dealerIndex, proposal?.dealerId]);
 
   const sellerLabel = useMemo(() => {
-    if (!proposal?.sellerId) return "Vendedor nao informado";
-    return sellerIndex[proposal.sellerId] ?? `Vendedor #${proposal.sellerId}`;
-  }, [proposal?.sellerId, sellerIndex]);
+    if (proposal?.sellerId) {
+      return sellerIndex[proposal.sellerId] ?? `Vendedor #${proposal.sellerId}`;
+    }
+    if (sellerNameFromMetadata) return sellerNameFromMetadata;
+    if (sellerNameFromActor) return sellerNameFromActor;
+    return "Vendedor nao informado";
+  }, [proposal?.sellerId, sellerIndex, sellerNameFromMetadata, sellerNameFromActor]);
+
+  const sellerIdLabel = useMemo(() => {
+    if (typeof proposal?.sellerId === "number" && Number.isFinite(proposal.sellerId)) {
+      return proposal.sellerId;
+    }
+    return sellerIdFromMetadata ?? "--";
+  }, [proposal?.sellerId, sellerIdFromMetadata]);
 
   const timelineItems = useMemo(
     () =>
@@ -479,7 +543,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
                         {sellerLabel}
                       </Descriptions.Item>
                       <Descriptions.Item label="ID vendedor">
-                        {proposal.sellerId ?? "--"}
+                        {sellerIdLabel}
                       </Descriptions.Item>
                     </Descriptions>
                   </Card>

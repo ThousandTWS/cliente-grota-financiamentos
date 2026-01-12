@@ -419,6 +419,8 @@ export default function Step4Review({
           vehicleCategory: formData.vehicleCategory,
           additionalInfo: formData.additionalInfo,
           motherName: formData.personal.motherName,
+          sellerId: sellerId ?? null,
+          sellerName: sellerName ?? "",
           enterprise: formData.professional.enterprise,
           enterpriseFunction: formData.professional.enterpriseFunction,
           admissionDate: formData.professional.admissionDate,
