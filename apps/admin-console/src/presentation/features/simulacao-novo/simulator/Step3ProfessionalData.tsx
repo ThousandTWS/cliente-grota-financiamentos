@@ -58,7 +58,9 @@ const buildCityOption = (city: IbgeCity) => {
 const parseAdmissionDateInput = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return "";
-  const parsed = dayjs(trimmed, ADMISSION_DATE_PARSE_FORMATS, true);
+  // Tenta formatos comuns além dos definidos
+  const formats = [...ADMISSION_DATE_PARSE_FORMATS, "DDMMYYYY", "DD-MM-YYYY"];
+  const parsed = dayjs(trimmed, formats, true);
   if (!parsed.isValid()) return null;
   return parsed.format(ADMISSION_DATE_STORAGE_FORMAT);
 };
@@ -237,9 +239,12 @@ export default function Step3ProfessionalData({
                   });
                 }}
                 onBlur={(event) => {
-                  const parsed = parseAdmissionDateInput(event.currentTarget.value);
-                  if (parsed === null) return;
-                  updateFormData("professional", { admissionDate: parsed });
+                  const val = event.target.value;
+                  if (!val) return;
+                  const parsed = parseAdmissionDateInput(val);
+                  if (parsed) {
+                    updateFormData("professional", { admissionDate: parsed });
+                  }
                 }}
                 placeholder="dd/mm/aaaa"
                 className={`w-full ${blueInputClass}`}
