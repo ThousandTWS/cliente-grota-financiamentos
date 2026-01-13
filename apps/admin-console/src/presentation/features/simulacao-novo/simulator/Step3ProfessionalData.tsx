@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { formatNumberToBRL, parseBRL } from "@/lib/formatters";
+import { maskDate } from "@/application/core/utils/masks";
 import { SimulatorFormData, UpdateSimulatorFormData } from "../hooks/useSimulator";
 
 type Step3ProfessionalDataProps = {
@@ -237,6 +238,27 @@ export default function Step3ProfessionalData({
                   updateFormData("professional", {
                     admissionDate: date ? date.format(ADMISSION_DATE_STORAGE_FORMAT) : "",
                   });
+                }}
+                onKeyDown={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  // Permitir teclas de controle
+                  const controlKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"];
+                  if (controlKeys.includes(e.key)) {
+                    return;
+                  }
+
+                  if (e.key >= "0" && e.key <= "9") {
+                    // Deixa o navegador processar a tecla primeiro
+                    setTimeout(() => {
+                      const masked = maskDate(target.value);
+                      target.value = masked;
+                    }, 0);
+                  } else {
+                    // Impede caracteres não numéricos se não forem teclas de controle
+                    if (!e.ctrlKey && !e.metaKey && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }
                 }}
                 onBlur={(event) => {
                   const val = event.target.value;

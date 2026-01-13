@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Select, Spin, Switch, Typography } from "antd";
+import { Button, Card, DatePicker, Input, Select, Spin, Switch, Typography } from "antd";
 import { ArrowRight, ArrowLeft, User } from "lucide-react";
 import { toast } from "sonner";
+import dayjs from "dayjs";
 import { maskCPF, maskPhone } from "@/lib/masks";
-import { maskCEP, maskCNPJ } from "@/application/core/utils/masks";
+import { maskCEP, maskCNPJ, maskDate } from "@/application/core/utils/masks";
 import { formatName } from "@/lib/formatters";
 import { convertBRtoISO } from "@/application/core/utils/formatters";
 import { StatusBadge } from "@/presentation/features/logista/components/status-badge";
@@ -1142,10 +1143,42 @@ export default function Step2PersonalData({
 
               <div className="space-y-2">
                 <Typography.Text>Data de Nascimento</Typography.Text>
-                <Input
-                  type="date"
-                  value={formData.personal.birthday}
-                  onChange={(e) => updateFormData("personal", { birthday: e.target.value })}
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={
+                    formData.personal.birthday
+                      ? dayjs(formData.personal.birthday, "YYYY-MM-DD")
+                      : null
+                  }
+                  onChange={(date) => {
+                    updateFormData("personal", {
+                      birthday: date ? date.format("YYYY-MM-DD") : "",
+                    });
+                  }}
+                  onKeyDown={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    const controlKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"];
+                    if (controlKeys.includes(e.key)) return;
+
+                    if (e.key >= "0" && e.key <= "9") {
+                      setTimeout(() => {
+                        target.value = maskDate(target.value);
+                      }, 0);
+                    } else if (!e.ctrlKey && !e.metaKey && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onBlur={(event) => {
+                    const val = event.target.value;
+                    if (!val) return;
+                    const parsed = dayjs(val, ["DD/MM/YYYY", "YYYY-MM-DD", "DDMMYYYY"], true);
+                    if (parsed.isValid()) {
+                      updateFormData("personal", { birthday: parsed.format("YYYY-MM-DD") });
+                    }
+                  }}
+                  placeholder="dd/mm/aaaa"
+                  className={`w-full ${blueInputClass}`}
+                  inputReadOnly={false}
                 />
               </div>
 
