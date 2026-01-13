@@ -1169,7 +1169,8 @@ export default function Step2PersonalData({
                     }
                   }}
                   onBlur={(event) => {
-                    const val = event.target.value;
+                    const target = event.target as HTMLInputElement;
+                    const val = target.value;
                     if (!val) return;
                     const parsed = dayjs(val, ["DD/MM/YYYY", "YYYY-MM-DD", "DDMMYYYY"], true);
                     if (parsed.isValid()) {

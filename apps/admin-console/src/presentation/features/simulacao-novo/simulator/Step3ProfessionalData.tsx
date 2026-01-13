@@ -261,7 +261,8 @@ export default function Step3ProfessionalData({
                   }
                 }}
                 onBlur={(event) => {
-                  const val = event.target.value;
+                  const target = event.target as HTMLInputElement;
+                  const val = target.value;
                   if (!val) return;
                   const parsed = parseAdmissionDateInput(val);
                   if (parsed) {
