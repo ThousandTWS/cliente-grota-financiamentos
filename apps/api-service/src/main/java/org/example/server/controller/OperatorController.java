@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.example.server.dto.operator.OperatorRequestDTO;
 import org.example.server.dto.operator.OperatorResponseDTO;
 import org.example.server.model.User;
@@ -36,7 +35,7 @@ public class OperatorController {
             @ApiResponse(responseCode = "400", description = "Dados inválidos"),
             @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
     })
-    public ResponseEntity<OperatorResponseDTO> create(@AuthenticationPrincipal User user, @Valid @RequestBody OperatorRequestDTO operatorRequestDTO) {
+    public ResponseEntity<OperatorResponseDTO> create(@AuthenticationPrincipal User user, @RequestBody OperatorRequestDTO operatorRequestDTO) {
         OperatorResponseDTO operator = operatorService.create(user, operatorRequestDTO);
         return ResponseEntity.ok(operator);
     }
@@ -119,7 +118,7 @@ public class OperatorController {
             @ApiResponse(responseCode = "400", description = "Dados inválidos"),
             @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
     })
-    public ResponseEntity<OperatorResponseDTO> update(@PathVariable Long id, @Valid @RequestBody OperatorRequestDTO operatorRequestDTO){
+    public ResponseEntity<OperatorResponseDTO> update(@PathVariable Long id, @RequestBody OperatorRequestDTO operatorRequestDTO){
         OperatorResponseDTO operator = operatorService.update(id, operatorRequestDTO);
         return ResponseEntity.ok().body(operator);
     }

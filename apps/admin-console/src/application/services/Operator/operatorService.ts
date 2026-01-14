@@ -18,16 +18,16 @@ export type CreateOperatorPayload = {
   email: string;
   phone: string;
   password: string;
-  CPF: string;
-  birthData: string;
+  CPF: string | null;
+  birthData: string | null;
   address: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
+    street: string | null;
+    number: string | null;
+    complement?: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    state: string | null;
+    zipCode: string | null;
   };
   canView?: boolean;
   canCreate?: boolean;
@@ -51,20 +51,32 @@ async function request<T>(
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    // Trata erros de validação do backend (lista de erros)
     const errors = Array.isArray((payload as { errors?: unknown })?.errors)
+      ? (payload as { errors: unknown[] }).errors.filter(
+          (item): item is string => typeof item === "string",
+        )
+      : [];
+
+    const validationErrors = Array.isArray((payload as { errors?: unknown })?.errors)
       ? (payload as { errors: string[] }).errors
       : [];
-    
-    let message: string;
-    if (errors.length > 0) {
-      message = errors.join("; ");
-    } else {
-      message =
-        (payload as { error?: string })?.error ??
-        (payload as { message?: string })?.message ??
-        "Não foi possível concluir a operação.";
-    }
+
+    const baseMessage =
+      validationErrors.length > 0
+        ? validationErrors.join("; ")
+        : (payload as { error?: string; message?: string })?.error ??
+          (payload as { message?: string })?.message ??
+          "Nao foi possivel concluir a operacao.";
+
+    const detailedMessage =
+      errors.length > 0 ? `${baseMessage} - ${errors.join("; ")}` : baseMessage;
+
+    const status = response.status;
+    const message =
+      status === 401 || status === 403
+        ? "Sessao expirada ou acesso nao autorizado. Faca login novamente."
+        : detailedMessage;
+
     throw new Error(message);
   }
 
@@ -88,7 +100,10 @@ export const createOperator = async (
   });
 };
 
-export const linkOperatorToDealer = async (operatorId: number, dealerId: number | null): Promise<Operator> => {
+export const linkOperatorToDealer = async (
+  operatorId: number,
+  dealerId: number | null,
+): Promise<Operator> => {
   return request<Operator>("/api/operators", {
     method: "PATCH",
     body: JSON.stringify({ operatorId, dealerId }),
@@ -96,7 +111,7 @@ export const linkOperatorToDealer = async (operatorId: number, dealerId: number 
 };
 
 export const deleteOperator = async (operatorId: number): Promise<void> => {
-  await request<void>(`/api/operators/${operatorId}`, {
+  await request<void>(`/api/operators?id=${operatorId}`, {
     method: "DELETE",
   });
 };
