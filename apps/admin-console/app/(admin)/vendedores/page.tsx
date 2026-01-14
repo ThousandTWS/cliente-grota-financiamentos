@@ -29,51 +29,56 @@ const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
 const sellerSchema = z.object({
   dealerId: z.string().optional(),
-  fullName: z.string().min(2, "Informe o nome completo").transform(v => v.trim()),
-  email: z.string()
+  fullName: z.string().min(2, "Informe o nome completo").transform((value) => value.trim()),
+  email: z
+    .string()
     .trim()
     .min(1, "Informe o e-mail")
     .email("E-mail invalido")
-    .transform(v => v.toLowerCase()),
-  phone: z.string()
-    .optional()
-    .or(z.literal(""))
-    .transform(v => v ? digitsOnly(v) : v),
+    .transform((value) => value.toLowerCase()),
+  phone: z
+    .string()
+    .min(1, "Informe o telefone")
+    .refine((value) => digitsOnly(value).length >= 10, {
+      message: "Informe um telefone valido (minimo 10 digitos)",
+    })
+    .transform((value) => digitsOnly(value)),
   password: z
     .string()
-    .max(50, "A senha deve ter no máximo 50 caracteres")
-    .optional()
-    .or(z.literal("")),
-  cpf: z.string()
+    .min(6, "A senha precisa ter no minimo 6 caracteres")
+    .max(50, "A senha deve ter no maximo 50 caracteres"),
+  cpf: z
+    .string()
     .optional()
     .or(z.literal(""))
-    .transform(v => v ? digitsOnly(v) : ""),
+    .transform((value) => (value ? digitsOnly(value) : "")),
   birthData: z
     .string()
     .optional()
     .or(z.literal(""))
-    .refine((val) => {
-      if (!val) return true;
-      // Aceita formato AAAA-MM-DD (input type="date")
-      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return true;
-      return false;
-    }, {
-      message: "Use o formato AAAA-MM-DD",
-    }),
-  street: z.string().optional().or(z.literal("")).transform(v => v?.trim()),
-  number: z.string().optional().or(z.literal("")).transform(v => v?.trim()),
-  complement: z.string().optional().transform(v => v?.trim()),
-  neighborhood: z.string().optional().or(z.literal("")).transform(v => v?.trim()),
-  city: z.string().optional().or(z.literal("")).transform(v => v?.trim()),
+    .refine(
+      (value) => {
+        if (!value) return true;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return true;
+        return false;
+      },
+      { message: "Use o formato AAAA-MM-DD" },
+    ),
+  street: z.string().optional().or(z.literal("")).transform((value) => value?.trim()),
+  number: z.string().optional().or(z.literal("")).transform((value) => value?.trim()),
+  complement: z.string().optional().transform((value) => value?.trim()),
+  neighborhood: z.string().optional().or(z.literal("")).transform((value) => value?.trim()),
+  city: z.string().optional().or(z.literal("")).transform((value) => value?.trim()),
   state: z
     .string()
     .optional()
     .or(z.literal(""))
-    .transform(v => v ? v.trim().toUpperCase() : v),
-  zipCode: z.string()
+    .transform((value) => (value ? value.trim().toUpperCase() : value)),
+  zipCode: z
+    .string()
     .optional()
     .or(z.literal(""))
-    .transform(v => v ? digitsOnly(v) : ""),
+    .transform((value) => (value ? digitsOnly(value) : "")),
   canView: z.boolean().default(true),
   canCreate: z.boolean().default(true),
   canUpdate: z.boolean().default(true),
@@ -105,7 +110,6 @@ function VendedoresContent() {
   const searchParams = useSearchParams();
 
   const {
-    register,
     handleSubmit,
     reset,
     control,
@@ -153,40 +157,35 @@ function VendedoresContent() {
   }, [searchParams, setValue]);
 
   const onSubmit = async (values: SellerFormValues) => {
-    console.log("[vendedores] onSubmit values:", values);
-    const cpfDigits = values.cpf ? digitsOnly(values.cpf) : "";
-    const normalizedEmail = values.email.trim().toLowerCase();
     if (isCpfLoading) {
-      toast.error("Aguarde a verificação do CPF ou tente novamente.");
+      toast.error("Aguarde a verificacao do CPF ou tente novamente.");
       return;
     }
-    
-    // Deixamos de exigir o cpfVerified para permitir o cadastro mesmo se a API de consulta falhar
-    // O backend validará se o CPF já existe ou se é válido.
-    
+
     setIsSubmitting(true);
     try {
-      // Valida e formata a data de nascimento
-      let birthDateIso: string | undefined = undefined;
+      let birthDateIso: string | null = null;
       if (values.birthData) {
         const date = new Date(values.birthData);
         if (isNaN(date.getTime())) {
-          toast.error("Data de nascimento inválida.");
+          toast.error("Data de nascimento invalida.");
           setIsSubmitting(false);
           return;
         }
         birthDateIso = date.toISOString().split("T")[0];
       }
-      const dealerId = values.dealerId ? Number(values.dealerId) : undefined;
-      
+
+      const dealerId = values.dealerId ? Number(values.dealerId) : null;
+      const normalizedEmail = values.email.trim().toLowerCase();
+
       const payload = {
         dealerId: dealerId || null,
         fullName: values.fullName,
         email: normalizedEmail,
-        phone: values.phone || null,
-        password: values.password || null,
+        phone: values.phone,
+        password: values.password,
         CPF: values.cpf || null,
-        birthData: birthDateIso || null,
+        birthData: birthDateIso,
         address: {
           street: values.street || null,
           number: values.number || null,
@@ -201,9 +200,7 @@ function VendedoresContent() {
         canUpdate: values.canUpdate ?? true,
         canDelete: values.canDelete ?? true,
       };
-      
-      console.log("[vendedores] Enviando payload:", JSON.stringify(payload, null, 2));
-      
+
       await createSeller(payload);
 
       toast.success("Vendedor cadastrado com sucesso!");
@@ -284,28 +281,24 @@ function VendedoresContent() {
     const rawZip = watch("zipCode") ?? "";
     const cep = digitsOnly(rawZip);
     if (cep.length !== 8) {
-      toast.error("Informe um CEP com 8 dígitos.");
+      toast.error("Informe um CEP com 8 digitos.");
       return;
     }
     setIsCepLoading(true);
     try {
-      console.log("[vendedores] Buscando CEP:", cep);
       const address = await fetchAddressByCep(cep);
       if (!address) {
-        toast.error("CEP não encontrado. Verifique o número e tente novamente.");
+        toast.error("CEP nao encontrado. Verifique o numero e tente novamente.");
         return;
       }
-      console.log("[vendedores] Endereço encontrado:", address);
-      
-      // Atualizando campos com shouldValidate: true e shouldDirty: true
-      // Usamos setTimeout 0 para garantir que o ciclo de renderização do React processe as mudanças
+
       setTimeout(() => {
         setValue("street", address.street ?? "", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
         setValue("neighborhood", address.neighborhood ?? "", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
         setValue("city", address.city ?? "", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
         setValue("state", (address.state ?? "").toUpperCase(), { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-        
-        toast.success("Endereço preenchido automaticamente!");
+
+        toast.success("Endereco preenchido automaticamente!");
       }, 0);
     } catch (error) {
       console.error("[vendedores] CEP lookup error:", error);
@@ -315,10 +308,7 @@ function VendedoresContent() {
     }
   };
 
-  const onError = (errors: any) => {
-    console.error("[vendedores] Erros de validação detalhados:", errors);
-    
-    // Nomes amigáveis para os campos
+  const onError = (formErrors: any) => {
     const fieldNames: Record<string, string> = {
       fullName: "Nome completo",
       email: "E-mail",
@@ -327,17 +317,16 @@ function VendedoresContent() {
       cpf: "CPF",
       birthData: "Data de nascimento",
       street: "Rua",
-      number: "Número",
+      number: "Numero",
       neighborhood: "Bairro",
       city: "Cidade",
       state: "UF",
       zipCode: "CEP",
-      dealerId: "Loja"
+      dealerId: "Loja",
     };
 
-    // Lista todos os erros para o usuário
-    Object.keys(errors).forEach((key) => {
-      const error = errors[key];
+    Object.keys(formErrors).forEach((key) => {
+      const error = formErrors[key];
       if (error?.message) {
         const fieldName = fieldNames[key] || key;
         toast.error(`${fieldName}: ${error.message}`);
@@ -383,17 +372,23 @@ function VendedoresContent() {
 
           <div className="space-y-2">
             <Typography.Text>Nome completo</Typography.Text>
-            <Input id="fullName" {...register("fullName")} />
+            <Controller
+              control={control}
+              name="fullName"
+              render={({ field }) => <Input {...field} id="fullName" />}
+            />
             {errors.fullName && (
               <p className="text-sm text-red-500">{errors.fullName.message}</p>
             )}
           </div>
           <div className="space-y-2">
             <Typography.Text>E-mail</Typography.Text>
-            <Input 
-              id="email" 
-              type="email" 
-              {...register("email")} 
+            <Controller
+              control={control}
+              name="email"
+              render={({ field }) => (
+                <Input {...field} id="email" type="email" autoComplete="email" />
+              )}
             />
             {errors.email && (
               <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -409,7 +404,7 @@ function VendedoresContent() {
                   {...field}
                   id="phone"
                   placeholder="(11) 99999-0000"
-                  onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                  onChange={(event) => field.onChange(maskPhone(event.target.value))}
                 />
               )}
             />
@@ -418,14 +413,20 @@ function VendedoresContent() {
             )}
           </div>
           <div className="space-y-2">
-            <Typography.Text>Senha (mínimo 6 caracteres)</Typography.Text>
-            <Input.Password id="password" {...register("password")} />
+            <Typography.Text>Senha (minimo 6 caracteres)</Typography.Text>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field }) => (
+                <Input.Password {...field} id="password" autoComplete="new-password" />
+              )}
+            />
             {errors.password && (
               <p className="text-sm text-red-500">{errors.password.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Typography.Text>CPF</Typography.Text>
+            <Typography.Text>CPF (opcional)</Typography.Text>
             <Controller
               control={control}
               name="cpf"
@@ -435,8 +436,8 @@ function VendedoresContent() {
                   id="cpf"
                   placeholder="000.000.000-00"
                   suffix={isCpfLoading ? <Spin size="small" /> : <span style={{ width: 16 }} />}
-                  onChange={(e) => {
-                    const masked = maskCPF(e.target.value);
+                  onChange={(event) => {
+                    const masked = maskCPF(event.target.value);
                     field.onChange(masked);
                     handleCpfLookup(masked);
                   }}
@@ -472,11 +473,12 @@ function VendedoresContent() {
 
           <div className="space-y-2">
             <Typography.Text>Data de nascimento</Typography.Text>
-            <Input
-              id="birthData"
-              type="date"
-              {...register("birthData")}
-              className="w-full"
+            <Controller
+              control={control}
+              name="birthData"
+              render={({ field }) => (
+                <Input {...field} id="birthData" type="date" className="w-full" />
+              )}
             />
             {errors.birthData && (
               <p className="text-sm text-red-500">{errors.birthData.message}</p>
@@ -493,7 +495,7 @@ function VendedoresContent() {
                     {...field}
                     id="zipCode"
                     placeholder="00000-000"
-                    onChange={(e) => field.onChange(maskCEP(e.target.value))}
+                    onChange={(event) => field.onChange(maskCEP(event.target.value))}
                   />
                 )}
               />
@@ -530,9 +532,7 @@ function VendedoresContent() {
             <Controller
               control={control}
               name="number"
-              render={({ field }) => (
-                <Input {...field} id="number" />
-              )}
+              render={({ field }) => <Input {...field} id="number" />}
             />
             {errors.number && (
               <p className="text-sm text-red-500">{errors.number.message}</p>
@@ -543,9 +543,7 @@ function VendedoresContent() {
             <Controller
               control={control}
               name="complement"
-              render={({ field }) => (
-                <Input {...field} id="complement" />
-              )}
+              render={({ field }) => <Input {...field} id="complement" />}
             />
           </div>
           <div className="space-y-2">
@@ -553,9 +551,7 @@ function VendedoresContent() {
             <Controller
               control={control}
               name="neighborhood"
-              render={({ field }) => (
-                <Input {...field} id="neighborhood" />
-              )}
+              render={({ field }) => <Input {...field} id="neighborhood" />}
             />
             {errors.neighborhood && (
               <p className="text-sm text-red-500">{errors.neighborhood.message}</p>
@@ -566,9 +562,7 @@ function VendedoresContent() {
             <Controller
               control={control}
               name="city"
-              render={({ field }) => (
-                <Input {...field} id="city" />
-              )}
+              render={({ field }) => <Input {...field} id="city" />}
             />
             {errors.city && (
               <p className="text-sm text-red-500">{errors.city.message}</p>
@@ -606,7 +600,7 @@ function VendedoresContent() {
                   render={({ field }) => (
                     <Checkbox
                       checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
+                      onChange={(event) => field.onChange(event.target.checked)}
                     />
                   )}
                 />
@@ -619,7 +613,7 @@ function VendedoresContent() {
                   render={({ field }) => (
                     <Checkbox
                       checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
+                      onChange={(event) => field.onChange(event.target.checked)}
                     />
                   )}
                 />
@@ -632,7 +626,7 @@ function VendedoresContent() {
                   render={({ field }) => (
                     <Checkbox
                       checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
+                      onChange={(event) => field.onChange(event.target.checked)}
                     />
                   )}
                 />
@@ -645,7 +639,7 @@ function VendedoresContent() {
                   render={({ field }) => (
                     <Checkbox
                       checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
+                      onChange={(event) => field.onChange(event.target.checked)}
                     />
                   )}
                 />

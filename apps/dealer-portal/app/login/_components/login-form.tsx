@@ -19,7 +19,7 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null)
-  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "6Le6p0ksAAAAANdkLfUZfE7jRyTQHztY_MPcwipM"
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "6Lfuw0osAAAAAKTGxs43SODM04TWR2aKSUC84BlY"
   const isRecaptchaEnabled = recaptchaSiteKey.length > 0
 
   const handleSubmit = async (values: LoginFormValues) => {
