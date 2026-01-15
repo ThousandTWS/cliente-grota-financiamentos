@@ -9,34 +9,40 @@ import {
   UserCog,
   FileText,
   Receipt,
+  Bot,
 } from "lucide-react";
 
 export const navItems: NavItem[] = [
   {
+    icon: <Bot />,
+    name: "IA Chat",
+    path: "/ia-chat",
+  },
+  {
     icon: <LayoutDashboard />,
     name: "Painel Administrativo",
     subItems: [
-      { 
-        name: "Visao Geral", 
-        path: "/visao-geral", 
+      {
+        name: "Visao Geral",
+        path: "/visao-geral",
         pro: false,
         icon: <LayoutDashboard size={16} />
       },
     ],
   },
-   {
+  {
     icon: <ClipboardList />,
     name: "Gestão de Propostas",
     subItems: [
-      { 
-        name: "Esteira de Propostas", 
-        path: "/esteira-de-propostas", 
+      {
+        name: "Esteira de Propostas",
+        path: "/esteira-de-propostas",
         pro: false,
         icon: <ClipboardList size={16} />
       },
-      { 
-        name: "Simulador", 
-        path: "/simulacao/novo", 
+      {
+        name: "Simulador",
+        path: "/simulacao/novo",
         pro: false,
         icon: <FileText size={16} />
       },
@@ -46,24 +52,24 @@ export const navItems: NavItem[] = [
     icon: <Users2 />,
     name: "Gestão de usuarios",
     subItems: [
-      { 
+      {
         name: "Cadastrar Vendedor",
-        path: "/vendedores", 
+        path: "/vendedores",
         pro: false,
         icon: <UserCog size={16} />
-       },
-       { 
+      },
+      {
         name: "Cadastrar Operadores",
-        path: "/operadores", 
+        path: "/operadores",
         pro: false,
         icon: <ShieldCheck size={16} />
-       },
-        { 
+      },
+      {
         name: "Cadastrar Gestores",
-        path: "/gestores", 
+        path: "/gestores",
         pro: false,
         icon: <BadgeCheck size={16} />
-       },
+      },
     ],
   },
 
@@ -71,12 +77,12 @@ export const navItems: NavItem[] = [
     name: "Gestão de Lojas",
     icon: <Building2 />,
     subItems: [
-      { 
+      {
         name: "Cadastrar Lojas",
-         path: "/logistas", 
-         pro: false,
-         icon: <Building2 size={16} />
-      }, 
+        path: "/logistas",
+        pro: false,
+        icon: <Building2 size={16} />
+      },
     ],
   },
   {

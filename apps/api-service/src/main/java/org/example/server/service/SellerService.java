@@ -44,8 +44,7 @@ public class SellerService {
             DealerRepository dealerRepository,
             ProposalRepository proposalRepository,
             RefreshTokenRepository refreshTokenRepository,
-            SellerUserFactory sellerUserFactory
-    ) {
+            SellerUserFactory sellerUserFactory) {
         this.sellerRepository = sellerRepository;
         this.userRepository = userRepository;
         this.sellerMapper = sellerMapper;
@@ -81,8 +80,7 @@ public class SellerService {
         User newUser = sellerUserFactory.create(
                 sellerRequestDTO.fullName(),
                 sellerRequestDTO.email(),
-                sellerRequestDTO.password()
-        );
+                sellerRequestDTO.password());
 
         // Garantir que o email seja setado se por acaso a factory não o fizer
         if (sellerRequestDTO.email() != null && !sellerRequestDTO.email().isBlank()) {
@@ -162,9 +160,12 @@ public class SellerService {
         seller.setCPF(sellerRequestDTO.CPF());
         seller.setBirthData(sellerRequestDTO.birthData());
         seller.setCanView(sellerRequestDTO.canView() != null ? sellerRequestDTO.canView() : seller.getCanView());
-        seller.setCanCreate(sellerRequestDTO.canCreate() != null ? sellerRequestDTO.canCreate() : seller.getCanCreate());
-        seller.setCanUpdate(sellerRequestDTO.canUpdate() != null ? sellerRequestDTO.canUpdate() : seller.getCanUpdate());
-        seller.setCanDelete(sellerRequestDTO.canDelete() != null ? sellerRequestDTO.canDelete() : seller.getCanDelete());
+        seller.setCanCreate(
+                sellerRequestDTO.canCreate() != null ? sellerRequestDTO.canCreate() : seller.getCanCreate());
+        seller.setCanUpdate(
+                sellerRequestDTO.canUpdate() != null ? sellerRequestDTO.canUpdate() : seller.getCanUpdate());
+        seller.setCanDelete(
+                sellerRequestDTO.canDelete() != null ? sellerRequestDTO.canDelete() : seller.getCanDelete());
         seller.setDealer(dealer);
 
         userRepository.save(user);
@@ -186,5 +187,94 @@ public class SellerService {
         }
         proposalRepository.detachSellerFromProposals(sellerId);
         sellerRepository.delete(seller);
+    }
+
+    /**
+     * Find sellers for operator panel.
+     * Operator can only see sellers from their allowed dealers.
+     * 
+     * @param requester the authenticated operator (or admin)
+     * @param dealerId  optional filter by specific dealer (must be in allowed list)
+     * @return list of sellers
+     */
+    public java.util.List<SellerResponseDTO> findForOperatorPanel(User requester, Long dealerId) {
+        if (!requester.getRole().equals(UserRole.OPERADOR) && !requester.getRole().equals(UserRole.ADMIN)) {
+            throw new AccessDeniedException("Apenas OPERADOR ou ADMIN pode acessar este painel.");
+        }
+
+        java.util.List<Long> allowedDealerIds;
+
+        if (requester.getRole().equals(UserRole.ADMIN)) {
+            // Admin can see all sellers
+            if (dealerId != null) {
+                return sellerRepository.findByDealerId(dealerId).stream()
+                        .map(sellerMapper::toDTO)
+                        .toList();
+            }
+            return sellerRepository.findAll().stream()
+                    .map(sellerMapper::toDTO)
+                    .toList();
+        }
+
+        // Operator - get allowed dealer IDs
+        if (requester.getOperator() == null) {
+            return java.util.List.of();
+        }
+
+        allowedDealerIds = requester.getOperator().getDealerIds();
+
+        if (allowedDealerIds == null || allowedDealerIds.isEmpty()) {
+            return java.util.List.of();
+        }
+
+        // If specific dealer requested, validate it's in allowed list
+        if (dealerId != null) {
+            if (!allowedDealerIds.contains(dealerId)) {
+                throw new AccessDeniedException("Operador nao tem acesso a esta loja.");
+            }
+            return sellerRepository.findByDealerId(dealerId).stream()
+                    .map(sellerMapper::toDTO)
+                    .toList();
+        }
+
+        // Return all sellers from allowed dealers
+        return sellerRepository.findByDealerIdIn(allowedDealerIds).stream()
+                .map(sellerMapper::toDTO)
+                .toList();
+    }
+
+    /**
+     * Find sellers for manager panel.
+     * Manager can only see sellers from their own dealer.
+     * 
+     * @param requester the authenticated manager (or admin)
+     * @return list of sellers
+     */
+    public java.util.List<SellerResponseDTO> findForManagerPanel(User requester) {
+        if (!requester.getRole().equals(UserRole.GESTOR) && !requester.getRole().equals(UserRole.ADMIN)) {
+            throw new AccessDeniedException("Apenas GESTOR ou ADMIN pode acessar este painel.");
+        }
+
+        if (requester.getRole().equals(UserRole.ADMIN)) {
+            // Admin can see all sellers
+            return sellerRepository.findAll().stream()
+                    .map(sellerMapper::toDTO)
+                    .toList();
+        }
+
+        // Manager - get their dealer
+        if (requester.getManager() == null) {
+            throw new RecordNotFoundException("Gestor sem perfil de manager.");
+        }
+
+        if (requester.getManager().getDealer() == null) {
+            throw new RecordNotFoundException("Gestor sem loja vinculada.");
+        }
+
+        Long managerDealerId = requester.getManager().getDealer().getId();
+
+        return sellerRepository.findByDealerId(managerDealerId).stream()
+                .map(sellerMapper::toDTO)
+                .toList();
     }
 }

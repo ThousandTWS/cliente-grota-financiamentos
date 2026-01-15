@@ -117,7 +117,10 @@ export async function POST(request: NextRequest) {
       let message = "Credenciais invalidas";
       try {
         const errorBody = await loginResponse.json();
-        if (typeof errorBody?.message === "string") {
+        // Check for validation errors array first
+        if (Array.isArray(errorBody?.errors) && errorBody.errors.length > 0) {
+          message = errorBody.errors.join(", ");
+        } else if (typeof errorBody?.message === "string") {
           message = errorBody.message;
         } else if (typeof errorBody?.error === "string") {
           message = errorBody.error;
@@ -143,10 +146,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (!userResponse.ok) {
-      return unauthorizedResponse(
-        "Nao foi possivel carregar o usuario",
-        origin,
-      );
+      const errorBody = await userResponse.json().catch(() => null);
+      console.error("[logista][auth] Failed to load user from /auth/me:", {
+        status: userResponse.status,
+        error: errorBody,
+      });
+      const message = (errorBody as { message?: string; error?: string })?.message
+        || (errorBody as { message?: string; error?: string })?.error
+        || "Nao foi possivel carregar o usuario";
+      return unauthorizedResponse(message, origin);
     }
 
     const user = (await userResponse.json()) as AuthenticatedUser;

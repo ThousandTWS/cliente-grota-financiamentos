@@ -5,8 +5,9 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
-
 
 @Entity
 @Table(name = "tb_operator")
@@ -46,9 +47,17 @@ public class Operator {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private Boolean canDelete = true;
 
+    /**
+     * @deprecated Use dealerLinks for multi-dealer support. Kept for backwards
+     *             compatibility.
+     */
+    @Deprecated
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dealer_id", nullable = true)
     private Dealer dealer;
+
+    @OneToMany(mappedBy = "operator", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<OperatorDealerLink> dealerLinks = new ArrayList<>();
 
     public Operator() {
     }
@@ -148,10 +157,33 @@ public class Operator {
         this.dealer = dealer;
     }
 
+    public List<OperatorDealerLink> getDealerLinks() {
+        return dealerLinks;
+    }
+
+    public void setDealerLinks(List<OperatorDealerLink> dealerLinks) {
+        this.dealerLinks = dealerLinks;
+    }
+
+    /**
+     * Helper to get all dealer IDs from the links.
+     */
+    public List<Long> getDealerIds() {
+        if (dealerLinks == null || dealerLinks.isEmpty()) {
+            // Fallback to legacy single dealer
+            return dealer != null ? List.of(dealer.getId()) : List.of();
+        }
+        return dealerLinks.stream()
+                .map(link -> link.getDealer().getId())
+                .toList();
+    }
+
     @Override
     public boolean equals(Object object) {
-        if (this == object) return true;
-        if (object == null || getClass() != object.getClass()) return false;
+        if (this == object)
+            return true;
+        if (object == null || getClass() != object.getClass())
+            return false;
         Operator operator = (Operator) object;
         return Objects.equals(id, operator.id);
     }

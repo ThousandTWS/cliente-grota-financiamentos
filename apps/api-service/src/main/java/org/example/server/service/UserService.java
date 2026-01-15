@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 @Service
 public class UserService {
 
@@ -56,8 +57,7 @@ public class UserService {
             AuthenticationManager manager,
             EmailService emailService,
             UserMapper userMapper,
-            VerificationCodeGenerator codeGenerator
-    ) {
+            VerificationCodeGenerator codeGenerator) {
         this.userRepository = userRepository;
         this.dealerRepository = dealerRepository;
         this.userDetailsService = userDetailsService;
@@ -117,8 +117,7 @@ public class UserService {
         String username = resolveLoginIdentifier(request);
 
         manager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, request.password())
-        );
+                new UsernamePasswordAuthenticationToken(username, request.password()));
 
         // Usa o próprio método de resolução de usuário por identificador
         User user = (User) loadUserByUsername(username);
@@ -137,8 +136,7 @@ public class UserService {
     public void verifyUser(VerificationCodeRequestDTO verificationCodeRequestDTO) {
         User user = userRepository.findByEmail(verificationCodeRequestDTO.email())
                 .orElseThrow(() -> new RecordNotFoundException(
-                        "Usuario não encontrado com o e-mail: " + verificationCodeRequestDTO.email()
-                ));
+                        "Usuario não encontrado com o e-mail: " + verificationCodeRequestDTO.email()));
 
         if (user.getVerificationStatus() == UserStatus.ATIVO) {
             throw new UserAlreadyVerifiedException("Usuário já verificado");
@@ -173,8 +171,7 @@ public class UserService {
     public void requestPasswordReset(PasswordResetRequestDTO passwordResetRequestDTO) {
         User user = userRepository.findByEmail(passwordResetRequestDTO.email())
                 .orElseThrow(() -> new RecordNotFoundException(
-                        "Usuário não encontrado com e-mail: " + passwordResetRequestDTO.email()
-                ));
+                        "Usuário não encontrado com e-mail: " + passwordResetRequestDTO.email()));
 
         String resetCode = codeGenerator.generate();
         user.generateResetCode(resetCode, Duration.ofMinutes(10));
@@ -187,8 +184,7 @@ public class UserService {
     public void resetPassword(PasswordResetConfirmRequestDTO passwordResetConfirmRequestDTO) {
         User user = userRepository.findByEmail(passwordResetConfirmRequestDTO.email())
                 .orElseThrow(() -> new RecordNotFoundException(
-                        "Usuário não encontrado com e-mail: " + passwordResetConfirmRequestDTO.email()
-                ));
+                        "Usuário não encontrado com e-mail: " + passwordResetConfirmRequestDTO.email()));
 
         if (user.isResetCodeExpired()) {
             throw new CodeInvalidException("Código de redefinição expirado. Solicite um novo.");
@@ -264,9 +260,8 @@ public class UserService {
         return userRepository.findByEmail(identifier)
                 .or(() -> dealerRepository.findByEnterpriseIgnoreCase(identifier)
                         .map(dealer -> (User) dealer.getUser()))
-                .orElseThrow(() ->
-                        new RecordNotFoundException("Usuário não encontrado com identificador: " + identifier)
-                );
+                .orElseThrow(
+                        () -> new RecordNotFoundException("Usuário não encontrado com identificador: " + identifier));
     }
 
     public String resolveLoginIdentifier(AuthRequest request) {
@@ -289,14 +284,15 @@ public class UserService {
             case ADMIN -> true;
             case LOJISTA -> user.getDealer() != null;
             case GESTOR -> user.getManager() != null && user.getManager().getDealer() != null;
-            case OPERADOR -> user.getOperator() != null && user.getOperator().getDealer() != null;
+            case OPERADOR -> user.getOperator() != null &&
+                    (user.getOperator().getDealerLinks() != null && !user.getOperator().getDealerLinks().isEmpty()
+                            || user.getOperator().getDealer() != null);
             case VENDEDOR -> user.getSeller() != null && user.getSeller().getDealer() != null;
         };
 
         if (!hasDealerAssociation) {
             throw new AccessDeniedException(
-                    "Usuário não está associado a uma loja. Solicite o vínculo com um lojista para acessar o painel."
-            );
+                    "Usuário não está associado a uma loja. Solicite o vínculo com um lojista para acessar o painel.");
         }
     }
 

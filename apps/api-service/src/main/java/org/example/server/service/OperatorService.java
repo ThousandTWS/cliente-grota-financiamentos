@@ -10,16 +10,21 @@ import org.example.server.exception.generic.DataAlreadyExistsException;
 import org.example.server.exception.generic.RecordNotFoundException;
 import org.example.server.model.Dealer;
 import org.example.server.model.Operator;
+import org.example.server.model.OperatorDealerLink;
 import org.example.server.model.User;
-import org.example.server.service.EmailService;
 import org.example.server.repository.DealerRepository;
+import org.example.server.repository.OperatorDealerLinkRepository;
 import org.example.server.repository.OperatorRepository;
 import org.example.server.repository.RefreshTokenRepository;
 import org.example.server.repository.UserRepository;
 import org.example.server.service.factory.OperatorUserFactory;
+import org.example.server.util.PasswordGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class OperatorService {
@@ -32,6 +37,7 @@ public class OperatorService {
     private final DealerRepository dealerRepository;
     private final OperatorUserFactory operatorUserFactory;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final OperatorDealerLinkRepository operatorDealerLinkRepository;
 
     public OperatorService(
             OperatorRepository operatorRepository,
@@ -41,8 +47,8 @@ public class OperatorService {
             EmailService emailService,
             DealerRepository dealerRepository,
             OperatorUserFactory operatorUserFactory,
-            RefreshTokenRepository refreshTokenRepository
-    ) {
+            RefreshTokenRepository refreshTokenRepository,
+            OperatorDealerLinkRepository operatorDealerLinkRepository) {
         this.operatorRepository = operatorRepository;
         this.userRepository = userRepository;
         this.operatorMapper = operatorMapper;
@@ -51,6 +57,7 @@ public class OperatorService {
         this.dealerRepository = dealerRepository;
         this.operatorUserFactory = operatorUserFactory;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.operatorDealerLinkRepository = operatorDealerLinkRepository;
     }
 
     @Transactional
@@ -68,17 +75,40 @@ public class OperatorService {
             throw new DataAlreadyExistsException("Telefone ja existe.");
         }
 
-        Dealer dealer = null;
-        if (operatorRequestDTO.dealerId() != null) {
-            dealer = dealerRepository.findById(operatorRequestDTO.dealerId())
-                    .orElseThrow(() -> new RecordNotFoundException("Lojista nao encontrado."));
+        // Determine which dealers to link
+        List<Long> dealerIdsToLink = new ArrayList<>();
+        if (operatorRequestDTO.dealerIds() != null && !operatorRequestDTO.dealerIds().isEmpty()) {
+            // Use new dealerIds array
+            dealerIdsToLink.addAll(operatorRequestDTO.dealerIds());
+        } else if (operatorRequestDTO.dealerId() != null) {
+            // Fall back to legacy single dealerId
+            dealerIdsToLink.add(operatorRequestDTO.dealerId());
+        }
+
+        // Validate all dealer IDs exist
+        Dealer primaryDealer = null;
+        List<Dealer> dealers = new ArrayList<>();
+        for (Long dealerId : dealerIdsToLink) {
+            Dealer dealer = dealerRepository.findById(dealerId)
+                    .orElseThrow(() -> new RecordNotFoundException("Lojista nao encontrado: " + dealerId));
+            dealers.add(dealer);
+            if (primaryDealer == null) {
+                primaryDealer = dealer;
+            }
+        }
+
+        // Handle password - auto-generate if not provided
+        String passwordToUse = operatorRequestDTO.password();
+        String generatedPassword = null;
+        if (PasswordGenerator.isNullOrBlank(passwordToUse)) {
+            generatedPassword = PasswordGenerator.generate();
+            passwordToUse = generatedPassword;
         }
 
         User newUser = operatorUserFactory.create(
                 operatorRequestDTO.fullName(),
                 operatorRequestDTO.email(),
-                operatorRequestDTO.password()
-        );
+                passwordToUse);
 
         Operator operator = new Operator();
         operator.setPhone(operatorRequestDTO.phone());
@@ -90,13 +120,24 @@ public class OperatorService {
         operator.setCanCreate(operatorRequestDTO.canCreate() != null ? operatorRequestDTO.canCreate() : true);
         operator.setCanUpdate(operatorRequestDTO.canUpdate() != null ? operatorRequestDTO.canUpdate() : true);
         operator.setCanDelete(operatorRequestDTO.canDelete() != null ? operatorRequestDTO.canDelete() : true);
-        operator.setDealer(dealer);
+        operator.setDealer(primaryDealer); // Keep legacy field for backwards compatibility
 
         newUser.setOperator(operator);
 
-        emailService.sendPasswordToEmail(operatorRequestDTO.email(), operatorRequestDTO.password());
+        // Save operator first to get ID
+        Operator savedOperator = operatorRepository.save(operator);
 
-        return operatorMapper.toDTO(operatorRepository.save(operator));
+        // Create dealer links for multi-dealer support
+        for (Dealer dealer : dealers) {
+            OperatorDealerLink link = new OperatorDealerLink(savedOperator, dealer);
+            savedOperator.getDealerLinks().add(link);
+        }
+        operatorRepository.save(savedOperator);
+
+        // Send password via email
+        emailService.sendPasswordToEmail(operatorRequestDTO.email(), passwordToUse);
+
+        return operatorMapper.toDTO(savedOperator, generatedPassword);
     }
 
     public java.util.List<OperatorResponseDTO> findAll(Long dealerId) {
@@ -133,10 +174,14 @@ public class OperatorService {
         operator.setCPF(operatorRequestDTO.CPF());
         operator.setBirthData(operatorRequestDTO.birthData());
         operator.setAddress(addressMapper.toEntity(operatorRequestDTO.address()));
-        operator.setCanView(operatorRequestDTO.canView() != null ? operatorRequestDTO.canView() : operator.getCanView());
-        operator.setCanCreate(operatorRequestDTO.canCreate() != null ? operatorRequestDTO.canCreate() : operator.getCanCreate());
-        operator.setCanUpdate(operatorRequestDTO.canUpdate() != null ? operatorRequestDTO.canUpdate() : operator.getCanUpdate());
-        operator.setCanDelete(operatorRequestDTO.canDelete() != null ? operatorRequestDTO.canDelete() : operator.getCanDelete());
+        operator.setCanView(
+                operatorRequestDTO.canView() != null ? operatorRequestDTO.canView() : operator.getCanView());
+        operator.setCanCreate(
+                operatorRequestDTO.canCreate() != null ? operatorRequestDTO.canCreate() : operator.getCanCreate());
+        operator.setCanUpdate(
+                operatorRequestDTO.canUpdate() != null ? operatorRequestDTO.canUpdate() : operator.getCanUpdate());
+        operator.setCanDelete(
+                operatorRequestDTO.canDelete() != null ? operatorRequestDTO.canDelete() : operator.getCanDelete());
         operator.setDealer(dealer);
 
         userRepository.save(operatorUser);

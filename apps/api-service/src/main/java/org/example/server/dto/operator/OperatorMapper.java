@@ -15,6 +15,16 @@ public class OperatorMapper {
     }
 
     public OperatorResponseDTO toDTO(Operator operator) {
+        return toDTO(operator, null);
+    }
+
+    /**
+     * Maps Operator to DTO with optional generated password.
+     * 
+     * @param operator          the operator entity
+     * @param generatedPassword the auto-generated password (only at creation time)
+     */
+    public OperatorResponseDTO toDTO(Operator operator, String generatedPassword) {
         if (operator == null) {
             return null;
         }
@@ -24,6 +34,7 @@ public class OperatorMapper {
         return new OperatorResponseDTO(
                 operator.getId(),
                 operator.getDealer() != null ? operator.getDealer().getId() : null,
+                operator.getDealerIds(),
                 user.getFullName(),
                 user.getEmail(),
                 operator.getPhone(),
@@ -34,8 +45,8 @@ public class OperatorMapper {
                 operator.getCanView(),
                 operator.getCanCreate(),
                 operator.getCanUpdate(),
-                operator.getCanDelete()
-        );
+                operator.getCanDelete(),
+                generatedPassword);
     }
 
     public Operator toEntity(OperatorRequestDTO dto) {
@@ -47,8 +58,7 @@ public class OperatorMapper {
                 dto.phone(),
                 dto.CPF(),
                 dto.birthData(),
-                addressMapper.toEntity(dto.address())
-        );
+                addressMapper.toEntity(dto.address()));
         return operator;
     }
 }
