@@ -1,31 +1,40 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Building2,
-  Check,
-  KeyRound,
-  Loader2,
-  MapPin,
-  ShieldCheck,
-  UploadCloud,
-} from "lucide-react";
-import { toast } from "sonner";
-
-import { Badge } from "@/presentation/ui/badge";
-import { Button } from "@/presentation/ui/button";
-import {
+  Form,
+  Input,
+  Button,
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/presentation/ui/card";
-import { Input } from "@/presentation/ui/input";
-import { Label } from "@/presentation/ui/label";
-import { Separator } from "@/presentation/ui/separator";
-import { Skeleton } from "@/presentation/ui/skeleton";
+  Tabs,
+  Row,
+  Col,
+  Upload,
+  message,
+  Tag,
+  Descriptions,
+  Space,
+  Divider,
+  Typography,
+  Avatar,
+} from "antd";
+import type { UploadFile, UploadProps } from "antd";
+import {
+  BuildOutlined,
+  SafetyOutlined,
+  UserOutlined,
+  LockOutlined,
+  UploadOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined,
+  PictureOutlined,
+  EnvironmentOutlined,
+  PhoneOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
+
+const { Title, Text, Paragraph } = Typography;
 
 type Address = {
   street: string;
@@ -80,25 +89,11 @@ function ConfiguracoesPage() {
   const [dealer, setDealer] = useState<DealerDetails>({
     ...defaultProfile,
   });
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-  const [passwordForm, setPasswordForm] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-
-  const statusTone = useMemo(() => {
-    const status = (dealer.status ?? "").toUpperCase();
-    if (status === "ATIVO" || status === "ACTIVE") {
-      return "bg-emerald-500/25 text-white border border-emerald-100";
-    }
-    if (status === "PENDENTE") {
-      return "bg-amber-500/25 text-white border border-amber-100";
-    }
-    return "bg-slate-500/25 text-white border border-slate-200";
-  }, [dealer.status]);
+  const [profileForm] = Form.useForm();
+  const [passwordForm] = Form.useForm();
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -136,9 +131,18 @@ function ConfiguracoesPage() {
 
         setDealer(details);
         setLogoPreview(details.logoUrl || null);
+
+        // Set form values
+        profileForm.setFieldsValue({
+          fullNameEnterprise: details.fullNameEnterprise,
+          cnpj: details.cnpj,
+          birthData: details.birthData,
+          phone: details.phone,
+          ...details.address,
+        });
       } catch (error) {
         console.error("[config] loadProfile", error);
-        toast.error(
+        message.error(
           error instanceof Error ? error.message : "Erro ao carregar dados do lojista",
         );
       } finally {
@@ -147,86 +151,25 @@ function ConfiguracoesPage() {
     };
 
     loadProfile();
-  }, []);
+  }, [profileForm]);
 
   const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
-  const handleProfileChange = (
-    field: keyof DealerProfile | keyof Address,
-    value: string,
-    isAddress = false,
-  ) => {
-    if (isAddress) {
-      setDealer((prev) => ({
-        ...prev,
-        address: { ...(prev.address ?? emptyAddress), [field]: value },
-      }));
-    } else {
-      setDealer((prev) => ({ ...prev, [field]: value }));
-    }
-  };
-
-  const validateProfile = (profile: DealerProfile) => {
-    if (!profile.fullNameEnterprise.trim()) {
-      toast.error("Informe a razão social da empresa.");
-      return false;
-    }
-    if (!profile.cnpj || digitsOnly(profile.cnpj).length !== 14) {
-      toast.error("CNPJ inválido. Use 14 dígitos.");
-      return false;
-    }
-    if (!profile.birthData) {
-      toast.error("Informe a data de fundação/nascimento no formato AAAA-MM-DD.");
-      return false;
-    }
-
-    const address = profile.address ?? emptyAddress;
-    const requiredFields: Array<keyof Address> = [
-      "street",
-      "number",
-      "neighborhood",
-      "city",
-      "state",
-      "zipCode",
-    ];
-
-    for (const key of requiredFields) {
-      if (!address[key]?.toString().trim()) {
-        toast.error("Preencha todos os campos de endereço.");
-        return false;
-      }
-    }
-
-    if (address.state.length !== 2) {
-      toast.error("UF deve ter 2 letras.");
-      return false;
-    }
-
-    if (digitsOnly(address.zipCode).length !== 8) {
-      toast.error("CEP deve ter 8 dígitos.");
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (values: any) => {
     const payload: DealerProfile = {
-      fullNameEnterprise: dealer.fullNameEnterprise ?? "",
-      birthData: dealer.birthData ?? "",
-      cnpj: digitsOnly(dealer.cnpj ?? ""),
+      fullNameEnterprise: values.fullNameEnterprise,
+      birthData: values.birthData,
+      cnpj: digitsOnly(values.cnpj),
       address: {
-        street: dealer.address?.street ?? "",
-        number: dealer.address?.number ?? "",
-        complement: dealer.address?.complement ?? "",
-        neighborhood: dealer.address?.neighborhood ?? "",
-        city: dealer.address?.city ?? "",
-        state: (dealer.address?.state ?? "").toUpperCase(),
-        zipCode: digitsOnly(dealer.address?.zipCode ?? ""),
+        street: values.street,
+        number: values.number,
+        complement: values.complement || "",
+        neighborhood: values.neighborhood,
+        city: values.city,
+        state: values.state.toUpperCase(),
+        zipCode: digitsOnly(values.zipCode),
       },
     };
-
-    if (!validateProfile(payload)) return;
 
     setSavingProfile(true);
     try {
@@ -239,66 +182,76 @@ function ConfiguracoesPage() {
       if (!res.ok) {
         throw new Error(data?.error || "Não foi possível salvar os dados.");
       }
-      toast.success("Dados do lojista atualizados!");
+      message.success("Dados do lojista atualizados com sucesso!");
     } catch (error) {
       console.error("[config] saveProfile", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar dados");
+      message.error(error instanceof Error ? error.message : "Erro ao salvar dados");
     } finally {
       setSavingProfile(false);
     }
   };
 
-  const handlePasswordChange = async () => {
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error("As senhas não coincidem.");
-      return;
-    }
-    if (passwordForm.newPassword.length < 6) {
-      toast.error("A nova senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
+  const handlePasswordChange = async (values: any) => {
     setChangingPassword(true);
     try {
       const res = await fetch("/api/auth/change-password", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          oldPassword: passwordForm.oldPassword,
-          newPassword: passwordForm.newPassword,
+          oldPassword: values.oldPassword,
+          newPassword: values.newPassword,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.error || "Não foi possível alterar a senha.");
       }
-      toast.success("Senha alterada com sucesso!");
-      setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      message.success("Senha alterada com sucesso!");
+      passwordForm.resetFields();
     } catch (error) {
       console.error("[config] changePassword", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao alterar senha");
+      message.error(error instanceof Error ? error.message : "Erro ao alterar senha");
     } finally {
       setChangingPassword(false);
     }
   };
 
-  const handleSelectLogo = (file: File | null) => {
-    setLogoFile(file);
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setLogoPreview(url);
-    } else {
-      setLogoPreview(dealer.logoUrl || null);
-    }
+  const uploadProps: UploadProps = {
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith("image/");
+      if (!isImage) {
+        message.error("Você pode fazer upload apenas de arquivos de imagem!");
+        return Upload.LIST_IGNORE;
+      }
+      const isLt5M = file.size / 1024 / 1024 < 5;
+      if (!isLt5M) {
+        message.error("A imagem deve ter menos de 5MB!");
+        return Upload.LIST_IGNORE;
+      }
+      return false; // Prevent auto upload
+    },
+    onChange: ({ fileList: newFileList }) => {
+      setFileList(newFileList);
+      if (newFileList.length > 0 && newFileList[0].originFileObj) {
+        const url = URL.createObjectURL(newFileList[0].originFileObj);
+        setLogoPreview(url);
+      } else {
+        setLogoPreview(dealer.logoUrl || null);
+      }
+    },
+    maxCount: 1,
+    listType: "picture",
+    accept: "image/png,image/jpeg,image/jpg,image/webp",
   };
 
   const handleUploadLogo = async () => {
-    if (!logoFile) {
-      toast.error("Selecione um arquivo de imagem para enviar.");
+    if (fileList.length === 0 || !fileList[0].originFileObj) {
+      message.error("Selecione um arquivo de imagem para enviar.");
       return;
     }
 
     const formData = new FormData();
-    formData.append("file", logoFile);
+    formData.append("file", fileList[0].originFileObj);
 
     setUploadingLogo(true);
     try {
@@ -316,11 +269,11 @@ function ConfiguracoesPage() {
         setLogoPreview(nextUrl);
         return { ...prev, logoUrl: nextUrl || "" };
       });
-      setLogoFile(null);
-      toast.success("Logomarca atualizada com sucesso!");
+      setFileList([]);
+      message.success("Logomarca atualizada com sucesso!");
     } catch (error) {
       console.error("[config] uploadLogo", error);
-      toast.error(
+      message.error(
         error instanceof Error ? error.message : "Erro ao enviar a logomarca",
       );
     } finally {
@@ -335,386 +288,600 @@ function ConfiguracoesPage() {
     return date.toLocaleDateString("pt-BR");
   };
 
-  const renderProfileForm = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">Razão social</Label>
-        <Input
-          placeholder="Nome completo da empresa"
-          value={dealer.fullNameEnterprise ?? ""}
-          onChange={(e) => handleProfileChange("fullNameEnterprise", e.target.value)}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">CNPJ</Label>
-        <Input
-          placeholder="Apenas números"
-          value={dealer.cnpj ?? ""}
-          onChange={(e) => handleProfileChange("cnpj", digitsOnly(e.target.value))}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">Data de fundação</Label>
-        <Input
-          placeholder="AAAA-MM-DD"
-          value={dealer.birthData ?? ""}
-          onChange={(e) => handleProfileChange("birthData", e.target.value)}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">Telefone</Label>
-        <Input
-          disabled
-          value={dealer.phone ?? ""}
-          className="bg-slate-50"
-          placeholder="Telefone cadastrado"
-        />
-      </div>
-      <Separator className="md:col-span-2" />
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">Logradouro</Label>
-        <Input
-          placeholder="Rua / Avenida"
-          value={dealer.address?.street ?? ""}
-          onChange={(e) => handleProfileChange("street", e.target.value, true)}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">Número</Label>
-        <Input
-          placeholder="Número"
-          value={dealer.address?.number ?? ""}
-          onChange={(e) => handleProfileChange("number", e.target.value, true)}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">Complemento</Label>
-        <Input
-          placeholder="Sala / Bloco"
-          value={dealer.address?.complement ?? ""}
-          onChange={(e) => handleProfileChange("complement", e.target.value, true)}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">Bairro</Label>
-        <Input
-          placeholder="Bairro"
-          value={dealer.address?.neighborhood ?? ""}
-          onChange={(e) => handleProfileChange("neighborhood", e.target.value, true)}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">Cidade</Label>
-        <Input
-          placeholder="Cidade"
-          value={dealer.address?.city ?? ""}
-          onChange={(e) => handleProfileChange("city", e.target.value, true)}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">UF</Label>
-        <Input
-          placeholder="UF"
-          maxLength={2}
-          value={dealer.address?.state ?? ""}
-          onChange={(e) =>
-            handleProfileChange("state", e.target.value.toUpperCase(), true)
-          }
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm text-[#134B73]">CEP</Label>
-        <Input
-          placeholder="Apenas números"
-          value={dealer.address?.zipCode ?? ""}
-          onChange={(e) =>
-            handleProfileChange("zipCode", digitsOnly(e.target.value), true)
-          }
-        />
-      </div>
-    </div>
-  );
+  const getStatusColor = (status?: string) => {
+    const upperStatus = (status ?? "").toUpperCase();
+    if (upperStatus === "ATIVO" || upperStatus === "ACTIVE") return "success";
+    if (upperStatus === "PENDENTE") return "warning";
+    return "default";
+  };
 
-  const renderProfileSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {Array.from({ length: 10 }).map((_, idx) => (
-        <div key={idx} className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      ))}
-      <div className="md:col-span-2">
-        <Skeleton className="h-10 w-40" />
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="space-y-8">
-      <div className="rounded-3xl bg-gradient-to-r from-[#134B73] via-[#0f3c5a] to-[#0a2c45] text-white shadow-theme-lg border border-white/10 p-6 md:p-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-white/15 border border-white/30 flex items-center justify-center overflow-hidden shadow-theme-lg">
-                {logoPreview ? (
-                  <Image
-                    src={logoPreview}
-                    alt="Logo do lojista"
-                    width={90}
-                    height={90}
-                    className="object-contain p-2"
-                    sizes="90px"
-                  />
-                ) : (
-                  <Building2 className="h-8 w-8 text-white" />
-                )}
-              </div>
-              <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white/90 text-[#134B73] shadow-lg">
-                Lojista
-              </Badge>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.35em] text-white/70">
-                Painel Grota
-              </p>
-              <h1 className="text-3xl md:text-4xl font-bold leading-tight">
-                Configurações do painel
-              </h1>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
-                <Badge className={statusTone}>
-                  {dealer.status ? dealer.status : "Status não informado"}
-                </Badge>
-                <span className="flex items-center gap-2 text-white/80">
-                  <ShieldCheck size={16} /> Ambiente seguro
-                </span>
-                <span className="flex items-center gap-2 text-white/80">
-                  <MapPin size={16} /> Desde {formatDate(dealer.createdAt)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2 rounded-2xl bg-white/10 border border-white/20 p-4 min-w-[260px]">
-            <div className="flex items-center justify-between text-sm text-white/80">
-              <span>Código Ref.</span>
-              <span className="font-semibold">{dealer.referenceCode || "--"}</span>
-            </div>
-            <Separator className="bg-white/20" />
-            <div className="flex items-center justify-between text-sm text-white/80">
-              <span>Empresa</span>
-              <span className="font-semibold">{dealer.enterprise || "--"}</span>
-            </div>
-            <Separator className="bg-white/20" />
-            <div className="flex items-center justify-between text-sm text-white/80">
-              <span>Telefone</span>
-              <span className="font-semibold">{dealer.phone || "--"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border border-slate-200/70 shadow-theme-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-[#134B73]">
-              <Building2 size={20} /> Informações do lojista
-            </CardTitle>
-            <CardDescription>
-              Mantenha os dados fiscais e de endereço do seu painel atualizados.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {loadingProfile ? renderProfileSkeleton() : renderProfileForm()}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <Button
-                className="sm:w-auto w-full bg-[#134B73] hover:bg-[#0f3c5a]"
-                onClick={handleSaveProfile}
-                disabled={savingProfile || loadingProfile}
-              >
-                {savingProfile ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Check size={16} /> Salvar alterações
-                  </span>
-                )}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Campos obrigatórios: CNPJ, endereço completo e data de fundação.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-slate-200/70 shadow-theme-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-[#134B73]">
-              <KeyRound size={20} /> Segurança e senha
-            </CardTitle>
-            <CardDescription>
-              Atualize a senha de acesso ao painel do lojista.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Senha atual</Label>
-              <Input
-                placeholder="••••••••"
-                type="password"
-                value={passwordForm.oldPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({ ...prev, oldPassword: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Nova senha</Label>
-              <Input
-                placeholder="Mínimo 6 caracteres"
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Confirmar nova senha</Label>
-              <Input
-                placeholder="Repita a nova senha"
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    confirmPassword: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <Button
-              className="w-full bg-[#134B73] hover:bg-[#0f3c5a]"
-              onClick={handlePasswordChange}
-              disabled={changingPassword}
-            >
-              {changingPassword ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Alterando...
-                </span>
-              ) : (
-                "Alterar senha"
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="overflow-hidden border border-slate-200/70 shadow-theme-lg">
-          <CardHeader className="bg-gradient-to-r from-[#134B73] via-[#0f3c5a] to-[#0a2c45] text-white">
-            <CardTitle className="flex items-center gap-2">
-              <UploadCloud size={20} /> Identidade visual do painel
-            </CardTitle>
-            <CardDescription className="text-white/80">
-              Personalize a logomarca exibida na sidebar do lojista.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 pt-6">
-            <div className="flex flex-col sm:flex-row gap-6">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-28 w-28 rounded-2xl border-2 border-dashed border-[#134B73]/30 bg-slate-50 flex items-center justify-center overflow-hidden shadow-inner">
-                  {logoPreview ? (
-                    <Image
-                      src={logoPreview}
-                      alt="Pré-visualização da logo"
-                      width={120}
-                      height={120}
-                      className="object-contain"
-                      sizes="120px"
-                    />
-                  ) : (
-                    <UploadCloud className="h-8 w-8 text-[#134B73]" />
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground text-center max-w-[180px]">
-                  PNG, JPG ou WEBP até 5MB.
-                </p>
-              </div>
-              <div className="flex-1 space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm text-[#134B73]">Selecionar arquivo</Label>
+  const tabItems = [
+    {
+      key: "profile",
+      label: (
+        <span>
+          <BuildOutlined /> Perfil da Empresa
+        </span>
+      ),
+      children: (
+        <Card variant="borderless">
+          <Form
+            form={profileForm}
+            layout="vertical"
+            onFinish={handleSaveProfile}
+            disabled={loadingProfile}
+          >
+            <Title level={5} style={{ color: "#134B73", marginBottom: 16 }}>
+              Informações da Empresa
+            </Title>
+            <Row gutter={[16, 8]}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="fullNameEnterprise"
+                  label="Razão Social"
+                  rules={[
+                    { required: true, message: "Informe a razão social da empresa" },
+                  ]}
+                >
+                  <Input placeholder="Nome completo da empresa" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="cnpj"
+                  label="CNPJ"
+                  rules={[
+                    { required: true, message: "Informe o CNPJ" },
+                    {
+                      validator: (_, value) => {
+                        if (!value || digitsOnly(value).length === 14) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(
+                          new Error("CNPJ deve ter 14 dígitos"),
+                        );
+                      },
+                    },
+                  ]}
+                >
                   <Input
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/webp"
-                    onChange={(event) =>
-                      handleSelectLogo(event.target.files?.[0] ?? null)
-                    }
+                    placeholder="00.000.000/0000-00"
+                    onChange={(e) => {
+                      profileForm.setFieldValue("cnpj", digitsOnly(e.target.value));
+                    }}
                   />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="birthData"
+                  label="Data de Fundação"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Informe a data de fundação no formato AAAA-MM-DD",
+                    },
+                  ]}
+                >
+                  <Input type="date" placeholder="AAAA-MM-DD" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="phone" label="Telefone">
+                  <Input disabled placeholder="Telefone cadastrado" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Divider />
+
+            <Title level={5} style={{ color: "#134B73", marginBottom: 16 }}>
+              <EnvironmentOutlined /> Endereço
+            </Title>
+            <Row gutter={[16, 8]}>
+              <Col xs={24} md={16}>
+                <Form.Item
+                  name="street"
+                  label="Logradouro"
+                  rules={[{ required: true, message: "Informe o logradouro" }]}
+                >
+                  <Input placeholder="Rua / Avenida" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  name="number"
+                  label="Número"
+                  rules={[{ required: true, message: "Informe o número" }]}
+                >
+                  <Input placeholder="Número" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="complement" label="Complemento">
+                  <Input placeholder="Sala / Bloco (opcional)" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="neighborhood"
+                  label="Bairro"
+                  rules={[{ required: true, message: "Informe o bairro" }]}
+                >
+                  <Input placeholder="Bairro" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={10}>
+                <Form.Item
+                  name="city"
+                  label="Cidade"
+                  rules={[{ required: true, message: "Informe a cidade" }]}
+                >
+                  <Input placeholder="Cidade" />
+                </Form.Item>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Item
+                  name="state"
+                  label="UF"
+                  rules={[
+                    { required: true, message: "Informe a UF" },
+                    { len: 2, message: "UF deve ter 2 letras" },
+                  ]}
+                >
+                  <Input
+                    placeholder="UF"
+                    maxLength={2}
+                    style={{ textTransform: "uppercase" }}
+                    onChange={(e) => {
+                      profileForm.setFieldValue(
+                        "state",
+                        e.target.value.toUpperCase(),
+                      );
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={12} md={8}>
+                <Form.Item
+                  name="zipCode"
+                  label="CEP"
+                  rules={[
+                    { required: true, message: "Informe o CEP" },
+                    {
+                      validator: (_, value) => {
+                        if (!value || digitsOnly(value).length === 8) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error("CEP deve ter 8 dígitos"));
+                      },
+                    },
+                  ]}
+                >
+                  <Input
+                    placeholder="00000-000"
+                    onChange={(e) => {
+                      profileForm.setFieldValue("zipCode", digitsOnly(e.target.value));
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item style={{ marginTop: 24 }}>
+              <Space>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={savingProfile}
+                  icon={<CheckCircleOutlined />}
+                  style={{ backgroundColor: "#134B73" }}
+                >
+                  Salvar alterações
+                </Button>
+                <Text type="secondary">
+                  Campos obrigatórios: CNPJ, endereço completo e data de fundação
+                </Text>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Card>
+      ),
+    },
+    {
+      key: "branding",
+      label: (
+        <span>
+          <PictureOutlined /> Identidade Visual
+        </span>
+      ),
+      children: (
+        <Card variant="borderless">
+          <Row gutter={[24, 24]}>
+            <Col xs={24} md={12}>
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                <div>
+                  <Title level={5} style={{ color: "#134B73" }}>
+                    <UploadOutlined /> Logomarca do Painel
+                  </Title>
+                  <Paragraph type="secondary">
+                    Personalize a logomarca exibida na sidebar do lojista.
+                  </Paragraph>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    className="bg-[#134B73] hover:bg-[#0f3c5a] sm:w-auto w-full"
-                    onClick={handleUploadLogo}
-                    disabled={uploadingLogo}
+
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    style={{
+                      width: 200,
+                      height: 200,
+                      margin: "0 auto 16px",
+                      border: "2px dashed #134B73",
+                      borderRadius: 8,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "#fafafa",
+                      overflow: "hidden",
+                    }}
                   >
-                    {uploadingLogo ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Enviando...
-                      </span>
+                    {logoPreview ? (
+                      <Image
+                        src={logoPreview}
+                        alt="Logo preview"
+                        width={180}
+                        height={180}
+                        style={{ objectFit: "contain" }}
+                      />
                     ) : (
-                      <span className="flex items-center gap-2">
-                        <UploadCloud size={16} /> Enviar logomarca
-                      </span>
+                      <PictureOutlined
+                        style={{ fontSize: 48, color: "#134B73", opacity: 0.5 }}
+                      />
                     )}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    PNG, JPG ou WEBP até 5MB
+                  </Text>
+                </div>
+
+                <Upload {...uploadProps} fileList={fileList}>
+                  <Button icon={<UploadOutlined />} block>
+                    Selecionar arquivo
+                  </Button>
+                </Upload>
+
+                <Space style={{ width: "100%" }}>
+                  <Button
+                    type="default"
+                    onClick={handleUploadLogo}
+                    loading={uploadingLogo}
+                    disabled={fileList.length === 0}
+                    style={{ backgroundColor: "#ffff" }}
+                  >
+                    Enviar logomarca
                   </Button>
                   <Button
-                    variant="secondary"
-                    className="sm:w-auto w-full"
-                    onClick={() => handleSelectLogo(null)}
+                    onClick={() => {
+                      setFileList([]);
+                      setLogoPreview(dealer.logoUrl || null);
+                    }}
                     disabled={uploadingLogo}
                   >
                     Limpar seleção
                   </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
+                </Space>
+
+                <Paragraph type="secondary" style={{ fontSize: 12 }}>
                   O envio substitui a logo atual da sidebar. Usamos Cloudinary para
                   hospedagem segura.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                </Paragraph>
+              </Space>
+            </Col>
 
-        <Card className="border border-slate-200/70 shadow-theme-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-[#134B73]">
-              <ShieldCheck size={20} /> Dicas rápidas
-            </CardTitle>
-            <CardDescription>
-              Boas práticas para manter sua conta segura e padronizada.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <div className="flex items-start gap-3">
-              <Check className="text-emerald-600 mt-0.5" size={16} />
-              <p>Use um e-mail corporativo válido para notificações do painel.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="text-emerald-600 mt-0.5" size={16} />
-              <p>Mantenha CNPJ e endereço iguais aos documentos enviados.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="text-emerald-600 mt-0.5" size={16} />
-              <p>Atualize a senha regularmente e evite reutilizar senhas antigas.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="text-emerald-600 mt-0.5" size={16} />
-              <p>Prefira logos em fundo transparente para melhor contraste na sidebar.</p>
-            </div>
-          </CardContent>
+            <Col xs={24} md={12}>
+              <Card
+                type="inner"
+                title={
+                  <span>
+                    <InfoCircleOutlined /> Dicas para a logo
+                  </span>
+                }
+                style={{ background: "#f6f8fa" }}
+              >
+                <Space direction="vertical" size="middle">
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                    <Text>Prefira logos em fundo transparente para melhor contraste</Text>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                    <Text>Resolução mínima recomendada: 200x200 pixels</Text>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                    <Text>Formatos aceitos: PNG, JPG, WEBP</Text>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                    <Text>A logo será redimensionada automaticamente</Text>
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
         </Card>
+      ),
+    },
+    {
+      key: "security",
+      label: (
+        <span>
+          <SafetyOutlined /> Segurança
+        </span>
+      ),
+      children: (
+        <Row gutter={[24, 24]}>
+          <Col xs={24} lg={12}>
+            <Card
+              title={
+                <span>
+                  <LockOutlined /> Alterar Senha
+                </span>
+              }
+              variant="borderless"
+            >
+              <Form
+                form={passwordForm}
+                layout="vertical"
+                onFinish={handlePasswordChange}
+              >
+                <Form.Item
+                  name="oldPassword"
+                  label="Senha Atual"
+                  rules={[{ required: true, message: "Informe a senha atual" }]}
+                >
+                  <Input.Password placeholder="••••••••" />
+                </Form.Item>
+
+                <Form.Item
+                  name="newPassword"
+                  label="Nova Senha"
+                  rules={[
+                    { required: true, message: "Informe a nova senha" },
+                    { min: 6, message: "A senha deve ter pelo menos 6 caracteres" },
+                  ]}
+                >
+                  <Input.Password placeholder="Mínimo 6 caracteres" />
+                </Form.Item>
+
+                <Form.Item
+                  name="confirmPassword"
+                  label="Confirmar Nova Senha"
+                  dependencies={["newPassword"]}
+                  rules={[
+                    { required: true, message: "Confirme a nova senha" },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue("newPassword") === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error("As senhas não coincidem"));
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password placeholder="Repita a nova senha" />
+                </Form.Item>
+
+                <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={changingPassword}
+                    block
+                    style={{ backgroundColor: "#134B73" }}
+                  >
+                    Alterar senha
+                  </Button>
+                </Form.Item>
+              </Form>
+            </Card>
+          </Col>
+
+          <Col xs={24} lg={12}>
+            <Card
+              title={
+                <span>
+                  <InfoCircleOutlined /> Dicas de Segurança
+                </span>
+              }
+              variant="borderless"
+              style={{ background: "#f6f8fa" }}
+            >
+              <Space direction="vertical" size="middle">
+                <div style={{ display: "flex", gap: 8 }}>
+                  <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                  <Text>Use um e-mail corporativo válido para notificações</Text>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                  <Text>Atualize a senha regularmente (a cada 90 dias)</Text>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                  <Text>Evite reutilizar senhas antigas ou de outros serviços</Text>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                  <Text>Use combinação de letras, números e caracteres especiais</Text>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
+                  <Text>Mantenha CNPJ e endereço iguais aos documentos enviados</Text>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+      ),
+    },
+    {
+      key: "account",
+      label: (
+        <span>
+          <UserOutlined /> Informações da Conta
+        </span>
+      ),
+      children: (
+        <Card variant="borderless" loading={loadingProfile}>
+          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+            <div style={{ textAlign: "center", paddingBottom: 16 }}>
+              <Avatar
+                size={80}
+                src={logoPreview}
+                icon={<BuildOutlined />}
+                style={{ backgroundColor: "#134B73", marginBottom: 16 }}
+              />
+              <Title level={4} style={{ margin: 0 }}>
+                {dealer.fullNameEnterprise || dealer.enterprise || "Sua Empresa"}
+              </Title>
+              <Space style={{ marginTop: 8 }}>
+                <Tag color={getStatusColor(dealer.status)} icon={<CheckCircleOutlined />}>
+                  {dealer.status || "Status não informado"}
+                </Tag>
+              </Space>
+            </div>
+
+            <Descriptions bordered column={{ xs: 1, sm: 2 }}>
+              <Descriptions.Item label="Código de Referência">
+                {dealer.referenceCode || "--"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Empresa">
+                {dealer.enterprise || "--"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Email" span={2}>
+                {dealer.email || "--"}
+              </Descriptions.Item>
+              <Descriptions.Item label={<><PhoneOutlined /> Telefone</>}>
+                {dealer.phone || "--"}
+              </Descriptions.Item>
+              <Descriptions.Item label={<><CalendarOutlined /> Membro desde</>}>
+                {formatDate(dealer.createdAt)}
+              </Descriptions.Item>
+              <Descriptions.Item label="CNPJ" span={2}>
+                {dealer.cnpj || "--"}
+              </Descriptions.Item>
+              <Descriptions.Item label={<><EnvironmentOutlined /> Endereço</>} span={2}>
+                {dealer.address?.street && dealer.address?.city
+                  ? `${dealer.address.street}, ${dealer.address.number}${dealer.address.complement ? ` - ${dealer.address.complement}` : ""
+                  } - ${dealer.address.neighborhood}, ${dealer.address.city}/${dealer.address.state
+                  } - CEP ${dealer.address.zipCode}`
+                  : "--"}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Card
+              type="inner"
+              style={{ background: "#e6f4ff", borderColor: "#91caff" }}
+            >
+              <Space>
+                <InfoCircleOutlined style={{ color: "#134B73", fontSize: 20 }} />
+                <div>
+                  <Text strong style={{ color: "#134B73" }}>
+                    Ambiente Seguro
+                  </Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Suas informações são protegidas com criptografia de ponta a ponta
+                  </Text>
+                </div>
+              </Space>
+            </Card>
+          </Space>
+        </Card>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <div
+        style={{
+          background: "linear-gradient(135deg, #134B73 0%, #0f3c5a 50%, #0a2c45 100%)",
+          padding: "32px 24px",
+          marginBottom: 24,
+          color: "white",
+        }}
+      >
+        <Row gutter={[24, 16]} align="middle">
+          <Col xs={24} md={16}>
+            <Space size="large" align="center">
+              <Avatar
+                size={64}
+                src={logoPreview}
+                icon={<BuildOutlined />}
+                style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              />
+              <div>
+                <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 12 }}>
+                  PAINEL GROTA
+                </Text>
+                <Title level={2} style={{ color: "white", margin: "4px 0 8px" }}>
+                  Configurações do Painel
+                </Title>
+                <Space wrap>
+                  <Tag color={getStatusColor(dealer.status)}>
+                    {dealer.status || "Status não informado"}
+                  </Tag>
+                  <Text style={{ color: "rgba(255,255,255,0.9)" }}>
+                    <SafetyOutlined /> Ambiente seguro
+                  </Text>
+                  <Text style={{ color: "rgba(255,255,255,0.9)" }}>
+                    <CalendarOutlined /> Desde {formatDate(dealer.createdAt)}
+                  </Text>
+                </Space>
+              </div>
+            </Space>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card
+              size="small"
+              style={{ background: "rgba(255,255,255,0.15)", borderColor: "transparent" }}
+            >
+              <Descriptions column={1} size="small" colon={false}>
+                <Descriptions.Item
+                  label={<Text style={{ color: "rgba(255,255,255,0.8)" }}>Código Ref.</Text>}
+                >
+                  <Text strong style={{ color: "white" }}>
+                    {dealer.referenceCode || "--"}
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={<Text style={{ color: "rgba(255,255,255,0.8)" }}>Empresa</Text>}
+                >
+                  <Text strong style={{ color: "white" }}>
+                    {dealer.enterprise || "--"}
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={<Text style={{ color: "rgba(255,255,255,0.8)" }}>Telefone</Text>}
+                >
+                  <Text strong style={{ color: "white" }}>
+                    {dealer.phone || "--"}
+                  </Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </Col>
+        </Row>
       </div>
+
+      <Tabs
+        defaultActiveKey="profile"
+        items={tabItems}
+        size="large"
+        tabBarStyle={{ marginBottom: 24, marginLeft: 24 }}
+
+      />
     </div>
   );
 }
