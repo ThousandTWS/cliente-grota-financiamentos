@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Card, Empty, Select, Skeleton, Tag, Typography } from "antd";
 import {
@@ -82,7 +82,7 @@ const maskCpf = (cpf: string) => {
   return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 };
 
-export default function PainelOperadorPage() {
+function PainelOperadorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sellers, setSellers] = useState<Seller[]>([]);
@@ -543,11 +543,10 @@ export default function PainelOperadorPage() {
                       </h3>
                     </div>
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        seller.status === "ATIVO"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${seller.status === "ATIVO"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700"
+                        }`}
                     >
                       {seller.status || "PENDENTE"}
                     </span>
@@ -580,5 +579,13 @@ export default function PainelOperadorPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function PainelOperadorPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center">Carregando...</div>}>
+      <PainelOperadorContent />
+    </Suspense>
   );
 }

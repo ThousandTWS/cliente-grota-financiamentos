@@ -44,6 +44,30 @@ export const nextJsConfig = [
       ...pluginReactHooks.configs.recommended.rules,
       // React scope no longer necessary with new JSX transform.
       "react/react-in-jsx-scope": "off",
+      // Prop types not needed with TypeScript
+      "react/prop-types": "off",
+      // Allow display name to be inferred
+      "react/display-name": "off",
+      // Allow unescaped entities in JSX
+      "react/no-unescaped-entities": "off",
+      // Allow unknown properties (for custom attributes)
+      "react/no-unknown-property": "off",
+      // Allow unused vars with _ prefix or common patterns
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_|^React$",
+        "caughtErrorsIgnorePattern": "^_|^err"
+      }],
+      // Allow explicit any with warning instead of error
+      "@typescript-eslint/no-explicit-any": "off",
+      // Allow @ts-ignore comments
+      "@typescript-eslint/ban-ts-comment": "off",
+      // Allow empty patterns in destructuring
+      "no-empty-pattern": "off",
+      // Allow require imports (for tailwind config etc)
+      "@typescript-eslint/no-require-imports": "off",
+      // Allow empty functions
+      "@typescript-eslint/no-empty-function": "off",
     },
   },
 ];

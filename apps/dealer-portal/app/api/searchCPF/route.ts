@@ -17,9 +17,9 @@ export async function POST(req: Request) {
       {
         headers: {
           "Content-Type": "application/json",
-          // eslint-disable-next-line turbo/no-undeclared-env-vars
+           
           DeviceToken: `${process.env.APIBRASIL_DEVICE_TOKEN_CPF}`,
-          // eslint-disable-next-line turbo/no-undeclared-env-vars
+           
           Authorization: `Bearer ${process.env.APIBRASIL_TOKEN}`,
         },
       },

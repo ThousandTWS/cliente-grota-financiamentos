@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**", 
+        hostname: "**",
       },
     ],
   },
@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
    * dependencies into the production container image.
    */
   output: "standalone",
+  turbopack: {
+    root: "../..",
+  },
 };
 
 export default nextConfig;

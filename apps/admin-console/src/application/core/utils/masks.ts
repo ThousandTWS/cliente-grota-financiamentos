@@ -72,7 +72,7 @@ export function maskFipeCode(value: string) {
 
 export function maskBRL(value: string) {
   // remove tudo que não for número
-  let onlyNumbers = value.replace(/\D/g, "");
+  const onlyNumbers = value.replace(/\D/g, "");
 
   // se estiver vazio
   if (!onlyNumbers) return "";
