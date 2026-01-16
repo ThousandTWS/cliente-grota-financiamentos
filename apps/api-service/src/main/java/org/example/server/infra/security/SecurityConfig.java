@@ -83,7 +83,7 @@ public class SecurityConfig {
                         // Propostas - criação permitida para ADMIN, OPERADOR e VENDEDOR
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/proposals").hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/grota-financiamentos/proposals/*/status").hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/proposals/**").hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/proposals/**").hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA", "GESTOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/grota-financiamentos/proposals/*").hasRole("ADMIN")
                         // Cobrança: liberar para os mesmos perfis das demais operações
                         .requestMatchers("/api/v1/grota-financiamentos/billing/**").authenticated()

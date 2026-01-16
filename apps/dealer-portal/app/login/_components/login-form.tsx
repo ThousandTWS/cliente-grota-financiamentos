@@ -2,14 +2,29 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Alert, Button, Form, Input, Radio } from "antd"
+import { Alert, Button, Form, Input } from "antd"
 import ReCAPTCHA from "react-google-recaptcha"
-import { Building2, Lock, Mail, UserCog, Briefcase } from "lucide-react"
+import { Building2, Lock, Mail } from "lucide-react"
 
 type LoginFormValues = {
   identifier: string
   password: string
-  role: "operador" | "gestor"
+}
+
+const resolveRedirectPath = (role?: string | null) => {
+  const normalizedRole = (role ?? "").toUpperCase()
+  switch (normalizedRole) {
+    case "OPERADOR":
+      return "/operacao"
+    case "GESTOR":
+      return "/dashboard"
+    case "VENDEDOR":
+      return "/minhas-operacoes"
+    case "ADMIN":
+    case "LOJISTA":
+    default:
+      return "/simulacao/novo"
+  }
 }
 
 export function LoginForm() {
@@ -60,8 +75,9 @@ export function LoginForm() {
         return
       }
 
-      // Redirecionar baseado na função selecionada
-      const redirectPath = values.role === "gestor" ? "/gestao" : "/operacao"
+      const redirectPath = resolveRedirectPath(
+        (data as { user?: { role?: string } })?.user?.role,
+      )
       router.push(redirectPath)
     } catch (err) {
       setError("Falha ao autenticar. Tente novamente.")
@@ -80,7 +96,7 @@ export function LoginForm() {
       colon={false}
       onFinish={handleSubmit}
       className="space-y-4"
-      initialValues={{ identifier: "", password: "", role: "operador" }}
+      initialValues={{ identifier: "", password: "" }}
     >
       <Form.Item
         label="E-mail ou Empresa"
@@ -119,37 +135,6 @@ export function LoginForm() {
         />
       </Form.Item>
 
-      {/* Seleção de Função */}
-      <Form.Item
-        label="Acessar como"
-        name="role"
-        rules={[{ required: true, message: "Selecione uma função." }]}
-      >
-        <Radio.Group className="w-full">
-          <div className="grid grid-cols-2 gap-3">
-            <Radio.Button
-              value="operador"
-              className="!h-auto !p-4 !flex !items-center !justify-center !rounded-xl !border-2 hover:!border-blue-400 [&.ant-radio-button-wrapper-checked]:!border-blue-500 [&.ant-radio-button-wrapper-checked]:!bg-blue-50"
-            >
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Briefcase className="h-6 w-6 text-blue-600" />
-                <span className="font-semibold text-slate-700">Operador</span>
-                <span className="text-xs text-slate-500">Múltiplas lojas</span>
-              </div>
-            </Radio.Button>
-            <Radio.Button
-              value="gestor"
-              className="!h-auto !p-4 !flex !items-center !justify-center !rounded-xl !border-2 hover:!border-emerald-400 [&.ant-radio-button-wrapper-checked]:!border-emerald-500 [&.ant-radio-button-wrapper-checked]:!bg-emerald-50"
-            >
-              <div className="flex flex-col items-center gap-2 text-center">
-                <UserCog className="h-6 w-6 text-emerald-600" />
-                <span className="font-semibold text-slate-700">Gestor</span>
-                <span className="text-xs text-slate-500">Sua loja</span>
-              </div>
-            </Radio.Button>
-          </div>
-        </Radio.Group>
-      </Form.Item>
 
       <Form.Item
         label="Verificação"

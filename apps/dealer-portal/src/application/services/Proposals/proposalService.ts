@@ -94,11 +94,20 @@ export const fetchProposals = async (
       ? `${PROPOSALS_ENDPOINT}?${query.toString()}`
       : PROPOSALS_ENDPOINT;
 
-  const response = await fetch(url, {
-    method: "GET",
-    credentials: "include",
-    cache: "no-store",
-  });
+  const request = () =>
+    fetch(url, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+
+  let response = await request();
+  if (response.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      response = await request();
+    }
+  }
 
   const payload = await response.json().catch(() => null);
 
@@ -161,11 +170,20 @@ export const updateProposalStatus = async (
 export const fetchProposalTimeline = async (
   proposalId: number,
 ): Promise<z.infer<typeof ProposalEventSchema>[]> => {
-  const response = await fetch(`${PROPOSALS_ENDPOINT}/${proposalId}/events`, {
-    method: "GET",
-    credentials: "include",
-    cache: "no-store",
-  });
+  const request = () =>
+    fetch(`${PROPOSALS_ENDPOINT}/${proposalId}/events`, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+
+  let response = await request();
+  if (response.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      response = await request();
+    }
+  }
 
   const payload = await response.json().catch(() => null);
   if (!response.ok) {

@@ -19,6 +19,7 @@ type QueueFiltersProps = {
   onRefresh: () => void;
   onCreate: () => void;
   isRefreshing?: boolean;
+  showCreate?: boolean;
 };
 
 export function QueueFilters({
@@ -30,6 +31,7 @@ export function QueueFilters({
   onRefresh,
   onCreate,
   isRefreshing,
+  showCreate = true,
 }: QueueFiltersProps) {
   const handleReset = () => {
     onFiltersChange({
@@ -118,9 +120,11 @@ export function QueueFilters({
           >
             Atualizar
           </Button>
-          <Button type="primary" icon={<Plus className="size-4" />} onClick={onCreate}>
-            Nova ficha
-          </Button>
+          {showCreate ? (
+            <Button type="primary" icon={<Plus className="size-4" />} onClick={onCreate}>
+              Nova ficha
+            </Button>
+          ) : null}
           <Button
             icon={<Filter className="size-4" />}
             onClick={handleReset}

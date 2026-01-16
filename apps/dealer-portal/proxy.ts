@@ -42,6 +42,22 @@ function buildRedirectResponse(url: string, request: NextRequest) {
   }
 }
 
+function resolveHomePath(role?: string | null) {
+  const normalizedRole = `${role ?? ""}`.toUpperCase();
+  switch (normalizedRole) {
+    case "OPERADOR":
+      return "/operacao";
+    case "GESTOR":
+      return "/dashboard";
+    case "VENDEDOR":
+      return "/minhas-operacoes";
+    case "ADMIN":
+    case "LOJISTA":
+    default:
+      return "/simulacao/novo";
+  }
+}
+
 export async function proxy(request: NextRequest) {
   if (aj) {
     const decision = await aj.protect(request);
@@ -80,11 +96,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isAuthenticated && isLoginRoute) {
-    return buildRedirectResponse("/simulacao/novo", request);
+    return buildRedirectResponse(resolveHomePath(session?.role), request);
   }
 
   if (isAuthenticated && pathname === "/") {
-    return buildRedirectResponse("/simulacao/novo", request);
+    return buildRedirectResponse(resolveHomePath(session?.role), request);
   }
 
   // PERMISSÕES: Todos os usuários autenticados (VENDEDOR, OPERADOR, ADMIN)

@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession } from "../../../../../packages/auth";
+import { getLogistaApiBaseUrl } from "@/application/server/auth/config";
 import {
-  LOGISTA_SESSION_COOKIE,
-  LOGISTA_SESSION_SCOPE,
-  getLogistaApiBaseUrl,
-  getLogistaSessionSecret,
-} from "@/application/server/auth/config";
+  getLogistaSession,
+  resolveAllowedDealerIds,
+  resolveDealerId,
+  unauthorizedResponse,
+} from "../_lib/session";
 
 const API_BASE_URL = getLogistaApiBaseUrl();
-const SESSION_SECRET = getLogistaSessionSecret();
 
 const VALID_STATUSES = new Set([
   "SUBMITTED",
@@ -18,92 +16,7 @@ const VALID_STATUSES = new Set([
   "REJECTED",
 ]);
 
-type SessionLike = Awaited<ReturnType<typeof getSession>>;
-
-async function getSession() {
-  const cookieStore = await cookies();
-  const encodedSession = cookieStore.get(LOGISTA_SESSION_COOKIE)?.value;
-  const session = await decryptSession(encodedSession, SESSION_SECRET);
-  if (!session || session.scope !== LOGISTA_SESSION_SCOPE) {
-    return null;
-  }
-  return session;
-}
-
-function unauthorized() {
-  return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-}
-
-function forbidden(message = "Permissão insuficiente.") {
-  return NextResponse.json({ error: message }, { status: 403 });
-}
-
-async function resolveDealerId(session: SessionLike): Promise<number | null> {
-  if (!session) return null;
-  const headers: HeadersInit = {
-    Authorization: `Bearer ${session.accessToken}`,
-  };
-  const role = `${session.role ?? ""}`.toUpperCase();
-  const parseDealerFromPayload = (payload: unknown): number | null => {
-    const candidate = (payload as { dealerId?: unknown })?.dealerId;
-    if (typeof candidate === "number") {
-      return candidate;
-    }
-    const parsed = Number(candidate);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-  const tryAdminDealer = async () => {
-    if (role !== "ADMIN" || !session.userId) return null;
-    const userResponse = await fetch(`${API_BASE_URL}/users/${session.userId}`, {
-      headers,
-      cache: "no-store",
-    });
-    if (!userResponse.ok) return null;
-    const payload = await userResponse.json().catch(() => null);
-    return parseDealerFromPayload(payload);
-  };
-
-  const adminOverride = await tryAdminDealer();
-  if (adminOverride) {
-    return adminOverride;
-  }
-
-  // 1) Tenta pegar o dealer vinculado ao usuário autenticado
-  const detailsResponse = await fetch(`${API_BASE_URL}/dealers/me/details`, {
-    headers,
-    cache: "no-store",
-  });
-
-  if (detailsResponse.ok) {
-    const details = await detailsResponse.json().catch(() => null);
-    const candidateId = (details as { id?: number })?.id;
-    if (typeof candidateId === "number") {
-      return candidateId;
-    }
-  }
-
-  const listResponse = await fetch(`${API_BASE_URL}/dealers`, {
-    headers,
-    cache: "no-store",
-  });
-
-  if (listResponse.ok) {
-    const list = (await listResponse.json().catch(() => null)) as
-      | Array<{ id?: number; email?: string }>
-      | null;
-    if (Array.isArray(list)) {
-      const match = list.find((dealer) => {
-        if (!dealer?.email || !session.email) return false;
-        return dealer.email.toLowerCase() === session.email.toLowerCase();
-      });
-      if (match?.id) {
-        return match.id;
-      }
-    }
-  }
-
-  return null;
-}
+type SessionLike = Awaited<ReturnType<typeof getLogistaSession>>;
 
 async function resolveSeller(
   session: SessionLike,
@@ -148,6 +61,31 @@ async function resolveSeller(
   return { sellerId: null, dealerId: null };
 }
 
+async function isOperatorSellerAllowed(
+  session: SessionLike,
+  dealerId: number,
+  sellerId: number,
+): Promise<boolean> {
+  if (!session) return false;
+  const response = await fetch(
+    `${API_BASE_URL}/sellers/operator-panel?dealerId=${dealerId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) return false;
+  const payload = await response.json().catch(() => null);
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as { content?: unknown[] })?.content)
+      ? (payload as { content: unknown[] }).content
+      : [];
+  return list.some((seller: any) => Number(seller?.id) === sellerId);
+}
+
 function buildActorHeader(session: SessionLike | null) {
   if (!session) return null;
   const role = session.role?.trim() || "LOGISTA";
@@ -160,33 +98,88 @@ function buildActorHeader(session: SessionLike | null) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getLogistaSession();
     if (!session) {
-      return unauthorized();
+      return unauthorizedResponse();
+    }
+
+    const role = `${session.role ?? ""}`.toUpperCase();
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status")?.toUpperCase() ?? null;
+
+    const baseQuery = new URLSearchParams();
+    if (status && VALID_STATUSES.has(status)) {
+      baseQuery.set("status", status);
+    }
+
+    if (role === "OPERADOR") {
+      const allowedDealerIds = await resolveAllowedDealerIds(session);
+      if (allowedDealerIds.length === 0) {
+        return NextResponse.json([]);
+      }
+
+      const results = await Promise.all(
+        allowedDealerIds.map(async (dealerId) => {
+          const dealerQuery = new URLSearchParams(baseQuery);
+          dealerQuery.set("dealerId", String(dealerId));
+          const response = await fetch(
+            `${API_BASE_URL}/proposals?${dealerQuery.toString()}`,
+            {
+              headers: {
+                Authorization: `Bearer ${session.accessToken}`,
+              },
+              cache: "no-store",
+            },
+          );
+          const payload = await response.json().catch(() => null);
+          return { response, payload };
+        }),
+      );
+
+      const failed = results.find((result) => !result.response.ok);
+      if (failed) {
+        const message =
+          (failed.payload as { message?: string })?.message ??
+          "Nao foi possivel carregar suas propostas.";
+        return NextResponse.json({ error: message }, {
+          status: failed.response.status,
+        });
+      }
+
+      const merged = new Map<number, unknown>();
+      results.forEach(({ payload }) => {
+        const list = Array.isArray(payload) ? payload : [];
+        list.forEach((proposal: any) => {
+          const id = Number(proposal?.id);
+          if (Number.isFinite(id)) {
+            merged.set(id, proposal);
+          }
+        });
+      });
+
+      return NextResponse.json(Array.from(merged.values()));
     }
 
     const resolvedDealerId = await resolveDealerId(session);
-    const { dealerId: sellerDealerId } = await resolveSeller(session);
+    const { sellerId: matchedSellerId, dealerId: sellerDealerId } =
+      await resolveSeller(session);
     const fallbackDealerId =
       typeof session.userId === "number"
         ? session.userId
         : Number(session.userId) || null;
-    const dealerId = resolvedDealerId ?? sellerDealerId ?? fallbackDealerId;
+    const dealerId =
+      role === "VENDEDOR"
+        ? sellerDealerId ?? resolvedDealerId
+        : resolvedDealerId ?? sellerDealerId ?? fallbackDealerId;
     if (!dealerId) {
       return NextResponse.json(
-        { error: "Não foi possível identificar o lojista autenticado." },
+        { error: "Nao foi possivel identificar o lojista autenticado." },
         { status: 404 },
       );
     }
 
-    const url = new URL(request.url);
-    const status = url.searchParams.get("status")?.toUpperCase() ?? null;
-
-    const query = new URLSearchParams();
+    const query = new URLSearchParams(baseQuery);
     query.set("dealerId", String(dealerId));
-    if (status && VALID_STATUSES.has(status)) {
-      query.set("status", status);
-    }
 
     const upstreamResponse = await fetch(
       `${API_BASE_URL}/proposals?${query.toString()}`,
@@ -203,13 +196,25 @@ export async function GET(request: NextRequest) {
     if (!upstreamResponse.ok) {
       const message =
         (payload as { message?: string })?.message ??
-        "Não foi possível carregar suas propostas.";
+        "Nao foi possivel carregar suas propostas.";
       return NextResponse.json({ error: message }, {
         status: upstreamResponse.status,
       });
     }
 
-    return NextResponse.json(Array.isArray(payload) ? payload : []);
+    const list = Array.isArray(payload) ? payload : [];
+    if (role === "VENDEDOR") {
+      if (!matchedSellerId) {
+        return NextResponse.json([]);
+      }
+      return NextResponse.json(
+        list.filter(
+          (proposal: any) => Number(proposal?.sellerId) === matchedSellerId,
+        ),
+      );
+    }
+
+    return NextResponse.json(list);
   } catch (error) {
     console.error("[logista][proposals] falha ao buscar propostas", error);
     return NextResponse.json(
@@ -219,11 +224,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getLogistaSession();
     if (!session) {
-      return unauthorized();
+      return unauthorizedResponse();
     }
     // Permite ADMIN, VENDEDOR e OPERADOR criarem fichas
     // Apenas GESTOR não pode criar
@@ -238,6 +244,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const role = `${session.role ?? ""}`.toUpperCase();
+
     const bodyDealerId =
       typeof body.dealerId === "number"
         ? body.dealerId
@@ -251,13 +259,40 @@ export async function POST(request: NextRequest) {
         ? session.userId
         : Number(session.userId) || null;
 
-    const dealerId =
-      resolvedDealerId ?? bodyDealerId ?? sellerDealerId ?? fallbackDealerId;
-    if (!dealerId) {
-      return NextResponse.json(
-        { error: "Lojista não encontrado para este usuário." },
-        { status: 404 },
-      );
+    let dealerId: number | null = null;
+
+    if (role === "OPERADOR") {
+      const allowedDealerIds = await resolveAllowedDealerIds(session);
+      if (bodyDealerId && allowedDealerIds.includes(bodyDealerId)) {
+        dealerId = bodyDealerId;
+      } else if (!bodyDealerId && allowedDealerIds.length === 1) {
+        dealerId = allowedDealerIds[0];
+      } else if (resolvedDealerId && allowedDealerIds.includes(resolvedDealerId)) {
+        dealerId = resolvedDealerId;
+      }
+
+      if (!dealerId) {
+        return NextResponse.json(
+          { error: "Loja nao permitida para este operador." },
+          { status: 403 },
+        );
+      }
+    } else if (role === "VENDEDOR") {
+      dealerId = sellerDealerId ?? resolvedDealerId;
+      if (!dealerId) {
+        return NextResponse.json(
+          { error: "Lojista nao encontrado para este usuario." },
+          { status: 404 },
+        );
+      }
+    } else {
+      dealerId = resolvedDealerId ?? bodyDealerId ?? sellerDealerId ?? fallbackDealerId;
+      if (!dealerId) {
+        return NextResponse.json(
+          { error: "Lojista nao encontrado para este usuario." },
+          { status: 404 },
+        );
+      }
     }
 
     const bodySellerId =
@@ -265,14 +300,44 @@ export async function POST(request: NextRequest) {
         ? body.sellerId
         : Number(body.sellerId) || null;
 
-    const sellerId =
+    let sellerId =
       bodySellerId ??
       matchedSellerId ??
       (typeof session.userId === "number"
         ? session.userId
         : Number(session.userId) || null);
 
-    // Permite criar proposta sem sellerId (operadores que não são vendedores)
+    if (role === "VENDEDOR") {
+      if (!matchedSellerId) {
+        return NextResponse.json(
+          { error: "Vendedor nao encontrado para este usuario." },
+          { status: 403 },
+        );
+      }
+      if (bodySellerId && bodySellerId !== matchedSellerId) {
+        return NextResponse.json(
+          { error: "Vendedor nao permitido para este usuario." },
+          { status: 403 },
+        );
+      }
+      sellerId = matchedSellerId;
+    }
+
+    if (role === "OPERADOR" && bodySellerId && dealerId) {
+      const allowedSeller = await isOperatorSellerAllowed(
+        session,
+        dealerId,
+        bodySellerId,
+      );
+      if (!allowedSeller) {
+        return NextResponse.json(
+          { error: "Vendedor nao pertence a loja selecionada." },
+          { status: 403 },
+        );
+      }
+    }
+
+    // Permite criar proposta sem sellerId (operadores que nao sao vendedores)
     const normalizedPayload: Record<string, unknown> = {
       ...body,
       dealerId,
@@ -299,7 +364,7 @@ export async function POST(request: NextRequest) {
     if (!upstreamResponse.ok) {
       const message =
         (payload as { message?: string })?.message ??
-        "Não foi possível registrar a proposta.";
+        "Nao foi possivel registrar a proposta.";
       return NextResponse.json(
         { error: message },
         { status: upstreamResponse.status },

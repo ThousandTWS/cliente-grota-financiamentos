@@ -8,13 +8,30 @@ import { useSidebar } from "../../../application/core/context/SidebarContext";
 import { ChevronDownIcon, LucideGripHorizontal } from "lucide-react";
 import { useTheme } from "@/application/core/context/ThemeContext";
 import { NavItem } from "@/application/core/@types/Sidebar/NavItem";
-import { navItems } from "./links/NavItems";
-import { othersItems } from "./links/OthersItems";
+import { navItems as defaultNavItems } from "./links/NavItems";
+import { othersItems as defaultOthersItems } from "./links/OthersItems";
+import { gestorNavItems, gestorOthersItems } from "./links/GestorNavItems";
+import { operadorNavItems, operadorOthersItems } from "./links/OperadorNavItems";
 
-const AppSidebar = () => {
+interface AppSidebarProps {
+  customNavItems?: NavItem[];
+  customOthersItems?: NavItem[];
+}
+
+const AppSidebar = ({ customNavItems, customOthersItems }: AppSidebarProps) => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
-  const { theme } = useTheme()
+  const { theme } = useTheme();
+
+  // Determine which items to show: props > path detection > default
+  const isGestor = pathname.includes("/gestao");
+  const isOperador = pathname.includes("/operacao");
+
+  const currentNavItems = customNavItems
+    || (isGestor ? gestorNavItems : isOperador ? operadorNavItems : defaultNavItems);
+
+  const currentOthersItems = customOthersItems
+    || (isGestor ? gestorOthersItems : isOperador ? operadorOthersItems : defaultOthersItems);
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -67,7 +84,7 @@ const AppSidebar = () => {
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
                     }`}
-              >
+                >
                   {nav.icon}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
@@ -150,7 +167,7 @@ const AppSidebar = () => {
   useEffect(() => {
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? currentNavItems : currentOthersItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           //@ts-ignore
@@ -267,7 +284,7 @@ const AppSidebar = () => {
                   <LucideGripHorizontal />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(currentNavItems, "main")}
             </div>
 
             <div className="">
@@ -283,7 +300,7 @@ const AppSidebar = () => {
                   <LucideGripHorizontal />
                 )}
               </h2>
-              {renderMenuItems(othersItems, "others")}
+              {renderMenuItems(currentOthersItems, "others")}
             </div>
           </div>
         </nav>

@@ -6,6 +6,13 @@ import { Switch } from "@/presentation/ui/switch";
 import { Separator } from "@/presentation/ui/separator";
 import { Textarea } from "@/presentation/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/presentation/ui/select";
+import {
   ArrowLeft,
   CheckCircle2,
   Download,
@@ -15,6 +22,8 @@ import {
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { createProposal } from "@/application/services/Proposals/proposalService";
+import userServices from "@/application/services/UserServices/UserServices";
+import { fetchAllDealers, type DealerSummary } from "@/application/services/DealerServices/dealerService";
 import { formatNumberToBRL } from "@/lib/formatters";
 import { SimulatorFormData, UpdateSimulatorField } from "../hooks/useSimulator";
 
@@ -26,6 +35,13 @@ type Calculation = {
   total_amount: number;
   first_payment_date: Date;
   last_payment_date: Date;
+};
+
+type SellerOption = {
+  id: number;
+  fullName?: string;
+  email?: string;
+  dealerId?: number | null;
 };
 
 type Step4ReviewProps = {
@@ -97,9 +113,10 @@ const loadImageDataUrl = async (src: string) => {
   }
 };
 
-const fetchDealerName = async () => {
+const fetchDealerName = async (dealerId?: number | null) => {
   try {
-    const response = await fetch("/api/dealers/details", {
+    const query = dealerId ? `?dealerId=${dealerId}` : "";
+    const response = await fetch(`/api/dealers/details${query}`, {
       credentials: "include",
       cache: "no-store",
     });
@@ -123,6 +140,16 @@ const fetchDealerName = async () => {
     console.warn("[pdf] falha ao carregar lojista", error);
     return null;
   }
+};
+
+const getDealerLabel = (dealer: DealerSummary) => {
+  if (!dealer) return "";
+  return (
+    dealer.fullNameEnterprise ||
+    dealer.enterprise ||
+    dealer.fullName ||
+    `Loja #${dealer.id}`
+  );
 };
 
 const buildPdf = async (
@@ -341,15 +368,165 @@ export default function Step4Review({
   const [proposalId, setProposalId] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [dealers, setDealers] = useState<DealerSummary[]>([]);
+  const [dealersLoading, setDealersLoading] = useState(false);
+  const [sellers, setSellers] = useState<SellerOption[]>([]);
+  const [sellersLoading, setSellersLoading] = useState(false);
 
+  const isOperador = userRole === "OPERADOR";
   const totalVehicle = useMemo(() => {
     return `${formData.vehicle.brand} ${formData.vehicle.model}`.trim();
   }, [formData.vehicle.brand, formData.vehicle.model]);
+
+  const dealerOptions = useMemo(
+    () =>
+      dealers
+        .filter((dealer) => typeof dealer.id === "number")
+        .map((dealer) => ({
+          value: dealer.id,
+          label: getDealerLabel(dealer),
+        })),
+    [dealers],
+  );
+
+  const sellerOptions = useMemo(
+    () =>
+      sellers.map((seller) => ({
+        value: seller.id,
+        label:
+          seller.fullName ||
+          seller.email ||
+          `Vendedor #${seller.id}`,
+      })),
+    [sellers],
+  );
+
+  const selectedDealer = useMemo(() => {
+    if (formData.dealerId) {
+      return dealers.find((dealer) => dealer.id === formData.dealerId) ?? null;
+    }
+    if (dealers.length === 1) {
+      return dealers[0] ?? null;
+    }
+    return null;
+  }, [dealers, formData.dealerId]);
+
+  const selectedDealerName = useMemo(() => {
+    if (!selectedDealer) return null;
+    const name = getDealerLabel(selectedDealer);
+    return name ? name.trim() : null;
+  }, [selectedDealer]);
 
   useEffect(() => {
     handleCalculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadUserAndDealers = async () => {
+      try {
+        setDealersLoading(true);
+        const [user, dealerList] = await Promise.all([
+          userServices.me(),
+          fetchAllDealers(),
+        ]);
+        if (!active) return;
+        const normalizedRole = (user.role ?? "").toUpperCase();
+        setUserRole(normalizedRole);
+        setUserName(user.fullName?.trim() || user.email?.trim() || null);
+        setDealers(dealerList);
+      } catch (error) {
+        console.error("[simulador] loadDealers", error);
+        if (active) {
+          toast.error("Nao foi possivel carregar as lojas.");
+        }
+      } finally {
+        if (active) {
+          setDealersLoading(false);
+        }
+      }
+    };
+
+    loadUserAndDealers();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!formData.dealerId && dealerOptions.length === 1) {
+      updateField("dealerId", dealerOptions[0].value);
+    }
+  }, [dealerOptions, formData.dealerId, updateField]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!formData.dealerId) {
+      setSellers([]);
+      if (formData.sellerId) {
+        updateField("sellerId", null);
+      }
+      return () => {
+        active = false;
+      };
+    }
+
+    const loadSellers = async () => {
+      try {
+        setSellersLoading(true);
+        const response = await fetch(`/api/sellers?dealerId=${formData.dealerId}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          const message =
+            (payload as { error?: string })?.error ??
+            "Nao foi possivel carregar os vendedores.";
+          throw new Error(message);
+        }
+
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray((payload as { content?: unknown[] })?.content)
+            ? (payload as { content: SellerOption[] }).content
+            : [];
+
+        if (!active) return;
+        setSellers(list as SellerOption[]);
+
+        if (formData.sellerId && !list.some((seller: any) => seller?.id === formData.sellerId)) {
+          updateField("sellerId", null);
+        }
+        if (!formData.sellerId && list.length === 1) {
+          const onlySeller = list[0] as SellerOption | undefined;
+          if (onlySeller?.id) {
+            updateField("sellerId", onlySeller.id);
+          }
+        }
+      } catch (error) {
+        console.error("[simulador] loadSellers", error);
+        if (active) {
+          setSellers([]);
+          toast.error("Nao foi possivel carregar os vendedores.");
+        }
+      } finally {
+        if (active) {
+          setSellersLoading(false);
+        }
+      }
+    };
+
+    loadSellers();
+    return () => {
+      active = false;
+    };
+  }, [formData.dealerId, formData.sellerId, updateField]);
 
   useEffect(() => {
     if (!submitted) return;
@@ -393,6 +570,17 @@ export default function Step4Review({
       return;
     }
 
+    if (isOperador) {
+      if (!formData.dealerId) {
+        toast.error("Selecione a loja antes de enviar a proposta.");
+        return;
+      }
+      if (sellerOptions.length > 0 && !formData.sellerId) {
+        toast.error("Selecione o vendedor antes de enviar a proposta.");
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
 
@@ -410,6 +598,8 @@ export default function Step4Review({
             "Nao informado";
 
       const payload = {
+        dealerId: formData.dealerId ?? undefined,
+        sellerId: formData.sellerId ?? undefined,
         customerName,
         customerCpf: formData.personal.cpfCnpj,
         customerBirthDate: formData.personal.birthday || undefined,
@@ -441,6 +631,7 @@ export default function Step4Review({
           personType: formData.personType,
           operationType: formData.operationType,
           vehicleCategory: formData.vehicleCategory,
+          operatorName: isOperador ? userName ?? undefined : undefined,
           additionalInfo: formData.additionalInfo,
           motherName: formData.personal.motherName,
           enterprise: formData.professional.enterprise,
@@ -473,7 +664,9 @@ export default function Step4Review({
     try {
       setDownloadingPDF(true);
       const [dealerName, logoDataUrl] = await Promise.all([
-        fetchDealerName(),
+        selectedDealerName
+          ? Promise.resolve(selectedDealerName)
+          : fetchDealerName(formData.dealerId),
         loadImageDataUrl("/images/logo/Grota_logo horizontal positivo.png"),
       ]);
       await buildPdf(formData, calculation, {
@@ -525,6 +718,83 @@ export default function Step4Review({
 
   return (
     <div className="space-y-6">
+      {isOperador && (
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-[#134B73]">Loja e Vendedor</h2>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Loja</Label>
+                <Select
+                  value={formData.dealerId ? String(formData.dealerId) : ""}
+                  onValueChange={(value) => {
+                    const id = Number(value);
+                    updateField("dealerId", Number.isFinite(id) ? id : null);
+                    updateField("sellerId", null);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        dealersLoading ? "Carregando..." : "Selecione a loja"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dealerOptions.map((dealer) => (
+                      <SelectItem key={dealer.value} value={String(dealer.value)}>
+                        {dealer.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!dealersLoading && dealerOptions.length === 0 && (
+                  <p className="text-sm text-red-600">Nenhuma loja vinculada.</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Vendedor</Label>
+                <Select
+                  value={formData.sellerId ? String(formData.sellerId) : ""}
+                  onValueChange={(value) => {
+                    const id = Number(value);
+                    updateField("sellerId", Number.isFinite(id) ? id : null);
+                  }}
+                  disabled={
+                    !formData.dealerId || sellersLoading || sellerOptions.length === 0
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        sellersLoading
+                          ? "Carregando..."
+                          : formData.dealerId
+                          ? "Selecione o vendedor"
+                          : "Selecione a loja"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sellerOptions.map((seller) => (
+                      <SelectItem key={seller.value} value={String(seller.value)}>
+                        {seller.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!sellersLoading && formData.dealerId && sellerOptions.length === 0 && (
+                  <p className="text-sm text-amber-600">
+                    Nenhum vendedor disponivel para esta loja.
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <h2 className="text-lg font-semibold text-[#134B73]">Resumo da Operacao</h2>

@@ -90,7 +90,13 @@ const initialFilters: LocalFilters = {
   dealerCode: "",
 };
 
-export function EsteiraDePropostasFeature() {
+type EsteiraDePropostasFeatureProps = {
+  showCreate?: boolean;
+};
+
+export function EsteiraDePropostasFeature({
+  showCreate = true,
+}: EsteiraDePropostasFeatureProps) {
   const router = useRouter();
   const [filters, setFilters] = useState<LocalFilters>(initialFilters);
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -366,7 +372,7 @@ export function EsteiraDePropostasFeature() {
   };
 
   const handleCreate = () => {
-    router.push("/simulacao/novo");
+    router.push("/simulacao");
   };
 
   return (
@@ -386,6 +392,7 @@ export function EsteiraDePropostasFeature() {
         onRefresh={handleRefresh}
         onCreate={handleCreate}
         isRefreshing={isRefreshing}
+        showCreate={showCreate}
       />
 
       <ProposalsTable

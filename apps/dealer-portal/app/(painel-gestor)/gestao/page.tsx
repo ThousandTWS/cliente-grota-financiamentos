@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card, Empty, Select, Skeleton, Typography } from "antd";
-import { Users, Store, Mail, Phone, Filter } from "lucide-react";
+import { Card, Empty, Skeleton, Typography } from "antd";
+import { Users, Store, Mail, Phone } from "lucide-react";
+import { fetchAllDealers } from "@/application/services/DealerServices/dealerService";
 
 const { Text } = Typography;
 
@@ -33,38 +34,44 @@ const maskCpf = (cpf: string) => {
     return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 };
 
-export default function PainelOperadorPage() {
+export default function PainelGestorPage() {
     const [sellers, setSellers] = useState<Seller[]>([]);
+    const [dealerNames, setDealerNames] = useState<Record<number, string>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [selectedDealerId, setSelectedDealerId] = useState<number | null>(null);
-    const [dealerOptions, setDealerOptions] = useState<{ value: number; label: string }[]>([]);
 
     useEffect(() => {
         async function fetchSellers() {
             try {
                 setIsLoading(true);
                 setError(null);
-                const query = selectedDealerId ? `?dealerId=${selectedDealerId}` : "";
-                const response = await fetch(`/api/sellers/operator-panel${query}`);
+                const response = await fetch("/api/sellers/manager-panel");
                 if (!response.ok) {
                     const data = await response.json().catch(() => ({}));
                     throw new Error(data.error || "Falha ao carregar vendedores");
                 }
                 const data = await response.json();
-                const sellersList: Seller[] = Array.isArray(data) ? data : [];
-                setSellers(sellersList);
-
-                // Build unique dealer options from sellers
-                const uniqueDealers = new Map<number, string>();
-                sellersList.forEach((seller) => {
-                    if (seller.dealerId && !uniqueDealers.has(seller.dealerId)) {
-                        uniqueDealers.set(seller.dealerId, `Loja #${seller.dealerId}`);
-                    }
-                });
-                setDealerOptions(
-                    Array.from(uniqueDealers.entries()).map(([value, label]) => ({ value, label }))
-                );
+                setSellers(Array.isArray(data) ? data : []);
+                try {
+                    const dealers = await fetchAllDealers();
+                    const dealerMap = dealers.reduce<Record<number, string>>((acc, dealer) => {
+                        if (dealer.id) {
+                            const name =
+                                dealer.fullName ??
+                                dealer.fullNameEnterprise ??
+                                dealer.enterprise ??
+                                null;
+                            if (name) {
+                                acc[dealer.id] = name;
+                            }
+                        }
+                        return acc;
+                    }, {});
+                    setDealerNames(dealerMap);
+                } catch (dealerError) {
+                    console.error("Falha ao carregar lojistas do gestor:", dealerError);
+                    setDealerNames({});
+                }
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Erro desconhecido");
             } finally {
@@ -72,14 +79,14 @@ export default function PainelOperadorPage() {
             }
         }
         fetchSellers();
-    }, [selectedDealerId]);
+    }, []);
 
     if (isLoading) {
         return (
             <div className="p-6">
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-slate-800">Painel do Operador</h1>
-                    <p className="text-sm text-slate-500">Vendedores das suas lojas vinculadas</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Painel do Gestor</h1>
+                    <p className="text-sm text-slate-500">Vendedores da sua loja</p>
                 </div>
                 <div className="space-y-3">
                     {Array.from({ length: 3 }).map((_, index) => (
@@ -96,8 +103,8 @@ export default function PainelOperadorPage() {
         return (
             <div className="p-6">
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-slate-800">Painel do Operador</h1>
-                    <p className="text-sm text-slate-500">Vendedores das suas lojas vinculadas</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Painel do Gestor</h1>
+                    <p className="text-sm text-slate-500">Vendedores da sua loja</p>
                 </div>
                 <Card>
                     <Empty
@@ -111,35 +118,20 @@ export default function PainelOperadorPage() {
 
     return (
         <div className="p-6">
-            <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Painel do Operador</h1>
-                    <p className="text-sm text-slate-500">Vendedores das suas lojas vinculadas</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Painel do Gestor</h1>
+                    <p className="text-sm text-slate-500">Vendedores da sua loja</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    {dealerOptions.length > 1 && (
-                        <div className="flex items-center gap-2">
-                            <Filter className="size-4 text-slate-400" />
-                            <Select
-                                allowClear
-                                placeholder="Filtrar por loja"
-                                style={{ minWidth: 180 }}
-                                options={dealerOptions}
-                                value={selectedDealerId}
-                                onChange={(value) => setSelectedDealerId(value ?? null)}
-                            />
-                        </div>
-                    )}
-                    <div className="flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-                        <Users className="size-4" />
-                        {sellers.length} vendedor{sellers.length !== 1 ? "es" : ""}
-                    </div>
+                <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+                    <Users className="size-4" />
+                    {sellers.length} vendedor{sellers.length !== 1 ? "es" : ""}
                 </div>
             </div>
 
             {sellers.length === 0 ? (
                 <Card>
-                    <Empty description="Nenhum vendedor encontrado nas lojas vinculadas." />
+                    <Empty description="Nenhum vendedor encontrado na sua loja." />
                 </Card>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -160,8 +152,8 @@ export default function PainelOperadorPage() {
                                         </h3>
                                     </div>
                                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${seller.status === "ATIVO"
-                                            ? "bg-emerald-100 text-emerald-700"
-                                            : "bg-amber-100 text-amber-700"
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-amber-100 text-amber-700"
                                         }`}>
                                         {seller.status || "PENDENTE"}
                                     </span>
@@ -178,7 +170,12 @@ export default function PainelOperadorPage() {
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-600">
                                         <Store className="size-4 text-slate-400" />
-                                        <span>Loja #{seller.dealerId || "N/A"}</span>
+                                        <span>
+                                            Loja{" "}
+                                            {seller.dealerId
+                                                ? dealerNames[seller.dealerId] ?? `#${seller.dealerId}`
+                                                : "N/A"}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

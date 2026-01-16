@@ -114,9 +114,7 @@ export default function SimuladorPage() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-8 h-8" />
-              <h1 className="text-3xl md:text-4xl font-bold">
-                Simulador de Financiamento
-              </h1>
+              <h1 className="text-3xl md:text-4xl font-bold">Simulador de Financiamento</h1>
             </div>
             <p className="text-blue-100 text-lg">
               Simule seu financiamento de veiculo de forma rapida e segura
@@ -124,7 +122,7 @@ export default function SimuladorPage() {
           </div>
           <div className="flex flex-col gap-2 rounded-2xl bg-white/10 border border-white/20 p-4 min-w-[260px] lg:self-start">
             <div className="flex items-center justify-between text-sm text-white/80">
-              <span>Codigo Ref.</span>
+              <span>Código Ref.</span>
               <span className="font-semibold">{dealer.referenceCode || "--"}</span>
             </div>
             <Separator className="bg-white/20" />
@@ -133,6 +131,7 @@ export default function SimuladorPage() {
               <span className="font-semibold">{dealer.enterprise || "--"}</span>
             </div>
             <Separator className="bg-white/20" />
+           
           </div>
         </div>
       </div>
@@ -142,14 +141,13 @@ export default function SimuladorPage() {
           <StepIndicator currentStep={currentStep} />
 
           <div className="mt-8">{renderStep()}</div>
+
         </div>
       </div>
 
       <div className="bg-gray-100 border-t border-gray-200 py-6 mt-12">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-gray-600">
-            Seus dados estao protegidos conforme a LGPD
-          </p>
+          <p className="text-sm text-gray-600">Seus dados estao protegidos conforme a LGPD</p>
         </div>
       </div>
     </div>

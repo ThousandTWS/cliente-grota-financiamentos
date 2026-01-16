@@ -7,6 +7,8 @@ export interface AuthenticatedUser {
   canCreate?: boolean;
   canUpdate?: boolean;
   canDelete?: boolean;
+  allowedDealerIds?: number[];
+  allowedDealersCount?: number;
 }
 
 const userServices = {
@@ -17,7 +19,7 @@ const userServices = {
     });
 
     if (!response.ok) {
-      throw new Error("Não autenticado");
+      throw new Error("Nao autenticado");
     }
 
     const { user } = (await response.json()) as { user: AuthenticatedUser };

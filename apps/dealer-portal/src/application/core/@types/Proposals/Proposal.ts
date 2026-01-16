@@ -87,6 +87,7 @@ export interface UpdateProposalStatusPayload {
   status: ProposalStatus;
   actor?: string;
   notes?: string;
+  contractNumber?: string;
 }
 
 export interface ProposalEvent {
