@@ -52,6 +52,30 @@ const maskCpf = (cpf: string) => {
   return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 };
 
+const parseMetadata = (metadata: Proposal["metadata"]) => {
+  if (!metadata) return null;
+  if (typeof metadata === "string") {
+    try {
+      return JSON.parse(metadata) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof metadata === "object") {
+    return metadata as Record<string, unknown>;
+  }
+  return null;
+};
+
+const getOperatorName = (metadata: Proposal["metadata"]) => {
+  const parsed = parseMetadata(metadata);
+  if (!parsed) return null;
+  const candidate = parsed.operatorName;
+  if (typeof candidate !== "string") return null;
+  const trimmed = candidate.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
 export function ProposalsTable({
   proposals,
   isLoading,
@@ -116,11 +140,14 @@ export function ProposalsTable({
       const sellerLabel = proposal.sellerId
         ? sellersById[proposal.sellerId] ?? `Responsavel #${proposal.sellerId}`
         : "Responsavel nao informado";
+      const operatorName = getOperatorName(proposal.metadata);
+      const operatorLabel = operatorName ?? sellerLabel;
 
       return {
         ...proposal,
         dealerLabel,
         sellerLabel,
+        operatorLabel,
       };
     });
   }, [dealersById, proposals, sellersById]);
@@ -179,7 +206,12 @@ export function ProposalsTable({
                 </div>
                 <div>
                   <Text className="text-xs text-muted-foreground">Operador</Text>
-                  <p className="font-semibold text-slate-700">{proposal.sellerLabel}</p>
+                  <p className="font-semibold text-slate-700">{proposal.operatorLabel}</p>
+                  {proposal.sellerId && proposal.operatorLabel !== proposal.sellerLabel ? (
+                    <Text className="text-xs text-muted-foreground">
+                      Vendedor: {proposal.sellerLabel}
+                    </Text>
+                  ) : null}
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-3">
