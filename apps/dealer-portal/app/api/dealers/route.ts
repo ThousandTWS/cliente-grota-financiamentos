@@ -26,37 +26,42 @@ export async function GET() {
         return NextResponse.json([]);
       }
 
-      const upstreamResponse = await fetch(`${API_BASE_URL}/dealers`, {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-        cache: "no-store",
-      });
-
-      const payload = await upstreamResponse.json().catch(() => null);
-
-      if (!upstreamResponse.ok) {
-        const message =
-          (payload as { message?: string })?.message ??
-          "Nao foi possivel carregar os lojistas.";
-        return NextResponse.json({ error: message }, {
-          status: upstreamResponse.status,
-        });
-      }
-
-      const list = Array.isArray(payload)
-        ? payload
-        : Array.isArray((payload as { content?: unknown[] })?.content)
-          ? (payload as { content: unknown[] }).content
-          : [];
-
-      const allowedSet = new Set(allowedDealerIds);
-      return NextResponse.json(
-        list.filter((dealer: any) => {
-          const id = Number(dealer?.id);
-          return Number.isFinite(id) && allowedSet.has(id);
+      const uniqueDealerIds = Array.from(new Set(allowedDealerIds));
+      const results = await Promise.all(
+        uniqueDealerIds.map(async (dealerId) => {
+          const response = await fetch(
+            `${API_BASE_URL}/dealers/${dealerId}/details`,
+            {
+              headers: {
+                Authorization: `Bearer ${session.accessToken}`,
+              },
+              cache: "no-store",
+            },
+          );
+          const payload = await response.json().catch(() => null);
+          return {
+            ok: response.ok,
+            status: response.status,
+            payload,
+          };
         }),
       );
+
+      const unauthorized = results.find(
+        (result) => result.status === 401 || result.status === 403,
+      );
+      if (unauthorized) {
+        return NextResponse.json(
+          { error: "Nao autenticado." },
+          { status: unauthorized.status },
+        );
+      }
+
+      const list = results
+        .filter((result) => result.ok && result.payload)
+        .map((result) => result.payload);
+
+      return NextResponse.json(list);
     }
 
     const dealerId = await resolveDealerId(session);

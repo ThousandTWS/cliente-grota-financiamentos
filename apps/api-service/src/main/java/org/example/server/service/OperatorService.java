@@ -141,9 +141,27 @@ public class OperatorService {
     }
 
     public java.util.List<OperatorResponseDTO> findAll(Long dealerId) {
-        java.util.List<Operator> operators = dealerId != null
-                ? operatorRepository.findByDealerId(dealerId)
-                : operatorRepository.findAll();
+        java.util.List<Operator> operators;
+        if (dealerId != null) {
+            java.util.List<Operator> linkedOperators =
+                    operatorDealerLinkRepository.findOperatorsByDealerId(dealerId);
+            java.util.List<Operator> legacyOperators =
+                    operatorRepository.findByDealerId(dealerId);
+            java.util.Map<Long, Operator> merged = new java.util.LinkedHashMap<>();
+            for (Operator operator : linkedOperators) {
+                if (operator != null && operator.getId() != null) {
+                    merged.put(operator.getId(), operator);
+                }
+            }
+            for (Operator operator : legacyOperators) {
+                if (operator != null && operator.getId() != null) {
+                    merged.put(operator.getId(), operator);
+                }
+            }
+            operators = new java.util.ArrayList<>(merged.values());
+        } else {
+            operators = operatorRepository.findAll();
+        }
 
         return operators
                 .stream()
@@ -200,9 +218,30 @@ public class OperatorService {
         if (dealerId != null) {
             Dealer dealer = dealerRepository.findById(dealerId)
                     .orElseThrow(() -> new RecordNotFoundException("Lojista nao encontrado."));
-            operator.setDealer(dealer);
+
+            if (operator.getDealer() != null) {
+                Long legacyDealerId = operator.getDealer().getId();
+                if (legacyDealerId != null
+                        && !operatorDealerLinkRepository.existsByOperatorIdAndDealerId(operatorId, legacyDealerId)) {
+                    OperatorDealerLink legacyLink = new OperatorDealerLink(operator, operator.getDealer());
+                    operator.getDealerLinks().add(legacyLink);
+                }
+            }
+
+            if (!operatorDealerLinkRepository.existsByOperatorIdAndDealerId(operatorId, dealerId)) {
+                OperatorDealerLink link = new OperatorDealerLink(operator, dealer);
+                operator.getDealerLinks().add(link);
+            }
+
+            if (operator.getDealer() == null) {
+                operator.setDealer(dealer);
+            }
         } else {
             operator.setDealer(null);
+            operatorDealerLinkRepository.deleteByOperatorId(operatorId);
+            if (operator.getDealerLinks() != null) {
+                operator.getDealerLinks().clear();
+            }
         }
         operatorRepository.save(operator);
         return operatorMapper.toDTO(operator);

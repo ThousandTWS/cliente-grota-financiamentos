@@ -242,17 +242,48 @@ function PainelOperadorContent() {
       { id: number; name: string; proposals: number; sellers: number }
     >();
 
-    const ensureDealer = (id: number) => {
+    const ensureDealer = (id: number, name?: string) => {
       if (!map.has(id)) {
         map.set(id, {
           id,
-          name: dealerIndex[id] ?? `Loja #${id}`,
+          name: name ?? dealerIndex[id] ?? `Loja #${id}`,
           proposals: 0,
           sellers: 0,
         });
+      } else if (name) {
+        const current = map.get(id)!;
+        if (current.name.startsWith("Loja #")) {
+          current.name = name;
+        }
       }
       return map.get(id)!;
     };
+
+    const includeAllDealers = selectedDealerId == null;
+    if (includeAllDealers) {
+      dealers.forEach((dealer) => {
+        if (typeof dealer.id === "number") {
+          const name =
+            dealer.fullName ??
+            dealer.fullNameEnterprise ??
+            dealer.enterprise ??
+            `Loja #${dealer.id}`;
+          ensureDealer(dealer.id, name);
+        }
+      });
+    } else if (typeof selectedDealerId === "number") {
+      const selected = dealers.find((dealer) => dealer.id === selectedDealerId);
+      if (selected) {
+        const selectedName =
+          selected.fullName ??
+          selected.fullNameEnterprise ??
+          selected.enterprise ??
+          `Loja #${selectedDealerId}`;
+        ensureDealer(selectedDealerId, selectedName);
+      } else {
+        ensureDealer(selectedDealerId);
+      }
+    }
 
     filteredProposals.forEach((proposal) => {
       if (typeof proposal.dealerId !== "number") return;
@@ -266,10 +297,8 @@ function PainelOperadorContent() {
       entry.sellers += 1;
     });
 
-    return Array.from(map.values())
-      .sort((a, b) => b.proposals - a.proposals)
-      .slice(0, 6);
-  }, [dealerIndex, filteredProposals, sellers]);
+    return Array.from(map.values()).sort((a, b) => b.proposals - a.proposals);
+  }, [dealerIndex, filteredProposals, sellers, selectedDealerId, dealers]);
 
   const handleDealerChange = (value: number | null) => {
     const nextValue = value ?? null;

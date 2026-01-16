@@ -7,6 +7,7 @@ import {
     ClipboardList,
     FileText,
     LayoutDashboard,
+    Store,
     Users,
 } from "lucide-react";
 
@@ -18,8 +19,9 @@ export const operadorNavItems: NavItem[] = [
     },
     {
         name: "Minhas Lojas",
-        icon: <Users />,
+        icon: <Store />,
         subItems: [
+            { name: "Lojas vinculadas", path: "/minhas-lojas", icon: <Store size={16} /> },
             { name: "Vendedores", path: "/vendedores", icon: <Users size={16} /> },
         ]
     },

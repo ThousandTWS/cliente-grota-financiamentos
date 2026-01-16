@@ -19,6 +19,9 @@ public interface OperatorDealerLinkRepository extends JpaRepository<OperatorDeal
     @Query("SELECT odl.dealer.id FROM OperatorDealerLink odl WHERE odl.operator.user.id = :userId")
     List<Long> findDealerIdsByUserId(@Param("userId") Long userId);
 
+    @Query("SELECT DISTINCT odl.operator FROM OperatorDealerLink odl WHERE odl.dealer.id = :dealerId")
+    List<org.example.server.model.Operator> findOperatorsByDealerId(@Param("dealerId") Long dealerId);
+
     void deleteByOperatorId(Long operatorId);
 
     boolean existsByOperatorIdAndDealerId(Long operatorId, Long dealerId);
