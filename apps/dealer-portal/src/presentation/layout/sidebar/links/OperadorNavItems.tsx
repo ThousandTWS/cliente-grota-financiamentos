@@ -22,7 +22,6 @@ export const operadorNavItems: NavItem[] = [
         icon: <Store />,
         subItems: [
             { name: "Lojas vinculadas", path: "/minhas-lojas", icon: <Store size={16} /> },
-            { name: "Vendedores", path: "/vendedores", icon: <Users size={16} /> },
         ]
     },
     {
