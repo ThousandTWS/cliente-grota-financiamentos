@@ -5,105 +5,91 @@ pipeline {
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
     timeout(time: 45, unit: 'MINUTES')
+    timestamps()
   }
 
   parameters {
-    booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Run deployment steps after a successful build')
-    string(name: 'ENV_FILE_CREDENTIAL_ID', defaultValue: '', description: 'Jenkins file credential containing .env values for Next.js builds (optional)')
+    booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Gate: allow deploy on main (Railway/Vercel auto deploy from GitHub)')
+    string(name: 'ENV_FILE_CREDENTIAL_ID', defaultValue: '', description: 'Optional .env file credential for Next.js builds')
   }
 
   environment {
     CI = 'true'
     PNPM_STORE_PATH = "${WORKSPACE}/.pnpm-store"
-    NODE_VERSION = 'v20.18.1'
+    NODE_VERSION = '20.18.1' // sem "v"
+    TOOLING_DIR = "${WORKSPACE}/.tooling"
   }
 
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
 
-    stage('Node and pnpm') {
+    stage('Setup Node + pnpm') {
       steps {
         script {
-          def nodeVersion = env.NODE_VERSION ?: 'v20.18.1'
-          def nodeDist = "node-${nodeVersion}-linux-x64"
+          def nodeVersion = (env.NODE_VERSION ?: '20.18.1').trim()
+          def nodeDist    = "node-v${nodeVersion}-linux-x64"
           def nodeArchive = "${nodeDist}.tar.gz"
-          def toolingDir = "${env.WORKSPACE}/.tooling"
-          def nodeBin = "${toolingDir}/${nodeDist}/bin"
+          def toolingDir  = env.TOOLING_DIR
+          def nodeRoot    = "${toolingDir}/${nodeDist}"
+          def nodeBin     = "${nodeRoot}/bin"
 
           sh """
-            set -euo pipefail
+            set -eu
+            mkdir -p "${toolingDir}"
 
-            NODE_VERSION="${nodeVersion}"
-            NODE_DIST="${nodeDist}"
-            NODE_ARCHIVE="${nodeArchive}"
-            TOOLING_DIR="${toolingDir}"
-            NODE_BIN="${nodeBin}"
+            if [ ! -x "${nodeBin}/node" ]; then
+              echo "[setup] Installing Node v${nodeVersion}"
+              cd "${toolingDir}"
 
-            mkdir -p "\$TOOLING_DIR"
-
-            if ! command -v node >/dev/null 2>&1; then
-              echo "Node.js not found; installing ${nodeVersion} into ${toolingDir}"
-              cd "\$TOOLING_DIR"
-              if [ ! -d "\$NODE_DIST" ]; then
+              if [ ! -f "${nodeArchive}" ]; then
                 if command -v curl >/dev/null 2>&1; then
-                  curl -fsSLO "https://nodejs.org/dist/${nodeVersion}/${nodeArchive}"
-                elif command -v wget >/dev/null 2>&1; then
-                  wget -q "https://nodejs.org/dist/${nodeVersion}/${nodeArchive}"
+                  curl -fsSLO "https://nodejs.org/dist/v${nodeVersion}/${nodeArchive}"
                 else
-                  echo "curl/wget not available to download Node.js." >&2
-                  exit 1
+                  wget -q "https://nodejs.org/dist/v${nodeVersion}/${nodeArchive}"
                 fi
-                tar -xzf "\$NODE_ARCHIVE"
               fi
+
+              rm -rf "${nodeDist}"
+              tar -xzf "${nodeArchive}"
             fi
 
             export PATH="${nodeBin}:\$PATH"
 
             if command -v corepack >/dev/null 2>&1; then
-              corepack enable
+              corepack enable >/dev/null 2>&1 || true
               corepack prepare pnpm@9.0.0 --activate
             else
-              echo "corepack not found; installing pnpm via npm -g"
-              if command -v npm >/dev/null 2>&1; then
-                npm install -g pnpm@9.0.0
-              else
-                echo "npm not found even after Node install; check PATH." >&2
-                exit 1
-              fi
+              npm install -g pnpm@9.0.0
             fi
 
-            pnpm config set store-dir "${env.PNPM_STORE_PATH}"
-            node -v
-            npm -v
-            pnpm -v
+            pnpm config set store-dir "${PNPM_STORE_PATH}"
+            node -v && pnpm -v
           """
 
-          // Ensure subsequent stages use the local Node/pnpm
           env.PATH = "${nodeBin}:${env.PATH}"
         }
       }
     }
 
-    stage('Install JS dependencies') {
+    stage('Install JS deps') {
       steps {
-        sh 'pnpm install --frozen-lockfile --prefer-offline --store-dir "$PNPM_STORE_PATH" --prod=false'
+        sh '''
+          set -eu
+          pnpm install --frozen-lockfile --prefer-offline --store-dir "$PNPM_STORE_PATH"
+        '''
       }
     }
 
     stage('Apply frontend env (optional)') {
-      when {
-        expression { params.ENV_FILE_CREDENTIAL_ID?.trim() }
-      }
+      when { expression { (params.ENV_FILE_CREDENTIAL_ID ?: '').trim() } }
       steps {
         withCredentials([file(credentialsId: params.ENV_FILE_CREDENTIAL_ID, variable: 'ENV_FILE')]) {
           sh '''
-            set -e
+            set -eu
+            cp "$ENV_FILE" .env.production.local
             cp "$ENV_FILE" .env.ci || true
-            cp "$ENV_FILE" .env.production.local || true
           '''
         }
       }
@@ -111,30 +97,20 @@ pipeline {
 
     stage('Quality gates') {
       parallel {
-        stage('Lint') {
-          steps {
-            sh 'pnpm lint'
-          }
-        }
-        stage('Type check') {
-          steps {
-            sh 'pnpm check-types'
-          }
-        }
+        stage('Lint') { steps { sh 'pnpm lint' } }
+        stage('Type check') { steps { sh 'pnpm check-types' } }
       }
     }
 
-    stage('Build frontends') {
-      steps {
-        sh 'pnpm build'
-      }
+    stage('Build front (for validation)') {
+      steps { sh 'pnpm build' }
     }
 
-    stage('Build Spring API') {
+    stage('Build + Test api-service') {
       steps {
         dir('apps/api-service') {
           sh '''
-            set -e
+            set -eu
             chmod +x mvnw
             ./mvnw -B clean verify
           '''
@@ -142,15 +118,14 @@ pipeline {
       }
     }
 
-    stage('Archive artifacts') {
+    stage('Archive') {
       steps {
         archiveArtifacts artifacts: 'apps/api-service/target/*.jar', fingerprint: true, allowEmptyArchive: true
-        archiveArtifacts artifacts: 'apps/**/.next/**', allowEmptyArchive: true
         junit allowEmptyResults: true, testResults: 'apps/api-service/target/surefire-reports/*.xml'
       }
     }
 
-    stage('Deploy') {
+    stage('Deploy gate (Railway/Vercel)') {
       when {
         allOf {
           branch 'main'
@@ -158,19 +133,14 @@ pipeline {
         }
       }
       steps {
-        sh '''
-          echo "Deploy placeholder - add helm/kubectl/ssh/terraform steps to promote artifacts."
-        '''
+        echo 'Deploy gate OK: push on main will auto-deploy on Railway (api-service) and Vercel (front).'
       }
     }
   }
 
   post {
-    success {
-      echo 'CI pipeline completed successfully.'
-    }
-    failure {
-      echo 'CI pipeline failed.'
-    }
+    success { echo 'CI OK.' }
+    failure { echo 'CI FAIL.' }
+    always { echo "Branch: ${env.BRANCH_NAME} | DEPLOY gate: ${params.DEPLOY}" }
   }
 }
