@@ -38,9 +38,7 @@ pipeline {
 
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
 
     stage('Setup Node + pnpm') {
@@ -83,12 +81,13 @@ pipeline {
             fi
 
             pnpm config set store-dir "${PNPM_STORE_PATH}"
+
             echo "[setup] Versions:"
             node -v
             pnpm -v
           """
 
-          // persistir Node/pnpm para os proximos stages
+          // Persistir Node/pnpm para os proximos stages
           env.PATH = "${nodeBin}:${env.PATH}"
         }
       }
@@ -104,9 +103,7 @@ pipeline {
     }
 
     stage('Apply frontend env (optional)') {
-      when {
-        expression { (params.ENV_FILE_CREDENTIAL_ID ?: '').trim() }
-      }
+      when { expression { (params.ENV_FILE_CREDENTIAL_ID ?: '').trim() } }
       steps {
         withCredentials([file(credentialsId: params.ENV_FILE_CREDENTIAL_ID, variable: 'ENV_FILE')]) {
           sh '''
@@ -120,31 +117,27 @@ pipeline {
 
     stage('Quality gates') {
       parallel {
-        stage('Lint') {
-          steps { sh 'pnpm lint' }
-        }
-        stage('Type check') {
-          steps { sh 'pnpm check-types' }
-        }
+        stage('Lint') { steps { sh 'pnpm lint' } }
+        stage('Type check') { steps { sh 'pnpm check-types' } }
       }
     }
 
-    // IMPORTANT: build controlado para nao spawnar 47 workers e cair em EAGAIN
     stage('Build front (safe)') {
       steps {
         sh '''
           set -eu
-          export NEXT_TELEMETRY_DISABLED=1
+
+          # limitar paralelismo e evitar EAGAIN
+          export NEXT_TELEMETRY_DISABLED="${NEXT_TELEMETRY_DISABLED}"
           export TURBO_CONCURRENCY="${TURBO_CONCURRENCY}"
           export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE}"
           export NODE_OPTIONS="${NODE_OPTIONS}"
 
-          # Se seu "pnpm build" chama turbo run build, forca concorrencia:
-          if pnpm -w -s run build >/dev/null 2>&1; then
-            echo "[build] Running workspace build with turbo concurrency=1"
-          fi
+          echo "[build] TURBO_CONCURRENCY=$TURBO_CONCURRENCY"
+          echo "[build] UV_THREADPOOL_SIZE=$UV_THREADPOOL_SIZE"
+          echo "[build] NODE_OPTIONS=$NODE_OPTIONS"
 
-          # Rodar turbo explicitamente (mais previsivel que "pnpm build" em CI)
+          # build controlado (1 pacote por vez)
           pnpm -w turbo run build --concurrency=1
         '''
       }
