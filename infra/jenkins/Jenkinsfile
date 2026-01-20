@@ -13,7 +13,6 @@ pipeline {
   }
 
   environment {
-    NODE_ENV = 'production'
     CI = 'true'
     PNPM_STORE_PATH = "${WORKSPACE}/.pnpm-store"
     NODE_VERSION = 'v20.18.1'
@@ -91,7 +90,7 @@ pipeline {
 
     stage('Install JS dependencies') {
       steps {
-        sh 'pnpm install --frozen-lockfile --prefer-offline --store-dir "$PNPM_STORE_PATH"'
+        sh 'pnpm install --frozen-lockfile --prefer-offline --store-dir "$PNPM_STORE_PATH" --prod=false'
       }
     }
 

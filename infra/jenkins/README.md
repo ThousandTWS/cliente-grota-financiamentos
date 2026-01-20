@@ -13,6 +13,8 @@ Arquivos de automacao ficam em `infra/jenkins/Jenkinsfile`. O pipeline usa pnpm/
   - Secrets de deploy/registries caso o estágio `Deploy` seja habilitado.
 - Se quiser o registro de tempo e cores no log, instale os plugins **Timestamper** e **AnsiColor** e adicione `timestamps()` e `ansiColor('xterm')` em `options`.
 
+> Nota: o pipeline não fixa `NODE_ENV=production`; o `pnpm install` usa `--prod=false` para garantir que as devDependencies (ex.: turbo) sejam instaladas para lint/build.
+
 ## Como configurar o job
 - Crie um Multibranch Pipeline (ou um Pipeline apontando para o repo) e defina o caminho do script como `infra/jenkins/Jenkinsfile`.
 - Garanta que o agente escolhido tenha os tool names `node-20` e `jdk-17` configurados em `Manage Jenkins > Tools`.
