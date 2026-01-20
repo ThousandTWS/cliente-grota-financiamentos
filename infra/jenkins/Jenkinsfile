@@ -9,20 +9,38 @@ pipeline {
   }
 
   parameters {
-    booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Gate: allow deploy on main (Railway/Vercel auto deploy from GitHub)')
-    string(name: 'ENV_FILE_CREDENTIAL_ID', defaultValue: '', description: 'Optional .env file credential for Next.js builds')
+    booleanParam(
+      name: 'DEPLOY',
+      defaultValue: false,
+      description: 'Gate: allow deploy on main (Railway/Vercel auto deploy from GitHub)'
+    )
+    string(
+      name: 'ENV_FILE_CREDENTIAL_ID',
+      defaultValue: '',
+      description: 'Optional .env file credential for Next.js builds'
+    )
   }
 
   environment {
     CI = 'true'
-    PNPM_STORE_PATH = "${WORKSPACE}/.pnpm-store"
+
+    // Node/pnpm
     NODE_VERSION = '20.18.1' // sem "v"
     TOOLING_DIR = "${WORKSPACE}/.tooling"
+    PNPM_STORE_PATH = "${WORKSPACE}/.pnpm-store"
+
+    // Evita EAGAIN / explosao de processos no CI
+    TURBO_CONCURRENCY = '1'
+    NEXT_TELEMETRY_DISABLED = '1'
+    UV_THREADPOOL_SIZE = '4'
+    NODE_OPTIONS = '--max-old-space-size=2048'
   }
 
   stages {
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+        checkout scm
+      }
     }
 
     stage('Setup Node + pnpm') {
@@ -65,9 +83,12 @@ pipeline {
             fi
 
             pnpm config set store-dir "${PNPM_STORE_PATH}"
-            node -v && pnpm -v
+            echo "[setup] Versions:"
+            node -v
+            pnpm -v
           """
 
+          // persistir Node/pnpm para os proximos stages
           env.PATH = "${nodeBin}:${env.PATH}"
         }
       }
@@ -83,7 +104,9 @@ pipeline {
     }
 
     stage('Apply frontend env (optional)') {
-      when { expression { (params.ENV_FILE_CREDENTIAL_ID ?: '').trim() } }
+      when {
+        expression { (params.ENV_FILE_CREDENTIAL_ID ?: '').trim() }
+      }
       steps {
         withCredentials([file(credentialsId: params.ENV_FILE_CREDENTIAL_ID, variable: 'ENV_FILE')]) {
           sh '''
@@ -97,13 +120,34 @@ pipeline {
 
     stage('Quality gates') {
       parallel {
-        stage('Lint') { steps { sh 'pnpm lint' } }
-        stage('Type check') { steps { sh 'pnpm check-types' } }
+        stage('Lint') {
+          steps { sh 'pnpm lint' }
+        }
+        stage('Type check') {
+          steps { sh 'pnpm check-types' }
+        }
       }
     }
 
-    stage('Build front (for validation)') {
-      steps { sh 'pnpm build' }
+    // IMPORTANT: build controlado para nao spawnar 47 workers e cair em EAGAIN
+    stage('Build front (safe)') {
+      steps {
+        sh '''
+          set -eu
+          export NEXT_TELEMETRY_DISABLED=1
+          export TURBO_CONCURRENCY="${TURBO_CONCURRENCY}"
+          export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE}"
+          export NODE_OPTIONS="${NODE_OPTIONS}"
+
+          # Se seu "pnpm build" chama turbo run build, forca concorrencia:
+          if pnpm -w -s run build >/dev/null 2>&1; then
+            echo "[build] Running workspace build with turbo concurrency=1"
+          fi
+
+          # Rodar turbo explicitamente (mais previsivel que "pnpm build" em CI)
+          pnpm -w turbo run build --concurrency=1
+        '''
+      }
     }
 
     stage('Build + Test api-service') {
