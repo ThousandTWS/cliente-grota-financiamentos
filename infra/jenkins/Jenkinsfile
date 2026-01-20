@@ -29,10 +29,20 @@ pipeline {
       steps {
         sh '''
           set -e
-          corepack enable
-          corepack prepare pnpm@9.0.0 --activate
+          if command -v corepack >/dev/null 2>&1; then
+            corepack enable
+            corepack prepare pnpm@9.0.0 --activate
+          else
+            echo "corepack not found; installing pnpm via npm -g"
+            if command -v npm >/dev/null 2>&1; then
+              npm install -g pnpm@9.0.0
+            else
+              echo "npm not found; instale Node.js com npm no agente." >&2
+              exit 1
+            fi
+          fi
           pnpm config set store-dir "$PNPM_STORE_PATH"
-          node -v
+          node -v || true
           pnpm -v
         '''
       }

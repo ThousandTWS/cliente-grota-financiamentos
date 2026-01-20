@@ -10,6 +10,7 @@ Arquivos de automacao ficam em `infra/jenkins/Jenkinsfile`. O pipeline usa pnpm/
   - Secrets de deploy/registries caso o estágio `Deploy` seja habilitado.
 - Agente precisa rodar `pnpm`, `node`, `java`, `mvn` (corepack habilita pnpm durante o pipeline).
   - Se quiser o registro de tempo e cores no log, instale os plugins **Timestamper** e **AnsiColor** e adicione `timestamps()` e `ansiColor('xterm')` em `options`.
+  - Caso `corepack` não esteja instalado, o pipeline usa `npm install -g pnpm@9.0.0` como fallback; portanto o agente precisa ter `npm` disponível.
 
 ## Como configurar o job
 - Crie um Multibranch Pipeline (ou um Pipeline apontando para o repo) e defina o caminho do script como `infra/jenkins/Jenkinsfile`.
