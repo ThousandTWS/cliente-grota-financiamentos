@@ -31,13 +31,16 @@ pipeline {
         script {
           def nodeVersion = env.NODE_VERSION ?: 'v20.18.1'
           def nodeDist = "node-${nodeVersion}-linux-x64"
+          def nodeArchive = "${nodeDist}.tar.gz"
           def toolingDir = "${env.WORKSPACE}/.tooling"
           def nodeBin = "${toolingDir}/${nodeDist}/bin"
 
           sh """
-            set -e
+            set -euo pipefail
+
             NODE_VERSION="${nodeVersion}"
             NODE_DIST="${nodeDist}"
+            NODE_ARCHIVE="${nodeArchive}"
             TOOLING_DIR="${toolingDir}"
             NODE_BIN="${nodeBin}"
 
@@ -48,14 +51,14 @@ pipeline {
               cd "\$TOOLING_DIR"
               if [ ! -d "\$NODE_DIST" ]; then
                 if command -v curl >/dev/null 2>&1; then
-                  curl -fsSLO "https://nodejs.org/dist/${nodeVersion}/${nodeDist}.tar.xz"
+                  curl -fsSLO "https://nodejs.org/dist/${nodeVersion}/${nodeArchive}"
                 elif command -v wget >/dev/null 2>&1; then
-                  wget -q "https://nodejs.org/dist/${nodeVersion}/${nodeDist}.tar.xz"
+                  wget -q "https://nodejs.org/dist/${nodeVersion}/${nodeArchive}"
                 else
                   echo "curl/wget not available to download Node.js." >&2
                   exit 1
                 fi
-                tar -xJf "${nodeDist}.tar.xz"
+                tar -xzf "\$NODE_ARCHIVE"
               fi
             fi
 
