@@ -2,8 +2,6 @@ pipeline {
   agent any
 
   options {
-    timestamps()
-    ansiColor('xterm')
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
     timeout(time: 45, unit: 'MINUTES')
@@ -18,11 +16,6 @@ pipeline {
     NODE_ENV = 'production'
     CI = 'true'
     PNPM_STORE_PATH = "${WORKSPACE}/.pnpm-store"
-  }
-
-  tools {
-    jdk 'jdk-17'
-    nodejs 'node-20'
   }
 
   stages {

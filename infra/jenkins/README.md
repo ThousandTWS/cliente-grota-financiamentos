@@ -3,12 +3,13 @@
 Arquivos de automacao ficam em `infra/jenkins/Jenkinsfile`. O pipeline usa pnpm/turborepo para os apps Next.js e Maven para o `apps/api-service`.
 
 ## Requisitos do Jenkins
-- Plugin Pipeline ativo e agente com git e acesso a internet.
-- Ferramentas registradas: NodeJS `node-20` (>=20) e JDK `jdk-17`.
+- Plugin Pipeline ativo e agente com git e acesso à internet.
+- Node 20+ e JDK 17+ devem estar no `PATH` do agente (pipeline não usa o bloco `tools` para evitar dependência de configurações ausentes).
 - Credenciais recomendadas:
   - File credential com um `.env.ci` para os frontends (ID usado em `ENV_FILE_CREDENTIAL_ID`).
-  - Secrets de deploy/registries caso o estagio `Deploy` seja habilitado.
-- Agente precisa rodar comandos `pnpm`, `node`, `java`, `mvn` (corepack habilita pnpm durante o pipeline).
+  - Secrets de deploy/registries caso o estágio `Deploy` seja habilitado.
+- Agente precisa rodar `pnpm`, `node`, `java`, `mvn` (corepack habilita pnpm durante o pipeline).
+  - Se quiser o registro de tempo e cores no log, instale os plugins **Timestamper** e **AnsiColor** e adicione `timestamps()` e `ansiColor('xterm')` em `options`.
 
 ## Como configurar o job
 - Crie um Multibranch Pipeline (ou um Pipeline apontando para o repo) e defina o caminho do script como `infra/jenkins/Jenkinsfile`.
