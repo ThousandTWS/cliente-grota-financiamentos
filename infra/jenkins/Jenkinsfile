@@ -1,0 +1,133 @@
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    ansiColor('xterm')
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '20'))
+    timeout(time: 45, unit: 'MINUTES')
+  }
+
+  parameters {
+    booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Run deployment steps after a successful build')
+    string(name: 'ENV_FILE_CREDENTIAL_ID', defaultValue: '', description: 'Jenkins file credential containing .env values for Next.js builds (optional)')
+  }
+
+  environment {
+    NODE_ENV = 'production'
+    CI = 'true'
+    PNPM_STORE_PATH = "${WORKSPACE}/.pnpm-store"
+  }
+
+  tools {
+    jdk 'jdk-17'
+    nodejs 'node-20'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Node and pnpm') {
+      steps {
+        sh '''
+          set -e
+          corepack enable
+          corepack prepare pnpm@9.0.0 --activate
+          pnpm config set store-dir "$PNPM_STORE_PATH"
+          node -v
+          pnpm -v
+        '''
+      }
+    }
+
+    stage('Install JS dependencies') {
+      steps {
+        sh 'pnpm install --frozen-lockfile --prefer-offline --store-dir "$PNPM_STORE_PATH"'
+      }
+    }
+
+    stage('Apply frontend env (optional)') {
+      when {
+        expression { params.ENV_FILE_CREDENTIAL_ID?.trim() }
+      }
+      steps {
+        withCredentials([file(credentialsId: params.ENV_FILE_CREDENTIAL_ID, variable: 'ENV_FILE')]) {
+          sh '''
+            set -e
+            cp "$ENV_FILE" .env.ci || true
+            cp "$ENV_FILE" .env.production.local || true
+          '''
+        }
+      }
+    }
+
+    stage('Quality gates') {
+      parallel {
+        stage('Lint') {
+          steps {
+            sh 'pnpm lint'
+          }
+        }
+        stage('Type check') {
+          steps {
+            sh 'pnpm check-types'
+          }
+        }
+      }
+    }
+
+    stage('Build frontends') {
+      steps {
+        sh 'pnpm build'
+      }
+    }
+
+    stage('Build Spring API') {
+      steps {
+        dir('apps/api-service') {
+          sh '''
+            set -e
+            chmod +x mvnw
+            ./mvnw -B clean verify
+          '''
+        }
+      }
+    }
+
+    stage('Archive artifacts') {
+      steps {
+        archiveArtifacts artifacts: 'apps/api-service/target/*.jar', fingerprint: true, allowEmptyArchive: true
+        archiveArtifacts artifacts: 'apps/**/.next/**', allowEmptyArchive: true
+        junit allowEmptyResults: true, testResults: 'apps/api-service/target/surefire-reports/*.xml'
+      }
+    }
+
+    stage('Deploy') {
+      when {
+        allOf {
+          branch 'main'
+          expression { params.DEPLOY }
+        }
+      }
+      steps {
+        sh '''
+          echo "Deploy placeholder - add helm/kubectl/ssh/terraform steps to promote artifacts."
+        '''
+      }
+    }
+  }
+
+  post {
+    success {
+      echo 'CI pipeline completed successfully.'
+    }
+    failure {
+      echo 'CI pipeline failed.'
+    }
+  }
+}
