@@ -14,11 +14,6 @@ import {
 
 export const navItems: NavItem[] = [
   {
-    icon: <Bot />,
-    name: "IA Chat",
-    path: "/ia-chat",
-  },
-  {
     icon: <LayoutDashboard />,
     name: "Painel Administrativo",
     subItems: [
@@ -82,18 +77,6 @@ export const navItems: NavItem[] = [
         path: "/logistas",
         pro: false,
         icon: <Building2 size={16} />
-      },
-    ],
-  },
-  {
-    name: "Gestao de cobranca",
-    icon: <Receipt />,
-    subItems: [
-      {
-        name: "Cobrancas",
-        path: "/cobrancas",
-        pro: false,
-        icon: <Receipt size={16} />,
       },
     ],
   },
