@@ -7,6 +7,7 @@ Arquivos de automacao ficam em `infra/jenkins/Jenkinsfile`. O pipeline usa pnpm/
 - JDK 17+ no `PATH`.
 - Node 20+: se não existir no agente, o pipeline baixa Node `${NODE_VERSION}` para `${WORKSPACE}/.tooling` (usa `curl` ou `wget` + `tar`).
 - `npm` é fornecido pelo Node baixado; `pnpm` é instalado via corepack ou `npm -g` fallback.
+- Ferramentas de linha de comando necessárias no agente: `curl` ou `wget`, `tar`, `bash`, `chmod`.
 - Credenciais recomendadas:
   - File credential com um `.env.ci` para os frontends (ID usado em `ENV_FILE_CREDENTIAL_ID`).
   - Secrets de deploy/registries caso o estágio `Deploy` seja habilitado.
