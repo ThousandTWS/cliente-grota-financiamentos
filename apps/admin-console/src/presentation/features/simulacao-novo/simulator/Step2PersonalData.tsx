@@ -1060,9 +1060,12 @@ export default function Step2PersonalData({
                       <StatusBadge status={emailVerificationTone} className="shadow-none">
                         {emailVerificationLabel}
                       </StatusBadge>
+                      {/*
                       <StatusBadge status={phoneVerificationTone} className="shadow-none">
                         {phoneVerificationLabel}
                       </StatusBadge>
+                      */}
+                     
                     </>
                   )}
                 </div>
