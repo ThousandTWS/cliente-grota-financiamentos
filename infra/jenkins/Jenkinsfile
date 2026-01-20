@@ -16,6 +16,7 @@ pipeline {
     NODE_ENV = 'production'
     CI = 'true'
     PNPM_STORE_PATH = "${WORKSPACE}/.pnpm-store"
+    NODE_VERSION = 'v20.18.1'
   }
 
   stages {
@@ -27,24 +28,60 @@ pipeline {
 
     stage('Node and pnpm') {
       steps {
-        sh '''
-          set -e
-          if command -v corepack >/dev/null 2>&1; then
-            corepack enable
-            corepack prepare pnpm@9.0.0 --activate
-          else
-            echo "corepack not found; installing pnpm via npm -g"
-            if command -v npm >/dev/null 2>&1; then
-              npm install -g pnpm@9.0.0
-            else
-              echo "npm not found; instale Node.js com npm no agente." >&2
-              exit 1
+        script {
+          def nodeDist = "node-${env.NODE_VERSION}-linux-x64"
+          def toolingDir = "${env.WORKSPACE}/.tooling"
+          def nodeBin = "${toolingDir}/${nodeDist}/bin"
+
+          sh """
+            set -e
+            NODE_VERSION="${NODE_VERSION}"
+            NODE_DIST="${nodeDist}"
+            TOOLING_DIR="${toolingDir}"
+            NODE_BIN="${nodeBin}"
+
+            mkdir -p "$TOOLING_DIR"
+
+            if ! command -v node >/dev/null 2>&1; then
+              echo "Node.js not found; installing ${NODE_VERSION} locally into ${TOOLING_DIR}"
+              cd "$TOOLING_DIR"
+              if [ ! -d "$NODE_DIST" ]; then
+                if command -v curl >/dev/null 2>&1; then
+                  curl -fsSLO "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.xz"
+                elif command -v wget >/dev/null 2>&1; then
+                  wget -q "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.xz"
+                else
+                  echo "curl/wget não disponíveis para baixar Node.js." >&2
+                  exit 1
+                fi
+                tar -xJf "${NODE_DIST}.tar.xz"
+              fi
             fi
-          fi
-          pnpm config set store-dir "$PNPM_STORE_PATH"
-          node -v || true
-          pnpm -v
-        '''
+
+            export PATH="${NODE_BIN}:$PATH"
+
+            if command -v corepack >/dev/null 2>&1; then
+              corepack enable
+              corepack prepare pnpm@9.0.0 --activate
+            else
+              echo "corepack not found; installing pnpm via npm -g"
+              if command -v npm >/dev/null 2>&1; then
+                npm install -g pnpm@9.0.0
+              else
+                echo "npm not found even after Node install; check PATH." >&2
+                exit 1
+              fi
+            fi
+
+            pnpm config set store-dir "$PNPM_STORE_PATH"
+            node -v
+            npm -v
+            pnpm -v
+          """
+
+          // Garante PATH com Node/pnpm para os estágios seguintes
+          env.PATH = "${nodeBin}:${env.PATH}"
+        }
       }
     }
 

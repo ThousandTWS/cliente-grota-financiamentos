@@ -4,13 +4,13 @@ Arquivos de automacao ficam em `infra/jenkins/Jenkinsfile`. O pipeline usa pnpm/
 
 ## Requisitos do Jenkins
 - Plugin Pipeline ativo e agente com git e acesso à internet.
-- Node 20+ e JDK 17+ devem estar no `PATH` do agente (pipeline não usa o bloco `tools` para evitar dependência de configurações ausentes).
+- JDK 17+ no `PATH`.
+- Node 20+: se não existir no agente, o pipeline baixa Node `${NODE_VERSION}` para `${WORKSPACE}/.tooling` (usa `curl` ou `wget` + `tar`).
+- `npm` é fornecido pelo Node baixado; `pnpm` é instalado via corepack ou `npm -g` fallback.
 - Credenciais recomendadas:
   - File credential com um `.env.ci` para os frontends (ID usado em `ENV_FILE_CREDENTIAL_ID`).
   - Secrets de deploy/registries caso o estágio `Deploy` seja habilitado.
-- Agente precisa rodar `pnpm`, `node`, `java`, `mvn` (corepack habilita pnpm durante o pipeline).
-  - Se quiser o registro de tempo e cores no log, instale os plugins **Timestamper** e **AnsiColor** e adicione `timestamps()` e `ansiColor('xterm')` em `options`.
-  - Caso `corepack` não esteja instalado, o pipeline usa `npm install -g pnpm@9.0.0` como fallback; portanto o agente precisa ter `npm` disponível.
+- Se quiser o registro de tempo e cores no log, instale os plugins **Timestamper** e **AnsiColor** e adicione `timestamps()` e `ansiColor('xterm')` em `options`.
 
 ## Como configurar o job
 - Crie um Multibranch Pipeline (ou um Pipeline apontando para o repo) e defina o caminho do script como `infra/jenkins/Jenkinsfile`.
