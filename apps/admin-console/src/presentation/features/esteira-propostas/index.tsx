@@ -114,6 +114,7 @@ export default function EsteiraDePropostasFeature() {
   const [sellerIndex, setSellerIndex] = useState<Record<number, string>>({});
   const [recentIds, setRecentIds] = useState<Record<number, boolean>>({});
   const recentTimeouts = useRef<Record<number, number>>({});
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const { messages, sendMessage } = useRealtimeChannel({
     channel: REALTIME_CHANNELS.PROPOSALS,
@@ -123,6 +124,71 @@ export default function EsteiraDePropostasFeature() {
 
   const latestRealtimeMessage =
     messages.length > 0 ? messages[messages.length - 1] : null;
+
+  const ensureAudioContext = useCallback(async () => {
+    if (audioContextRef.current) {
+      if (audioContextRef.current.state === "suspended") {
+        try {
+          await audioContextRef.current.resume();
+        } catch (error) {
+          console.warn("[Admin Esteira] Nao foi possivel retomar audio", error);
+        }
+      }
+      return audioContextRef.current;
+    }
+
+    const AudioContextCtor =
+      typeof window !== "undefined"
+        ? window.AudioContext ||
+          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        : null;
+
+    if (!AudioContextCtor) return null;
+
+    try {
+      const context = new AudioContextCtor();
+      audioContextRef.current = context;
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+      return context;
+    } catch (error) {
+      console.warn("[Admin Esteira] Falha ao criar AudioContext", error);
+      return null;
+    }
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    ensureAudioContext()
+      .then((context) => {
+        if (!context) return;
+        const now = context.currentTime;
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(1040, now);
+        oscillator.frequency.exponentialRampToValueAtTime(780, now + 0.2);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.7);
+
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+
+        oscillator.onended = () => {
+          gain.disconnect();
+          oscillator.disconnect();
+        };
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.75);
+      })
+      .catch(() => {
+        // Ignora falhas silenciosamente para nao bloquear a UI.
+      });
+  }, [ensureAudioContext]);
 
   const loadProposals = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -173,6 +239,7 @@ export default function EsteiraDePropostasFeature() {
 
   const markRecent = useCallback((proposalId: number) => {
     setRecentIds((prev) => ({ ...prev, [proposalId]: true }));
+    playNotificationSound();
     const existing = recentTimeouts.current[proposalId];
     if (existing) {
       window.clearTimeout(existing);
@@ -185,7 +252,7 @@ export default function EsteiraDePropostasFeature() {
       });
       delete recentTimeouts.current[proposalId];
     }, 8000);
-  }, []);
+  }, [playNotificationSound]);
 
   useEffect(() => {
     loadProposals();
@@ -197,8 +264,24 @@ export default function EsteiraDePropostasFeature() {
         window.clearTimeout(timeoutId);
       });
       recentTimeouts.current = {};
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
     };
   }, []);
+
+  useEffect(() => {
+    const unlock = () => {
+      ensureAudioContext().catch(() => {});
+    };
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, [ensureAudioContext]);
 
   useEffect(() => {
     setNoteDrafts((prev) => {
@@ -296,6 +379,7 @@ export default function EsteiraDePropostasFeature() {
   }, [
     latestRealtimeMessage,
     applyRealtimeSnapshot,
+    markRecent,
     loadProposals,
     toast,
   ]);

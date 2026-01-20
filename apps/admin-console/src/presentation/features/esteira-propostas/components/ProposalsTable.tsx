@@ -179,7 +179,7 @@ export function ProposalsTable({
       {cards.map((proposal) => (
         <Card
           key={proposal.id}
-          className={`bg-gradient-to-br from-white via-slate-50 to-white shadow-sm ${recentIds[proposal.id] ? "proposal-flash ring-2 ring-amber-300/70" : ""}`}
+          className={`bg-gradient-to-br from-white via-slate-50 to-white shadow-sm ${recentIds[proposal.id] ? "proposal-flash ring-2 ring-amber-300/70 border border-amber-200/80" : ""}`}
         >
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
@@ -322,14 +322,20 @@ export function ProposalsTable({
         @keyframes proposal-blink {
           0%,
           100% {
-            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.45);
+            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.45),
+              0 12px 28px -10px rgba(17, 24, 39, 0.18);
+            filter: brightness(1);
           }
           50% {
-            box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.1);
+            box-shadow: 0 0 0 14px rgba(251, 191, 36, 0.12),
+              0 14px 30px -10px rgba(251, 191, 36, 0.45);
+            filter: brightness(1.04);
           }
         }
         .proposal-flash {
-          animation: proposal-blink 1s ease-in-out 6;
+          animation: proposal-blink 1s ease-in-out infinite;
+          border-color: rgba(251, 191, 36, 0.6) !important;
+          will-change: box-shadow, filter;
         }
       `}</style>
     </div>
