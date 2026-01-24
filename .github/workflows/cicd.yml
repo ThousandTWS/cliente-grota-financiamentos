@@ -1,31 +1,38 @@
-# CI/CD Pipeline Configuration
-
-# This is a sample configuration for a CI/CD pipeline using GitHub Actions.
-
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, develop]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@v1
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          java-version: '17'
+          node-version: 18
+          cache: 'pnpm'
 
-      - name: Build with Maven
-        run: mvn clean install
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
 
-      - name: Run Tests
-        run: mvn test
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Deploy
-        run: echo 'Deploying to production...'
+      - name: Build (Turborepo)
+        run: pnpm turbo run build
+
+      - name: Test (Turborepo)
+        run: pnpm turbo run test
+
+      # opcional
+      - name: Lint
+        run: pnpm turbo run lint
