@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLogistaApiBaseUrl } from "@/application/server/auth/config";
+import { dealerApiFetch, jsonFromUpstream } from "../../../_lib/dealer-api";
 import { getLogistaSession, unauthorizedResponse } from "../../../_lib/session";
-
-const API_BASE_URL = getLogistaApiBaseUrl();
 
 export async function PUT(request: NextRequest) {
   const session = await getLogistaSession();
@@ -12,27 +10,18 @@ export async function PUT(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Payload invÃ¡lido." }, { status: 400 });
+    return NextResponse.json({ error: "Payload inválido." }, { status: 400 });
   }
 
-  const upstream = await fetch(`${API_BASE_URL}/dealers/profile/complete`, {
+  const result = await dealerApiFetch("/dealers/profile/complete", {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.accessToken}`,
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
+    jsonBody: body,
+    session,
   });
 
-  const payload = await upstream.json().catch(() => null);
-
-  if (!upstream.ok) {
-    const message =
-      (payload as { message?: string; error?: string })?.message ??
-      "NÃ£o foi possÃ­vel atualizar o perfil.";
-    return NextResponse.json({ error: message }, { status: upstream.status });
+  if ("error" in result) {
+    return result.error;
   }
 
-  return NextResponse.json(payload ?? {});
+  return jsonFromUpstream(result.response, "Não foi possível salvar o perfil.");
 }

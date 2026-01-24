@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLogistaApiBaseUrl } from "@/application/server/auth/config";
-import {
-  getLogistaSession,
-  unauthorizedResponse,
-} from "../../../_lib/session";
-
-const API_BASE_URL = getLogistaApiBaseUrl();
+import { dealerApiFetch, jsonFromUpstream } from "../../../_lib/dealer-api";
+import { getLogistaSession, unauthorizedResponse } from "../../../_lib/session";
 
 export async function GET(
   _request: NextRequest,
@@ -19,33 +14,24 @@ export async function GET(
 
     const { id } = await params;
 
-    const upstreamResponse = await fetch(
-      `${API_BASE_URL}/proposals/${id}/events`,
-      {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-        cache: "no-store",
-      },
-    );
+    const result = await dealerApiFetch(`/proposals/${id}/events`, {
+      session,
+      retryOnAuthError: false,
+    });
 
-    const payload = await upstreamResponse.json().catch(() => null);
-
-    if (!upstreamResponse.ok) {
-      const message =
-        (payload as { message?: string })?.message ??
-        "NÃ£o foi possÃ­vel carregar o histÃ³rico.";
-      return NextResponse.json({ error: message }, {
-        status: upstreamResponse.status,
-      });
+    if ("error" in result) {
+      return result.error;
     }
 
-    const list = Array.isArray(payload) ? payload : [];
-    return NextResponse.json(list);
+    return jsonFromUpstream(
+      result.response,
+      "Não foi possível carregar o histórico.",
+      { emptyOnSuccess: [] },
+    );
   } catch (error) {
-    console.error("[logista][proposals][events] falha ao buscar histÃ³rico", error);
+    console.error("[logista][proposals] falha ao carregar histórico", error);
     return NextResponse.json(
-      { error: "Erro interno ao carregar histÃ³rico." },
+      { error: "Erro interno ao carregar histórico." },
       { status: 500 },
     );
   }

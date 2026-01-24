@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import {
-  getLogistaApiBaseUrl,
-} from "@/application/server/auth/config";
+import { dealerApiFetch, jsonFromUpstream } from "../_lib/dealer-api";
 import {
   getLogistaSession,
-  resolveDealerId,
   resolveAllowedDealerIds,
+  resolveDealerId,
   unauthorizedResponse,
 } from "../_lib/session";
-
-const API_BASE_URL = getLogistaApiBaseUrl();
 
 export async function GET() {
   try {
@@ -29,19 +25,15 @@ export async function GET() {
       const uniqueDealerIds = Array.from(new Set(allowedDealerIds));
       const results = await Promise.all(
         uniqueDealerIds.map(async (dealerId) => {
-          const response = await fetch(
-            `${API_BASE_URL}/dealers/${dealerId}/details`,
-            {
-              headers: {
-                Authorization: `Bearer ${session.accessToken}`,
-              },
-              cache: "no-store",
-            },
-          );
-          const payload = await response.json().catch(() => null);
+          const result = await dealerApiFetch(`/dealers/${dealerId}/details`, {
+            session,
+            retryOnAuthError: false,
+          });
+          if ("error" in result) return { ok: false, status: 401, payload: null };
+          const payload = await result.response.json().catch(() => null);
           return {
-            ok: response.ok,
-            status: response.status,
+            ok: result.response.ok,
+            status: result.response.status,
             payload,
           };
         }),
@@ -69,25 +61,20 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    const upstreamResponse = await fetch(`${API_BASE_URL}/dealers/${dealerId}/details`, {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      cache: "no-store",
+    const result = await dealerApiFetch(`/dealers/${dealerId}/details`, {
+      session,
+      retryOnAuthError: false,
     });
 
-    const payload = await upstreamResponse.json().catch(() => null);
-
-    if (!upstreamResponse.ok) {
-      const message =
-        (payload as { message?: string })?.message ??
-        "NÃ£o foi possÃ­vel carregar os lojistas.";
-      return NextResponse.json({ error: message }, {
-        status: upstreamResponse.status,
-      });
+    if ("error" in result) {
+      return result.error;
     }
 
-    return NextResponse.json(payload ? [payload] : []);
+    return jsonFromUpstream(
+      result.response,
+      "Não foi possível carregar os lojistas.",
+      { emptyOnSuccess: [] },
+    );
   } catch (error) {
     console.error("[logista][dealers] Falha ao buscar lojistas", error);
     return NextResponse.json(

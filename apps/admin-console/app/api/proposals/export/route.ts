@@ -1,29 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession } from "../../../../../../packages/auth";
-import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_SESSION_SCOPE,
-  getAdminApiBaseUrl,
-  getAdminSessionSecret,
-} from "@/application/server/auth/config";
-
-const API_BASE_URL = getAdminApiBaseUrl();
-const SESSION_SECRET = getAdminSessionSecret();
-
-async function resolveSession() {
-  const cookieStore = await cookies();
-  const encoded = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  const session = await decryptSession(encoded, SESSION_SECRET);
-  if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
-    return null;
-  }
-  return session;
-}
-
-function unauthorized() {
-  return NextResponse.json({ error: "NÃ£o autenticado." }, { status: 401 });
-}
+import { adminApiFetch } from "../../_lib/admin-api";
 
 const toCsv = (rows: any[]) => {
   if (!rows.length) return "id,customerName,status,dealerId,sellerId,financedValue,downPaymentValue,termMonths,createdAt\n";
@@ -51,26 +27,22 @@ const toCsv = (rows: any[]) => {
 };
 
 export async function GET(request: NextRequest) {
-  const session = await resolveSession();
-  if (!session) {
-    return unauthorized();
-  }
-
   const url = new URL(request.url);
   const query = url.searchParams.toString();
-  const target = `${API_BASE_URL}/proposals${query ? `?${query}` : ""}`;
-  const upstreamResponse = await fetch(target, {
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-    },
-    cache: "no-store",
-  });
+  const target = `/proposals${query ? `?${query}` : ""}`;
 
+  const result = await adminApiFetch(target, { retryOnAuthError: false });
+  if ("error" in result) {
+    return result.error;
+  }
+
+  const upstreamResponse = result.response;
   const payload = await upstreamResponse.json().catch(() => null);
   if (!upstreamResponse.ok) {
     const message =
       (payload as { message?: string })?.message ??
-      "NÃ£o foi possÃ­vel exportar as propostas.";
+      (payload as { error?: string })?.error ??
+      "Não foi possível exportar as propostas.";
     return NextResponse.json({ error: message }, {
       status: upstreamResponse.status,
     });

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLogistaApiBaseUrl } from "@/application/server/auth/config";
+import { dealerApiFetch, jsonFromUpstream } from "../../_lib/dealer-api";
 import { getLogistaSession, unauthorizedResponse } from "../../_lib/session";
-
-const API_BASE_URL = getLogistaApiBaseUrl();
 
 export async function POST(request: NextRequest) {
   const session = await getLogistaSession();
@@ -21,28 +19,20 @@ export async function POST(request: NextRequest) {
   const file = formData.get("file");
   if (!(file instanceof File)) {
     return NextResponse.json(
-      { error: "Selecione um arquivo de imagem vÃ¡lido." },
+      { error: "Selecione um arquivo de imagem válido." },
       { status: 400 },
     );
   }
 
-  const upstream = await fetch(`${API_BASE_URL}/dealers/logo`, {
+  const result = await dealerApiFetch("/dealers/logo", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-    },
     body: formData,
-    cache: "no-store",
+    session,
   });
 
-  const payload = await upstream.json().catch(() => null);
-
-  if (!upstream.ok) {
-    const message =
-      (payload as { message?: string; error?: string })?.message ??
-      "NÃ£o foi possÃ­vel enviar a logomarca.";
-    return NextResponse.json({ error: message }, { status: upstream.status });
+  if ("error" in result) {
+    return result.error;
   }
 
-  return NextResponse.json(payload ?? {});
+  return jsonFromUpstream(result.response, "Não foi possível enviar a logomarca.");
 }

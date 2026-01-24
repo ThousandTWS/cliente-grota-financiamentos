@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLogistaApiBaseUrl } from "@/application/server/auth/config";
 import {
   DOCUMENT_TYPES,
   DocumentType,
 } from "@/application/core/@types/Documents/Document";
+import {
+  dealerApiFetch,
+  jsonFromUpstream,
+} from "../../_lib/dealer-api";
 import {
   getLogistaSession,
   resolveDealerId,
   unauthorizedResponse,
 } from "../../_lib/session";
 
-const API_BASE_URL = getLogistaApiBaseUrl();
 const VALID_DOCUMENT_TYPES = new Set<DocumentType>(DOCUMENT_TYPES);
 
 export async function POST(request: NextRequest) {
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
     if (session.canCreate === false) {
       return NextResponse.json(
-        { error: "VocÃª nÃ£o tem permissÃ£o para enviar documentos." },
+        { error: "Você não tem permissão para enviar documentos." },
         { status: 403 },
       );
     }
@@ -35,14 +37,14 @@ export async function POST(request: NextRequest) {
       !VALID_DOCUMENT_TYPES.has(documentType as DocumentType)
     ) {
       return NextResponse.json(
-        { error: "Tipo de documento invÃ¡lido." },
+        { error: "Tipo de documento inválido." },
         { status: 400 },
       );
     }
 
     if (!(file instanceof Blob)) {
       return NextResponse.json(
-        { error: "Arquivo de documento ausente." },
+        { error: "Arquivo é obrigatório." },
         { status: 400 },
       );
     }
@@ -56,28 +58,20 @@ export async function POST(request: NextRequest) {
       upstreamForm.set("dealerId", String(dealerId));
     }
 
-    const upstreamResponse = await fetch(`${API_BASE_URL}/documents/upload`, {
+    const result = await dealerApiFetch("/documents/upload", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
       body: upstreamForm,
-      cache: "no-store",
+      session,
     });
 
-    const payload = await upstreamResponse.json().catch(() => null);
-
-    if (!upstreamResponse.ok) {
-      const message =
-        (payload as { message?: string })?.message ??
-        "NÃ£o foi possÃ­vel enviar o documento.";
-      return NextResponse.json(
-        { error: message },
-        { status: upstreamResponse.status },
-      );
+    if ("error" in result) {
+      return result.error;
     }
 
-    return NextResponse.json(payload);
+    return jsonFromUpstream(
+      result.response,
+      "Não foi possível enviar o documento.",
+    );
   } catch (error) {
     console.error("[logista][documents] falha no upload", error);
     return NextResponse.json(

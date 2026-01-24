@@ -1,57 +1,24 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession } from "../../../../../../packages/auth";
-import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_SESSION_SCOPE,
-  getAdminApiBaseUrl,
-  getAdminSessionSecret,
-} from "@/application/server/auth/config";
-
-const API_BASE_URL = getAdminApiBaseUrl();
-const SESSION_SECRET = getAdminSessionSecret();
-
-async function resolveSession() {
-  const cookieStore = await cookies();
-  const encodedSession = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  const session = await decryptSession(encodedSession, SESSION_SECRET);
-  if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
-    return null;
-  }
-  return session;
-}
-
-function unauthorized() {
-  return NextResponse.json({ error: "UsuÃ¡rio nÃ£o autenticado." }, { status: 401 });
-}
+import { adminApiFetch } from "../../_lib/admin-api";
 
 export async function GET() {
-  const session = await resolveSession();
-  if (!session) {
-    return unauthorized();
+  const result = await adminApiFetch(
+    "/notifications/stream?targetType=ADMIN",
+    { retryOnAuthError: false },
+  );
+
+  if ("error" in result) {
+    return result.error;
   }
 
-  const upstream = await fetch(
-    `${API_BASE_URL}/notifications/stream?targetType=ADMIN`,
-    {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      cache: "no-store",
-    },
-  ).catch((error) => {
-    console.error("[admin][notifications] Falha ao abrir SSE", error);
-    return null;
-  });
-
+  const upstream = result.response;
   if (!upstream || !upstream.body) {
     return NextResponse.json(
-      { error: "NÃ£o foi possÃ­vel iniciar o stream de notificaÃ§Ãµes." },
+      { error: "Não foi possível iniciar o stream de notificações." },
       { status: 502 },
     );
   }
 
-  // Encaminha o stream SSE para o cliente
   return new Response(upstream.body, {
     status: 200,
     headers: {

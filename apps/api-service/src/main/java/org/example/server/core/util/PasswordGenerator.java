@@ -2,9 +2,6 @@ package org.example.server.core.util;
 
 import java.security.SecureRandom;
 
-/**
- * Utility class for generating secure random passwords.
- */
 public final class PasswordGenerator {
 
     private static final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
@@ -17,7 +14,6 @@ public final class PasswordGenerator {
     private static final int DEFAULT_LENGTH = 14;
 
     private PasswordGenerator() {
-        // Utility class
     }
 
     /**
@@ -43,18 +39,15 @@ public final class PasswordGenerator {
 
         StringBuilder password = new StringBuilder(length);
 
-        // Ensure at least one character from each category
         password.append(LOWERCASE.charAt(RANDOM.nextInt(LOWERCASE.length())));
         password.append(UPPERCASE.charAt(RANDOM.nextInt(UPPERCASE.length())));
         password.append(DIGITS.charAt(RANDOM.nextInt(DIGITS.length())));
         password.append(SYMBOLS.charAt(RANDOM.nextInt(SYMBOLS.length())));
 
-        // Fill the rest with random characters from all categories
         for (int i = 4; i < length; i++) {
             password.append(ALL_CHARS.charAt(RANDOM.nextInt(ALL_CHARS.length())));
         }
 
-        // Shuffle the password to avoid predictable positions
         char[] passwordArray = password.toString().toCharArray();
         for (int i = passwordArray.length - 1; i > 0; i--) {
             int j = RANDOM.nextInt(i + 1);

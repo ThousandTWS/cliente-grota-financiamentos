@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { getLogistaApiBaseUrl } from "@/application/server/auth/config";
+import { dealerApiFetch } from "../_lib/dealer-api";
 import {
   getLogistaSession,
   resolveDealerId,
   unauthorizedResponse,
 } from "../_lib/session";
-
-const API_BASE_URL = getLogistaApiBaseUrl();
 
 export async function GET() {
   try {
@@ -16,23 +14,20 @@ export async function GET() {
     }
 
     const dealerId = await resolveDealerId(session);
+    const query = dealerId ? `?dealerId=${dealerId}` : "";
 
-    const upstreamResponse = await fetch(
-      `${API_BASE_URL}/operators${dealerId ? `?dealerId=${dealerId}` : ""}`,
-      {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-        cache: "no-store",
-      },
-    );
+    const result = await dealerApiFetch(`/operators${query}`, { session });
+    if ("error" in result) {
+      return result.error;
+    }
 
+    const upstreamResponse = result.response;
     const payload = await upstreamResponse.json().catch(() => null);
 
     if (!upstreamResponse.ok) {
       const message =
         (payload as { message?: string })?.message ??
-        "NÃ£o foi possÃ­vel carregar os operadores.";
+        "Não foi possível carregar os operadores.";
       return NextResponse.json({ error: message }, {
         status: upstreamResponse.status,
       });
@@ -59,14 +54,13 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    return NextResponse.json(
-      list.filter((op: any) => op?.dealerId === dealerId),
-    );
+    return NextResponse.json(list);
   } catch (error) {
-    console.error("[logista][operators] Falha ao buscar operadores", error);
+    console.error("[logista][operators] falha ao buscar operadores", error);
     return NextResponse.json(
       { error: "Erro interno ao carregar operadores." },
       { status: 500 },
     );
   }
 }
+

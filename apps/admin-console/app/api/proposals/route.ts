@@ -1,86 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession } from "../../../../../packages/auth";
-import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_SESSION_SCOPE,
-  getAdminApiBaseUrl,
-  getAdminSessionSecret,
-} from "@/application/server/auth/config";
+import { adminApiFetch, jsonFromUpstream } from "../_lib/admin-api";
+import { getAdminSession, unauthorizedResponse } from "../_lib/session";
 
-const API_BASE_URL = getAdminApiBaseUrl();
-const SESSION_SECRET = getAdminSessionSecret();
-
-async function resolveSession() {
-  const cookieStore = await cookies();
-  const encoded = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  const session = await decryptSession(encoded, SESSION_SECRET);
-  if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
-    return null;
-  }
-  return session;
-}
-
-function buildActorHeader(session: Awaited<ReturnType<typeof resolveSession>> | null) {
+function buildActorHeader(session: Awaited<ReturnType<typeof getAdminSession>> | null) {
   if (!session) return null;
   const role = session.role?.trim() || "ADMIN";
   const subject =
     session.fullName?.trim() ||
     session.email?.trim() ||
-    (typeof session.userId === "number" ? `Usu√°rio ${session.userId}` : "Usu√°rio desconhecido");
+    (typeof session.userId === "number" ? `Usu·rio ${session.userId}` : "Usu·rio desconhecido");
   return `${role.toUpperCase()} - ${subject}`;
 }
 
-function unauthorized() {
-  return NextResponse.json({ error: "N√£o autenticado." }, { status: 401 });
-}
-
-async function proxyRequest<T>(
-  session: Awaited<ReturnType<typeof resolveSession>>,
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Promise<NextResponse<T>> {
-  const upstreamResponse = await fetch(input, {
-    ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      Authorization: `Bearer ${session!.accessToken}`,
-    },
-    cache: "no-store",
-  });
-
-  const payload = await upstreamResponse.json().catch(() => null);
-
-  if (!upstreamResponse.ok) {
-    const message =
-      (payload as { message?: string })?.message ?? "Falha ao processar a requisi√ß√£o.";
-    return NextResponse.json(
-      { error: message } as unknown as T,
-      { status: upstreamResponse.status },
-    );
-  }
-
-  return NextResponse.json(payload ?? ({} as T), {
-    status: upstreamResponse.status,
-  });
-}
-
 export async function GET(request: NextRequest) {
-  const session = await resolveSession();
+  const session = await getAdminSession();
   if (!session) {
-    return unauthorized();
+    return unauthorizedResponse();
   }
 
   const url = new URL(request.url);
   const query = url.searchParams.toString();
-  const target = `${API_BASE_URL}/proposals${query ? `?${query}` : ""}`;
-  return proxyRequest(session, target);
+  const target = `/proposals${query ? `?${query}` : ""}`;
+
+  const result = await adminApiFetch(target, { session });
+  if ("error" in result) {
+    return result.error;
+  }
+
+  return jsonFromUpstream(result.response, "Falha ao carregar propostas.");
 }
 
 export async function POST(request: NextRequest) {
-  const session = await resolveSession();
+  const session = await getAdminSession();
   if (!session) {
-    return unauthorized();
+    return unauthorizedResponse();
   }
 
   const actorHeader = buildActorHeader(session);
@@ -89,60 +42,56 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Payload inv√°lido." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Payload inv·lido." }, { status: 400 });
   }
 
-  return proxyRequest(session, `${API_BASE_URL}/proposals`, {
+  const result = await adminApiFetch("/proposals", {
     method: "POST",
+    jsonBody: body,
     headers: {
       ...(actorHeader ? { "X-Actor": actorHeader } : {}),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    session,
   });
+
+  if ("error" in result) {
+    return result.error;
+  }
+
+  return jsonFromUpstream(result.response, "N„o foi possÌvel criar a proposta.");
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await resolveSession();
+  const session = await getAdminSession();
   if (!session) {
-    return unauthorized();
+    return unauthorizedResponse();
   }
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) {
     return NextResponse.json(
-      { error: "id e obrigatorio." },
+      { error: "id È obrigatÛrio." },
       { status: 400 },
     );
   }
 
-  const upstreamResponse = await fetch(`${API_BASE_URL}/proposals/${id}`, {
+  const result = await adminApiFetch(`/proposals/${id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-    },
-    cache: "no-store",
+    session,
   });
 
+  if ("error" in result) {
+    return result.error;
+  }
+
+  const upstreamResponse = result.response;
   if (upstreamResponse.status === 204) {
     return NextResponse.json({}, { status: 204 });
   }
 
-  const payload = await upstreamResponse.json().catch(() => null);
-  if (!upstreamResponse.ok) {
-    const message =
-      (payload as { message?: string; error?: string })?.message ??
-      (payload as { error?: string })?.error ??
-      "Nao foi possivel remover a proposta.";
-    return NextResponse.json({ error: message }, {
-      status: upstreamResponse.status,
-    });
-  }
-
-  return NextResponse.json(payload ?? {}, {
-    status: upstreamResponse.status,
-  });
+  return jsonFromUpstream(
+    upstreamResponse,
+    "N„o foi possÌvel remover a proposta.",
+  );
 }

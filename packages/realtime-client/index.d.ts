@@ -102,7 +102,9 @@ export interface NotificationPayload {
   description?: string;
   actor?: string;
   href?: string;
+  link?: string;
   channel?: string;
+  scope?: string;
   timestamp?: string;
   meta?: Record<string, unknown>;
 }

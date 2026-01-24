@@ -22,7 +22,7 @@ public class OpenAPIConfig {
     @Value("${api.contact.email:suporte@grota.com}")
     private String contactEmail;
 
-    @Value("${api.contact.url:http://suporte.grota.com}")
+    @Value("${api.contact.url:https://www.grotafinanciamentos.com.br/}")
     private String contactUrl;
 
     @Bean
