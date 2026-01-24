@@ -284,6 +284,3 @@ export async function resolveAllowedDealerIds(
     return [];
   }
 }
-export async function clearLogistaSession() {
-  await clearLogistaSessionCookie(await cookies());
-}

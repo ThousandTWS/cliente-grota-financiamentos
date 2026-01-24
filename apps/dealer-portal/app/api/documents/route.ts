@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { dealerApiFetch, jsonFromUpstream } from "../_lib/dealer-api";
+import { getLogistaApiBaseUrl } from "@/application/server/auth/config";
 import { getLogistaSession, unauthorizedResponse } from "../_lib/session";
+
+const API_BASE_URL = getLogistaApiBaseUrl();
 
 export async function GET() {
   try {
@@ -9,14 +11,25 @@ export async function GET() {
       return unauthorizedResponse();
     }
 
-    const result = await dealerApiFetch("/documents", { session });
-    if ("error" in result) {
-      return result.error;
+    const upstreamResponse = await fetch(`${API_BASE_URL}/documents`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    const payload = await upstreamResponse.json().catch(() => null);
+
+    if (!upstreamResponse.ok) {
+      const message =
+        (payload as { message?: string })?.message ??
+        "NÃ£o foi possÃ­vel carregar os documentos.";
+      return NextResponse.json({ error: message }, {
+        status: upstreamResponse.status,
+      });
     }
 
-    return jsonFromUpstream(result.response, "Não foi possível carregar os documentos.", {
-      emptyOnSuccess: [],
-    });
+    return NextResponse.json(Array.isArray(payload) ? payload : []);
   } catch (error) {
     console.error("[logista][documents] falha ao buscar documentos", error);
     return NextResponse.json(
