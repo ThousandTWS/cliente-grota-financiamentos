@@ -6,33 +6,50 @@ on:
   pull_request:
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
 
+    env:
+      NEXT_PUBLIC_URL_API: ${{ secrets.NEXT_PUBLIC_URL_API }}
+      LOGISTA_SESSION_SECRET: ${{ secrets.LOGISTA_SESSION_SECRET }}
+      LOGISTA_API_BASE_URL: ${{ secrets.LOGISTA_API_BASE_URL }}
+      ADMIN_SESSION_SECRET: ${{ secrets.ADMIN_SESSION_SECRET }}
+      NEXT_PUBLIC_LOGISTA_PANEL_URL: ${{ secrets.NEXT_PUBLIC_LOGISTA_PANEL_URL }}
+      ADMIN_API_BASE_URL: ${{ secrets.ADMIN_API_BASE_URL }}
+      DEFAULT_API_BASE_URL: ${{ secrets.DEFAULT_API_BASE_URL }}
+      ARCJET_KEY: ${{ secrets.ARCJET_KEY }}
+      APIBRASIL_DEVICE_TOKEN_CPF: ${{ secrets.APIBRASIL_DEVICE_TOKEN_CPF }}
+      APIBRASIL_TOKEN: ${{ secrets.APIBRASIL_TOKEN }}
+
+      # cache remoto do turbo (opcional, mas recomendado)
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'pnpm'
+          cache: pnpm
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-
-      - name: Install dependencies
+      - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Build (Turborepo)
-        run: pnpm turbo run build
-
-      - name: Test (Turborepo)
-        run: pnpm turbo run test
-
-      # opcional
       - name: Lint
         run: pnpm turbo run lint
+
+      - name: Type check
+        run: pnpm turbo run check-types
+
+      - name: Build
+        run: pnpm turbo run build
+
+      - name: E2E
+        run: pnpm turbo run test:e2e
