@@ -22,6 +22,8 @@ type ProposalsTableProps = {
   onNoteSave: (proposal: Proposal) => Promise<boolean> | boolean;
   dealersById?: Record<number, { name: string; enterprise?: string }>;
   sellersById?: Record<number, string>;
+  // Índice de operadores por dealerId - permite encontrar o operador responsável pela loja
+  operatorsByDealerId?: Record<number, string>;
 };
 
 const proposalStatusLabels: Record<ProposalStatus, string> = {
@@ -90,6 +92,7 @@ export function ProposalsTable({
   onNoteSave,
   dealersById = {},
   sellersById = {},
+  operatorsByDealerId = {},
 }: ProposalsTableProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -140,8 +143,16 @@ export function ProposalsTable({
       const sellerLabel = proposal.sellerId
         ? sellersById[proposal.sellerId] ?? `Responsavel #${proposal.sellerId}`
         : "Responsavel nao informado";
-      const operatorName = getOperatorName(proposal.metadata);
-      const operatorLabel = operatorName ?? sellerLabel;
+      
+      // Prioridade para determinar o operador a exibir:
+      // 1) Nome do operador no metadata da proposta (operatorName)
+      // 2) Operador vinculado à loja (via operatorsByDealerId)
+      // 3) Vendedor da proposta (seller)
+      const operatorFromMetadata = getOperatorName(proposal.metadata);
+      const operatorFromDealer = proposal.dealerId
+        ? operatorsByDealerId[proposal.dealerId]
+        : null;
+      const operatorLabel = operatorFromMetadata ?? operatorFromDealer ?? sellerLabel;
 
       return {
         ...proposal,
@@ -150,7 +161,7 @@ export function ProposalsTable({
         operatorLabel,
       };
     });
-  }, [dealersById, proposals, sellersById]);
+  }, [dealersById, proposals, sellersById, operatorsByDealerId]);
 
   if (isLoading) {
     return (

@@ -202,19 +202,37 @@ export const deleteProposal = async (proposalId: number): Promise<void> => {
     cache: "no-store",
   });
 
-  if (response.status === 204) {
+  // 204 No Content indica sucesso sem corpo de resposta
+  if (response.status === 204 || response.ok) {
     return;
   }
 
   const payload = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    const message =
-      (payload as { error?: string; message?: string })?.error ??
-      (payload as { message?: string })?.message ??
-      "Nao foi possivel remover a proposta.";
-    throw new Error(message);
+  let message = "Não foi possível remover a proposta.";
+  
+  if (payload && typeof payload === "object") {
+    const errorPayload = payload as { error?: string; message?: string };
+    if (errorPayload.error) {
+      message = errorPayload.error;
+    } else if (errorPayload.message) {
+      message = errorPayload.message;
+    }
   }
+
+  // Tratamento especial para erros de autenticação/autorização
+  if (response.status === 401) {
+    message = "Sessão expirada. Por favor, faça login novamente.";
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+  } else if (response.status === 403) {
+    message = "Você não tem permissão para excluir esta proposta.";
+  } else if (response.status === 404) {
+    message = "Proposta não encontrada. Ela pode já ter sido removida.";
+  }
+
+  throw new Error(message);
 };
 
 export const fetchProposalTimeline = async (

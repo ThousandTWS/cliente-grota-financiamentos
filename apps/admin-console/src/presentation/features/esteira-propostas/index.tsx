@@ -30,6 +30,7 @@ import { ProposalsTable } from "./components/ProposalsTable";
 import { Alert, Modal, Input } from "antd";
 import { getAllLogistics } from "@/application/services/Logista/logisticService";
 import { getAllSellers } from "@/application/services/Seller/sellerService";
+import { getAllOperators } from "@/application/services/Operator/operatorService";
 import { getRealtimeUrl } from "@/application/config/realtime";
 
 const ADMIN_PROPOSALS_IDENTITY = "admin-esteira";
@@ -112,6 +113,8 @@ export default function EsteiraDePropostasFeature() {
   const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
   const [dealerIndex, setDealerIndex] = useState<Record<number, { name: string; enterprise?: string }>>({});
   const [sellerIndex, setSellerIndex] = useState<Record<number, string>>({});
+  // Índice de operadores por dealerId - permite encontrar o operador responsável pela loja
+  const [operatorByDealerIndex, setOperatorByDealerIndex] = useState<Record<number, string>>({});
   const [recentIds, setRecentIds] = useState<Record<number, boolean>>({});
   const recentTimeouts = useRef<Record<number, number>>({});
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -304,9 +307,10 @@ export default function EsteiraDePropostasFeature() {
   useEffect(() => {
     const loadNames = async () => {
       try {
-        const [dealers, sellers] = await Promise.all([
+        const [dealers, sellers, operators] = await Promise.all([
           getAllLogistics(),
           getAllSellers(),
+          getAllOperators(),
         ]);
 
         const dealerMap = dealers.reduce<Record<number, { name: string; enterprise?: string }>>((acc, dealer) => {
@@ -331,10 +335,24 @@ export default function EsteiraDePropostasFeature() {
           return acc;
         }, {});
 
+        // Cria índice de operadores por dealerId
+        // Permite encontrar o operador responsável por cada loja
+        const operatorByDealerMap = operators.reduce<Record<number, string>>((acc, operator) => {
+          if (operator.dealerId && operator.fullName) {
+            // Se já existe um operador para esta loja, não sobrescreve
+            // (mantém o primeiro encontrado)
+            if (!acc[operator.dealerId]) {
+              acc[operator.dealerId] = operator.fullName;
+            }
+          }
+          return acc;
+        }, {});
+
         setDealerIndex(dealerMap);
         setSellerIndex(sellerMap);
+        setOperatorByDealerIndex(operatorByDealerMap);
       } catch (error) {
-        console.warn("[Admin Esteira] Nao foi possivel carregar nomes de lojistas/vendedores", error);
+        console.warn("[Admin Esteira] Nao foi possivel carregar nomes de lojistas/vendedores/operadores", error);
       }
     };
 
@@ -744,6 +762,7 @@ export default function EsteiraDePropostasFeature() {
         deletingId={deletingId}
         dealersById={dealerIndex}
         sellersById={sellerIndex}
+        operatorsByDealerId={operatorByDealerIndex}
         recentIds={recentIds}
       />
 

@@ -1,185 +1,295 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminApiFetch, jsonFromUpstream } from "../_lib/admin-api";
-import { getAdminSession, unauthorizedResponse } from "../_lib/session";
+import { cookies } from "next/headers";
+import { decryptSession } from "../../../../../packages/auth";
+import {
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_SCOPE,
+  getAdminApiBaseUrl,
+  getAdminSessionSecret,
+} from "@/application/server/auth/config";
+
+const API_BASE_URL = getAdminApiBaseUrl();
+const SESSION_SECRET = getAdminSessionSecret();
+
+async function resolveSession() {
+  const cookieStore = await cookies();
+  const encodedSession = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const session = await decryptSession(encodedSession, SESSION_SECRET);
+  if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
+    return null;
+  }
+  return session;
+}
+
+function unauthorized() {
+  return NextResponse.json({ error: "Usu√°rio n√£o autenticado." }, { status: 401 });
+}
 
 export async function GET(request: NextRequest) {
-  const session = await getAdminSession();
-  if (!session) {
-    return unauthorizedResponse();
+  try {
+    const session = await resolveSession();
+    if (!session) {
+      return unauthorized();
+    }
+
+    const dealerId = request.nextUrl.searchParams.get("dealerId");
+    const searchParams = dealerId ? `?dealerId=${dealerId}` : "";
+
+    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers${searchParams}`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    const payload = await upstreamResponse.json().catch(() => null);
+
+    if (!upstreamResponse.ok) {
+      const message =
+        (payload as { message?: string })?.message ??
+        "Falha ao carregar vendedores.";
+      return NextResponse.json({ error: message }, {
+        status: upstreamResponse.status,
+      });
+    }
+
+    return NextResponse.json(payload ?? []);
+  } catch (error) {
+    console.error("[admin][sellers] Falha ao buscar vendedores", error);
+    return NextResponse.json(
+      { error: "Erro interno ao carregar vendedores." },
+      { status: 500 },
+    );
   }
-
-  const dealerId = request.nextUrl.searchParams.get("dealerId");
-  const searchParams = dealerId ? `?dealerId=${dealerId}` : "";
-
-  const result = await adminApiFetch(`/sellers${searchParams}`, { session });
-  if ("error" in result) {
-    return result.error;
-  }
-
-  return jsonFromUpstream(result.response, "Falha ao carregar vendedores.", {
-    emptyOnSuccess: [],
-  });
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getAdminSession();
-  if (!session) {
-    return unauthorizedResponse();
-  }
-
-  let body: any;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Payload inv·lido." }, { status: 400 });
-  }
+    const session = await resolveSession();
+    if (!session) {
+      return unauthorized();
+    }
 
-  const sanitizedBody: any = {
-    fullName: String(body.fullName || "").trim(),
-    email:
-      body.email && String(body.email).trim() !== "" && body.email !== "null"
-        ? String(body.email).trim().toLowerCase()
-        : null,
-    phone: String(body.phone || "").replace(/\D/g, ""),
-    password: String(body.password || ""),
-    CPF: String(body.CPF || "").replace(/\D/g, ""),
-    birthData: String(body.birthData || ""),
-    address: {
-      street: String(body.address?.street || "").trim(),
-      number: String(body.address?.number || "").trim(),
-      complement:
-        body.address?.complement && String(body.address.complement).trim()
-          ? String(body.address.complement).trim()
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Payload inv√°lido." },
+        { status: 400 },
+      );
+    }
+
+    // Valida√ß√£o e sanitiza√ß√£o do payload
+    const sanitizedBody: any = {
+      fullName: String(body.fullName || "").trim(),
+      email: (body.email && String(body.email).trim() !== "" && body.email !== "null") ? String(body.email).trim().toLowerCase() : null,
+      phone: String(body.phone || "").replace(/\D/g, ""),
+      password: String(body.password || ""),
+      CPF: String(body.CPF || "").replace(/\D/g, ""),
+      birthData: String(body.birthData || ""),
+      address: {
+        street: String(body.address?.street || "").trim(),
+        number: String(body.address?.number || "").trim(),
+        complement: (body.address?.complement && String(body.address.complement).trim()) 
+          ? String(body.address.complement).trim() 
           : null,
-      neighborhood: String(body.address?.neighborhood || "").trim(),
-      city: String(body.address?.city || "").trim(),
-      state: body.address?.state ? String(body.address.state).trim().toUpperCase() : null,
-      zipCode: String(body.address?.zipCode || "").replace(/\D/g, ""),
-    },
-    canView: body.canView !== undefined ? Boolean(body.canView) : true,
-    canCreate: body.canCreate !== undefined ? Boolean(body.canCreate) : true,
-    canUpdate: body.canUpdate !== undefined ? Boolean(body.canUpdate) : true,
-    canDelete: body.canDelete !== undefined ? Boolean(body.canDelete) : true,
-  };
+        neighborhood: String(body.address?.neighborhood || "").trim(),
+        city: String(body.address?.city || "").trim(),
+        state: body.address?.state ? String(body.address.state).trim().toUpperCase() : null,
+        zipCode: String(body.address?.zipCode || "").replace(/\D/g, ""),
+      },
+      canView: body.canView !== undefined ? Boolean(body.canView) : true,
+      canCreate: body.canCreate !== undefined ? Boolean(body.canCreate) : true,
+      canUpdate: body.canUpdate !== undefined ? Boolean(body.canUpdate) : true,
+      canDelete: body.canDelete !== undefined ? Boolean(body.canDelete) : true,
+    };
+    
+    // Adiciona dealerId apenas se fornecido
+    if (body.dealerId !== null && body.dealerId !== undefined && body.dealerId !== "") {
+      sanitizedBody.dealerId = Number(body.dealerId);
+    } else {
+      sanitizedBody.dealerId = null;
+    }
+    
+    // Valida√ß√µes b√°sicas antes de enviar
+    if (!sanitizedBody.fullName || sanitizedBody.fullName.length < 2) {
+      return NextResponse.json(
+        { error: "O nome completo deve ter pelo menos 2 caracteres." },
+        { status: 400 },
+      );
+    }
 
-  sanitizedBody.dealerId =
-    body.dealerId !== null && body.dealerId !== undefined && body.dealerId !== ""
-      ? Number(body.dealerId)
-      : null;
+    if (!sanitizedBody.email || String(sanitizedBody.email).trim() === "") {
+      return NextResponse.json(
+        { error: "O email e obrigatorio." },
+        { status: 400 },
+      );
+    }
+    
+    // O backend ainda pode rejeitar campos obrigatorios ou invalidos.
 
-  if (!sanitizedBody.fullName || sanitizedBody.fullName.length < 2) {
-    return NextResponse.json(
-      { error: "O nome completo deve ter pelo menos 2 caracteres." },
-      { status: 400 },
-    );
-  }
+    // Log do payload para debug
+    console.log("[admin][sellers] POST request payload:", JSON.stringify(sanitizedBody, null, 2));
+    console.log("[admin][sellers] POST request URL:", `${API_BASE_URL}/sellers`);
 
-  if (!sanitizedBody.email || String(sanitizedBody.email).trim() === "") {
-    return NextResponse.json(
-      { error: "O email È obrigatÛrio." },
-      { status: 400 },
-    );
-  }
+    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify(sanitizedBody),
+      cache: "no-store",
+    });
 
-  const result = await adminApiFetch("/sellers", {
-    method: "POST",
-    jsonBody: sanitizedBody,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.accessToken}`,
-    },
-    session,
-  });
+    const payload = await upstreamResponse.json().catch(() => null);
 
-  if ("error" in result) {
-    return result.error;
-  }
+    if (!upstreamResponse.ok) {
+      // Trata erros de valida√ß√£o do backend (lista de erros)
+      const errors = Array.isArray((payload as { errors?: unknown })?.errors)
+        ? (payload as { errors: string[] }).errors
+        : [];
+      
+      // Se houver lista de erros, junta todos em uma mensagem
+      let message: string;
+      if (errors.length > 0) {
+        message = errors.join("; ");
+      } else {
+        message =
+          (payload as { error?: string; message?: string })?.error ??
+          (payload as { error?: string; message?: string })?.message ??
+          (payload as { details?: string })?.details ??
+          "N√£o foi poss√≠vel criar o vendedor.";
+      }
+      
+      console.error("[admin][sellers] upstream error", {
+        status: upstreamResponse.status,
+        message,
+        errors,
+        payload,
+      });
+      return NextResponse.json({ error: message, errors }, {
+        status: upstreamResponse.status,
+      });
+    }
 
-  const upstreamResponse = result.response;
-  const payload = await upstreamResponse.json().catch(() => null);
-
-  if (!upstreamResponse.ok) {
-    const errors = Array.isArray((payload as { errors?: unknown })?.errors)
-      ? (payload as { errors: string[] }).errors
-      : [];
-
-    const message = errors.length > 0
-      ? errors.join("; ")
-      : (payload as { error?: string; message?: string })?.error ??
-        (payload as { error?: string; message?: string })?.message ??
-        (payload as { details?: string })?.details ??
-        "N„o foi possÌvel criar o vendedor.";
-
-    return NextResponse.json({ error: message, errors }, {
+    return NextResponse.json(payload ?? {}, {
       status: upstreamResponse.status,
     });
+  } catch (error) {
+    console.error("[admin][sellers] Falha ao criar vendedor", error);
+    return NextResponse.json(
+      { error: "Erro interno ao criar vendedor." },
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json(payload ?? {}, {
-    status: upstreamResponse.status,
-  });
 }
 
 export async function PATCH(request: NextRequest) {
-  const session = await getAdminSession();
-  if (!session) {
-    return unauthorizedResponse();
-  }
-
-  let body;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Payload inv·lido." }, { status: 400 });
-  }
+    const session = await resolveSession();
+    if (!session) {
+      return unauthorized();
+    }
 
-  const { sellerId, dealerId } = body ?? {};
-  if (!sellerId) {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Payload inv√°lido." },
+        { status: 400 },
+      );
+    }
+
+    const { sellerId, dealerId } = body ?? {};
+    if (!sellerId) {
+      return NextResponse.json(
+        { error: "sellerId √© obrigat√≥rio." },
+        { status: 400 },
+      );
+    }
+
+    const dealerQuery = dealerId === null || dealerId === undefined ? "" : `?dealerId=${dealerId}`;
+    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers/${sellerId}/dealer${dealerQuery}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    const payload = await upstreamResponse.json().catch(() => null);
+
+    if (!upstreamResponse.ok) {
+      const message =
+        (payload as { error?: string; message?: string })?.error ??
+        (payload as { error?: string; message?: string })?.message ??
+        "N√£o foi poss√≠vel atualizar o v√≠nculo do vendedor.";
+      return NextResponse.json({ error: message }, {
+        status: upstreamResponse.status,
+      });
+    }
+
+    return NextResponse.json(payload ?? {}, {
+      status: upstreamResponse.status,
+    });
+  } catch (error) {
+    console.error("[admin][sellers] Falha ao reatribuir vendedor", error);
     return NextResponse.json(
-      { error: "sellerId È obrigatÛrio." },
-      { status: 400 },
+      { error: "Erro interno ao reatribuir vendedor." },
+      { status: 500 },
     );
   }
-
-  const dealerQuery = dealerId === null || dealerId === undefined ? "" : `?dealerId=${dealerId}`;
-  const result = await adminApiFetch(`/sellers/${sellerId}/dealer${dealerQuery}`, {
-    method: "PATCH",
-    session,
-  });
-
-  if ("error" in result) {
-    return result.error;
-  }
-
-  return jsonFromUpstream(
-    result.response,
-    "N„o foi possÌvel atualizar o vÌnculo do vendedor.",
-  );
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await getAdminSession();
-  if (!session) {
-    return unauthorizedResponse();
-  }
+  try {
+    const session = await resolveSession();
+    if (!session) {
+      return unauthorized();
+    }
 
-  const id = request.nextUrl.searchParams.get("id");
-  if (!id) {
+    const id = request.nextUrl.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json(
+        { error: "id √© obrigat√≥rio." },
+        { status: 400 },
+      );
+    }
+
+    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (upstreamResponse.status === 204) {
+      return NextResponse.json({}, { status: 204 });
+    }
+
+    const payload = await upstreamResponse.json().catch(() => null);
+    if (!upstreamResponse.ok) {
+      const message =
+        (payload as { error?: string; message?: string })?.error ??
+        (payload as { error?: string; message?: string })?.message ??
+        "N√£o foi poss√≠vel remover o vendedor.";
+      return NextResponse.json({ error: message }, {
+        status: upstreamResponse.status,
+      });
+    }
+
+    return NextResponse.json(payload ?? {}, {
+      status: upstreamResponse.status,
+    });
+  } catch (error) {
+    console.error("[admin][sellers] Falha ao remover vendedor", error);
     return NextResponse.json(
-      { error: "id È obrigatÛrio." },
-      { status: 400 },
+      { error: "Erro interno ao remover vendedor." },
+      { status: 500 },
     );
   }
-
-  const result = await adminApiFetch(`/sellers/${id}`, { method: "DELETE", session });
-  if ("error" in result) {
-    return result.error;
-  }
-
-  const upstreamResponse = result.response;
-  if (upstreamResponse.status === 204) {
-    return NextResponse.json({}, { status: 204 });
-  }
-
-  return jsonFromUpstream(upstreamResponse, "N„o foi possÌvel remover o vendedor.");
 }

@@ -73,10 +73,6 @@ async function clearAdminSessionCookie(
   });
 }
 
-export async function clearAdminSession() {
-  await clearAdminSessionCookie(await cookies());
-}
-
 export async function refreshAdminSession(
   session: SessionPayload,
 ): Promise<SessionPayload | null> {
@@ -115,5 +111,5 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 }
 
 export function unauthorizedResponse() {
-  return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  return NextResponse.json({ error: "NÃ£o autenticado." }, { status: 401 });
 }

@@ -1,23 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminApiFetch, jsonFromUpstream } from "../../../_lib/admin-api";
-import { getAdminSession, unauthorizedResponse } from "../../../_lib/session";
+import { cookies } from "next/headers";
+import { decryptSession } from "../../../../../../../packages/auth";
+import {
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_SCOPE,
+  getAdminApiBaseUrl,
+  getAdminSessionSecret,
+} from "@/application/server/auth/config";
+
+const API_BASE_URL = getAdminApiBaseUrl();
+const SESSION_SECRET = getAdminSessionSecret();
+
+async function resolveSession() {
+  const cookieStore = await cookies();
+  const encoded = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const session = await decryptSession(encoded, SESSION_SECRET);
+  if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
+    return null;
+  }
+  return session;
+}
+
+function unauthorized() {
+  return NextResponse.json({ error: "NÃ£o autenticado." }, { status: 401 });
+}
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await getAdminSession();
+  const session = await resolveSession();
   if (!session) {
-    return unauthorizedResponse();
+    return unauthorized();
   }
 
   const { id } = await params;
-  const result = await adminApiFetch(`/proposals/${id}/events`, { session });
-  if ("error" in result) {
-    return result.error;
+
+  const upstreamResponse = await fetch(
+    `${API_BASE_URL}/proposals/${id}/events`,
+    {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    },
+  );
+
+  const payload = await upstreamResponse.json().catch(() => null);
+
+  if (!upstreamResponse.ok) {
+    const message =
+      (payload as { message?: string })?.message ??
+      "NÃ£o foi possÃ­vel carregar o histÃ³rico.";
+    return NextResponse.json(
+      { error: message },
+      { status: upstreamResponse.status },
+    );
   }
 
-  return jsonFromUpstream(result.response, "Não foi possível carregar o histórico.", {
-    emptyOnSuccess: [],
-  });
+  return NextResponse.json(payload ?? []);
 }

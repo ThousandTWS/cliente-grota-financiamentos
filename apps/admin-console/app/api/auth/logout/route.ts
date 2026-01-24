@@ -1,25 +1,52 @@
+ 
 import { NextResponse } from "next/server";
-import { adminApiFetch } from "../../_lib/admin-api";
-import { clearAdminSession, getAdminSession } from "../../_lib/session";
+import { cookies } from "next/headers";
+import { decryptSession } from "../../../../../../packages/auth";
+import {
+  ADMIN_COOKIE_SAME_SITE,
+  ADMIN_COOKIE_SECURE,
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_SCOPE,
+  getAdminApiBaseUrl,
+  getAdminSessionSecret,
+} from "@/application/server/auth/config";
+
+const API_BASE_URL = getAdminApiBaseUrl();
+const SESSION_SECRET = getAdminSessionSecret();
+
+async function clearSession() {
+  const cookieStore = await cookies();
+  cookieStore.set({
+    name: ADMIN_SESSION_COOKIE,
+    value: "",
+    httpOnly: true,
+    sameSite: ADMIN_COOKIE_SAME_SITE,
+    secure: ADMIN_COOKIE_SECURE,
+    maxAge: 0,
+    path: "/",
+  });
+}
 
 export async function POST() {
-  const session = await getAdminSession();
+  const cookieStore = await cookies();
+  const encodedSession = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const session = await decryptSession(encodedSession, SESSION_SECRET);
 
-  if (session) {
+  if (session && session.scope === ADMIN_SESSION_SCOPE) {
     try {
-      await adminApiFetch("/auth/logout", {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${session.accessToken}`,
           Cookie: `refresh_token=${session.refreshToken}; access_token=${session.accessToken}`,
         },
-        session,
-        retryOnAuthError: false,
+        cache: "no-store",
       });
     } catch (error) {
-      console.warn("[admin][auth] falha ao encerrar sess„o no backend", error);
+      console.warn("[admin][auth] falha ao encerrar sess√£o no backend", error);
     }
   }
 
-  await clearAdminSession();
+  await clearSession();
   return NextResponse.json({ success: true });
 }
