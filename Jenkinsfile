@@ -2,10 +2,8 @@ pipeline {
     agent any
 
     tools {
-        // IMPORTANT: You MUST install the 'NodeJS Plugin' and 'JDK' in Jenkins
-        // Manage Jenkins > Plugins > Available Plugins
-        // Manage Jenkins > Global Tool Configuration
-        jdk 'jdk17'
+        // Using the 'node20' tool (requires NodeJS plugin).
+        // Java 17 (jdk17) removed from here because it's already available globally in your PATH.
         nodejs 'node20'
     }
 
