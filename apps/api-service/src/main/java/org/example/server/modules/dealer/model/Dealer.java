@@ -1,6 +1,13 @@
 package org.example.server.modules.dealer.model;
 
 import jakarta.persistence.*;
+import org.example.server.modules.document.model.Document;
+import org.example.server.modules.manager.model.Manager;
+import org.example.server.modules.operator.model.Operator;
+import org.example.server.modules.seller.model.Seller;
+import org.example.server.modules.user.model.User;
+import org.example.server.modules.vehicle.model.Vehicle;
+import org.example.server.shared.address.model.Address;
 
 import java.time.LocalDate;
 import java.util.List;

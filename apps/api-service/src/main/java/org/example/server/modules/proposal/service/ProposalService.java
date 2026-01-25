@@ -2,10 +2,12 @@ package org.example.server.modules.proposal.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.server.modules.billing.service.BillingService;
 import org.example.server.modules.proposal.dto.ProposalEventResponseDTO;
 import org.example.server.modules.proposal.dto.ProposalRequestDTO;
 import org.example.server.modules.proposal.dto.ProposalResponseDTO;
 import org.example.server.modules.proposal.dto.ProposalStatusUpdateDTO;
+import org.example.server.modules.proposal.integration.RealtimeBridgeClient;
 import org.example.server.modules.proposal.model.ProposalStatus;
 import org.example.server.core.exception.generic.RecordNotFoundException;
 import org.example.server.modules.dealer.model.Dealer;

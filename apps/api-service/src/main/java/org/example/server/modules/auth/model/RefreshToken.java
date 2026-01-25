@@ -1,6 +1,7 @@
 package org.example.server.modules.auth.model;
 
 import jakarta.persistence.*;
+import org.example.server.modules.user.model.User;
 
 import java.time.Instant;
 
