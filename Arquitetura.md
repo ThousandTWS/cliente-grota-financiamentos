@@ -1,5 +1,3 @@
-# Grota Financiamentos — Monorepo Turborepo
-
 Este repositório é um **starter Turborepo** adaptado para o projeto **Grota Financiamentos de Veículos**. Contém o website público, a Área do Logista (painel para lojistas) e um CRM interno para gestão de propostas, clientes e contratos — organizados num monorepo para compartilhar UI, configs e utilitários.
 
 > Estrutura pensada para desenvolvimento rápido, deploy independente de cada app e compartilhamento de componentes e tipos.
@@ -83,7 +81,7 @@ Foi adicionado um canal WebSocket compartilhado para permitir que o painel admin
    Websocks
    pnpm realtime
    pnpm --filter @grota/realtime-server dev
-   
+
    Apps
    pnpm dev --filter grota-website
    pnpm dev --filter grota-painel-logista
@@ -98,7 +96,6 @@ Foi adicionado um canal WebSocket compartilhado para permitir que o painel admin
    ```bash
    NEXT_PUBLIC_REALTIME_WS_URL=ws://localhost:4545
    ```
-
 
 ## Comunicação em tempo real (Admin ↔ Logista)
 
@@ -110,7 +107,7 @@ Foi adicionado um canal WebSocket compartilhado para permitir que o painel admin
    Websocks
    pnpm realtime
    pnpm --filter @grota/realtime-server dev
-   
+
    Apps
    pnpm dev --filter grota-website
    pnpm dev --filter grota-painel-logista
@@ -126,7 +123,7 @@ Foi adicionado um canal WebSocket compartilhado para permitir que o painel admin
    NEXT_PUBLIC_REALTIME_WS_URL=ws://localhost:4545
    ```
 
-3. Abra as páginas `apps/admin-console/(admin)/visao-geral` e `apps/dealer-portal/(logista)/visao-geral` para visualizar o card *Canal Admin ↔ Logista*. As mensagens viajam instantaneamente enquanto ambos estiverem conectados.
+3. Abra as páginas `apps/admin-console/(admin)/visao-geral` e `apps/dealer-portal/(logista)/visao-geral` para visualizar o card _Canal Admin ↔ Logista_. As mensagens viajam instantaneamente enquanto ambos estiverem conectados.
 
 Os pacotes `packages/realtime-client` (hook + tipos compartilhados) e `packages/realtime-server` (servidor ws com histórico e presença) concentram a implementação.
 
@@ -136,7 +133,7 @@ O backend Spring agora expõe os contratos necessários para integrar o fluxo co
 
 - `POST /api/v1/grota-financiamentos/proposals` cria uma nova ficha. Payload mínimo:
 
-```json
+````json
 {
   "dealerId": 1,
   "sellerId": 2,
@@ -206,7 +203,7 @@ Esses contratos permitem alimentar o WebSocket de notificações e sincronizar a
 | `GET` | `/api/v1/grota-financiamentos/dealers/{id}` | Detalhes de um lojista específico | Retorna DTO do registro. |
 | `GET` | `/api/v1/grota-financiamentos/dealers/{id}/details` | Perfil completo do lojista (visão pública) | Alternativa ao `/me/details`. |
 | `GET` | `/api/v1/grota-financiamentos/dealers/me/details` | Perfil completo do lojista autenticado | Usa o `AuthenticationPrincipal` para buscar o dealer. |
-| `GET` | `/api/v1/grota-financiamentos/dealers/{id}/documents` | Documentos associados ao lojista | Inclui metadados para painel | 
+| `GET` | `/api/v1/grota-financiamentos/dealers/{id}/documents` | Documentos associados ao lojista | Inclui metadados para painel |
 | `GET` | `/api/v1/grota-financiamentos/dealers/{id}/vehicles` | Veículos registrados pelo lojista | Retorna DTOs do pacote `vehicle`. |
 | `PUT` | `/api/v1/grota-financiamentos/dealers/me` | Atualiza dados do lojista autenticado | Reusa DTO de cadastro. |
 | `PUT` | `/api/v1/grota-financiamentos/dealers/profile/complete` | Completa perfil pós-cadastro | Permite informações adicionais. |
@@ -287,3 +284,4 @@ Esses contratos permitem alimentar o WebSocket de notificações e sincronizar a
 
 Gerar chave openssl rand -base64 48
 Z1z3Uay+jLoTyGj0GFua1T6PcmjnZFjETZnHVv/OhjtC8RzuULEKttX+ZHqn01ti
+````
