@@ -495,7 +495,7 @@ export function DocumentosFeature() {
               <div>
                 <CardTitle>Enviar um novo documento</CardTitle>
                 <CardDescription>
-                  Aceitamos arquivos JPEG ou PNG com até 10MB.
+                  Aceitamos arquivos JPEG, PNG ou PDF com até 10MB.
                 </CardDescription>
               </div>
               <Button
@@ -553,7 +553,7 @@ export function DocumentosFeature() {
                   <Label>Arquivo</Label>
                   <Input
                     type="file"
-                    accept="image/png,image/jpeg"
+                    accept="image/png,image/jpeg,application/pdf"
                     onChange={(event) =>
                       setSelectedFile(
                         event.currentTarget.files?.[0] ?? null,

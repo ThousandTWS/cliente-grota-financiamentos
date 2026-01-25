@@ -35,9 +35,11 @@ public class DocumentService {
     private final DocumentMapper mapper;
 
     private static final long MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
-    private static final String[] ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "application/pdf"};
+    private static final String[] ALLOWED_CONTENT_TYPES = { "image/jpeg", "image/png", "application/pdf" };
 
-    public DocumentService(CloudinaryDocumentService cloudinaryDocumentService, DocumentRepository documentRepository, DealerRepository dealerRepository, EmailService emailService, DocumentFactory documentFactory, DocumentMapper mapper) {
+    public DocumentService(CloudinaryDocumentService cloudinaryDocumentService, DocumentRepository documentRepository,
+            DealerRepository dealerRepository, EmailService emailService, DocumentFactory documentFactory,
+            DocumentMapper mapper) {
         this.cloudinaryDocumentService = cloudinaryDocumentService;
         this.documentRepository = documentRepository;
         this.dealerRepository = dealerRepository;
@@ -48,24 +50,11 @@ public class DocumentService {
 
     @Transactional
     public DocumentResponseDTO uploadDocument(DocumentUploadRequestDTO dto, User user, Long dealerId) {
+        Long targetDealerId = resolveTargetDealerId(user, dealerId);
 
-        if (user.getRole().equals(UserRole.ADMIN)) {
-            if (dealerId == null) {
-                throw new RecordNotFoundException("ADMIN precisa informar o id do lojista.");
-            }
-            dealerRepository.findById(dealerId)
-                    .orElseThrow(() -> new RecordNotFoundException("Lojista não encontrado."));
-        } else if (user.getRole().equals(UserRole.LOJISTA)) {
-            var dealer = user.getDealer();
-            if (dealer == null) {
-                throw new AccessDeniedException("Usuário LOJISTA não possui dealer associado.");
-            }
-        } else {
-            throw new AccessDeniedException("Este usuário não tem permissão para enviar documentos.");
-        }
-
-        if (documentRepository.existsByDealerIdAndDocumentType(dealerId, dto.documentType())) {
-            throw new DataAlreadyExistsException("O documento " + dto.documentType() + " já foi enviado para este dealer.");
+        if (documentRepository.existsByDealerIdAndDocumentType(targetDealerId, dto.documentType())) {
+            throw new DataAlreadyExistsException(
+                    "O documento " + dto.documentType() + " já foi enviado para este dealer.");
         }
 
         MultipartFile file = dto.file();
@@ -80,21 +69,28 @@ public class DocumentService {
         }
 
         Document document = documentFactory.create(dto, user, publicId);
+        // Ensure the correctly resolved dealer is set if it was an ADMIN override or
+        // role resolve
+        if (user.getRole() == UserRole.ADMIN || targetDealerId != null) {
+            document.setDealer(dealerRepository.findById(targetDealerId)
+                    .orElseThrow(() -> new RecordNotFoundException("Dealer não encontrado")));
+        }
 
         return mapper.toDTO(documentRepository.save(document));
     }
 
     @Transactional
     public java.net.URL getPresignedUrl(Long documentId, User user) {
-
         @SuppressWarnings("null")
         Document doc = documentRepository.findById(documentId)
                 .orElseThrow(() -> new RecordNotFoundException("Documento não encontrado"));
 
-        boolean isAdmin = user.getRole() == UserRole.ADMIN;
-        boolean isOwnerDealer = doc.getDealer().getUser().getId().equals(user.getId());
+        if (user.getRole() == UserRole.ADMIN) {
+            return cloudinaryDocumentService.generateFileUrl(doc.getS3Key());
+        }
 
-        if (!isAdmin && !isOwnerDealer) {
+        Long userDealerId = resolveTargetDealerId(user, null);
+        if (!doc.getDealer().getId().equals(userDealerId)) {
             throw new AccessDeniedException("Acesso negado: você não tem permissão para visualizar este documento.");
         }
 
@@ -123,18 +119,48 @@ public class DocumentService {
         return mapper.toDTO(saved);
     }
 
-
     public java.util.List<DocumentResponseDTO> listUserDocuments(User user) {
-
         if (user.getRole() == UserRole.ADMIN) {
             return documentRepository.findAll()
                     .stream().map(mapper::toDTO)
                     .collect(java.util.stream.Collectors.toList());
         }
 
-        return documentRepository.findByDealer_UserId(user.getId())
-                .stream().map(mapper::toDTO)
+        Long dealerId = resolveTargetDealerId(user, null);
+        return documentRepository.findDocumentsByDealerId(dealerId)
+                .stream()
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    private Long resolveTargetDealerId(User user, Long overrideDealerId) {
+        if (user.getRole() == UserRole.ADMIN) {
+            if (overrideDealerId == null) {
+                throw new RecordNotFoundException("ADMIN precisa informar o id do lojista.");
+            }
+            return overrideDealerId;
+        }
+
+        org.example.server.modules.dealer.model.Dealer dealer = null;
+        switch (user.getRole()) {
+            case LOJISTA -> dealer = user.getDealer();
+            case VENDEDOR -> {
+                if (user.getSeller() != null)
+                    dealer = user.getSeller().getDealer();
+            }
+            case GESTOR -> {
+                if (user.getManager() != null)
+                    dealer = user.getManager().getDealer();
+            }
+            case OPERADOR -> {
+                if (user.getOperator() != null)
+                    dealer = user.getOperator().getDealer();
+            }
+        }
+
+        if (dealer == null) {
+            throw new AccessDeniedException("Usuário não possui dealer associado para gerenciar documentos.");
+        }
+        return dealer.getId();
     }
 
     private String buildCloudinaryPublicId(Long userId) {
@@ -166,5 +192,3 @@ public class DocumentService {
         }
     }
 }
-
-

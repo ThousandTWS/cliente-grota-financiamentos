@@ -4,6 +4,7 @@ import {
   Calculator,
   ClipboardCheck,
   ClipboardList,
+  FileText,
   LayoutDashboard,
 } from "lucide-react";
 
@@ -36,6 +37,11 @@ export const vendedorNavItems: NavItem[] = [
         icon: <ClipboardCheck size={16} />,
       },
     ],
+  },
+  {
+    name: "Documentos",
+    icon: <FileText />,
+    path: "/documentos",
   },
 ];
 

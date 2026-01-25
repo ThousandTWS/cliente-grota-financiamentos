@@ -46,4 +46,9 @@ export const operadorOthersItems: NavItem[] = [
         icon: <FileText />,
         path: "/operador/relatorios",
     },
+    {
+        name: "Documentos",
+        icon: <FileText />,
+        path: "/documentos",
+    },
 ];
