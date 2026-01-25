@@ -93,6 +93,4 @@ export const navItems: NavItem[] = [
     },
   ],
 }
-
-
 ];
