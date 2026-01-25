@@ -1,5 +1,6 @@
 package org.example.server.modules.dealer.factory;
 
+import org.example.server.modules.user.factory.AbstractUserFactory;
 import org.example.server.modules.user.model.UserRole;
 import org.example.server.modules.user.model.User;
 import org.springframework.security.crypto.password.PasswordEncoder;

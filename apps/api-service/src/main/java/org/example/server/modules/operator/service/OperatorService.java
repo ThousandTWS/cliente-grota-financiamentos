@@ -1,5 +1,6 @@
 package org.example.server.modules.operator.service;
 
+import org.example.server.core.email.EmailService;
 import org.example.server.shared.address.dto.AddressMapper;
 import org.example.server.modules.operator.dto.OperatorMapper;
 import org.example.server.modules.operator.dto.OperatorRequestDTO;

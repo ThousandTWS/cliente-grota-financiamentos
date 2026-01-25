@@ -1,6 +1,8 @@
 package org.example.server.modules.user.service;
 
+import org.example.server.core.email.EmailService;
 import org.example.server.modules.auth.dto.*;
+import org.example.server.modules.auth.service.JwtService;
 import org.example.server.modules.user.dto.UserMapper;
 import org.example.server.modules.user.dto.UserRequestDTO;
 import org.example.server.modules.user.dto.UserResponseDTO;

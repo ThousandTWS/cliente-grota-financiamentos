@@ -2,6 +2,7 @@ package org.example.server.modules.document.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.example.server.modules.dealer.model.Dealer;
 import org.example.server.modules.document.model.DocumentType;
 import org.example.server.modules.document.model.ReviewStatus;
 import org.hibernate.annotations.CreationTimestamp;

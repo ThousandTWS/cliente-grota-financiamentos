@@ -1,5 +1,6 @@
 package org.example.server.modules.document.service;
 
+import org.example.server.core.email.EmailService;
 import org.example.server.modules.document.dto.DocumentMapper;
 import org.example.server.modules.document.dto.DocumentResponseDTO;
 import org.example.server.modules.document.dto.DocumentReviewRequestDTO;

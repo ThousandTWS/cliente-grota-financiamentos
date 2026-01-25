@@ -1,6 +1,7 @@
 package org.example.server.modules.operator.model;
 
 import jakarta.persistence.*;
+import org.example.server.modules.dealer.model.Dealer;
 
 @Entity
 @Table(name = "tb_operator_dealer_links", uniqueConstraints = {

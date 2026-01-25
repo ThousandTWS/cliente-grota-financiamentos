@@ -1,6 +1,7 @@
 package org.example.server.modules.vehicle.model;
 
 import jakarta.persistence.*;
+import org.example.server.modules.dealer.model.Dealer;
 import org.example.server.modules.vehicle.model.VehicleCondition;
 import org.example.server.modules.vehicle.model.VehicleStatus;
 import org.example.server.modules.vehicle.model.VehicleTransmission;

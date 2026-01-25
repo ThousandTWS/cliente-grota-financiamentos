@@ -1,6 +1,9 @@
 package org.example.server.modules.seller.model;
 
 import jakarta.persistence.*;
+import org.example.server.modules.dealer.model.Dealer;
+import org.example.server.modules.user.model.User;
+import org.example.server.shared.address.model.Address;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;

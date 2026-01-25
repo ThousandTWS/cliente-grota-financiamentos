@@ -2,6 +2,10 @@ package org.example.server.modules.user.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
+import org.example.server.modules.dealer.model.Dealer;
+import org.example.server.modules.manager.model.Manager;
+import org.example.server.modules.operator.model.Operator;
+import org.example.server.modules.seller.model.Seller;
 import org.example.server.modules.user.model.UserRole;
 import org.example.server.modules.user.model.UserStatus;
 import org.springframework.security.core.GrantedAuthority;
