@@ -37,18 +37,17 @@ public class SecurityConfig {
             HttpSecurity http,
             PasswordEncoder passwordEncoder,
             @Value("${swagger.auth.username:swagger}") String swaggerUsername,
-            @Value("${swagger.auth.password:swagger}") String swaggerPassword
-    ) throws Exception {
+            @Value("${swagger.auth.password:swagger}") String swaggerPassword) throws Exception {
 
         var swaggerUsers = new InMemoryUserDetailsManager(
                 User.withUsername(swaggerUsername)
                         .password(passwordEncoder.encode(swaggerPassword))
                         .roles("SWAGGER")
-                        .build()
-        );
+                        .build());
 
         http
-                .securityMatcher("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**")
+                .securityMatcher("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**",
+                        "/webjars/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.anyRequest().hasRole("SWAGGER"))
@@ -72,23 +71,32 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/grota-financiamentos/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/users").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/dealers").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/admin-register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/admin-register")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/").permitAll()
 
                         // Documentos
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents").hasAnyRole("ADMIN", "LOJISTA")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents/*/url").hasAnyRole("ADMIN", "LOJISTA")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/documents/*/review").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/logo").hasRole("LOJISTA")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents")
+                        .hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents/*/url")
+                        .hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/documents/upload")
+                        .hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/grota-financiamentos/documents/*/review")
+                        .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/logo")
+                        .hasRole("LOJISTA")
                         // Propostas - criação permitida para ADMIN, OPERADOR e VENDEDOR
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/proposals").hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/grota-financiamentos/proposals/*/status").hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/proposals/**").hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA", "GESTOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/proposals")
+                        .hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/grota-financiamentos/proposals/*/status")
+                        .hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/proposals/**")
+                        .hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA", "GESTOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/grota-financiamentos/proposals/*").hasRole("ADMIN")
                         // Cobrança: liberar para os mesmos perfis das demais operações
                         .requestMatchers("/api/v1/grota-financiamentos/billing/**").authenticated()
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -103,5 +111,3 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-
-
