@@ -145,7 +145,7 @@ export default function CobrancasPage() {
         try {
           await deleteBillingContract(id);
           message.success("Contrato removido.");
-          await loadContracts();
+          setContracts((prev) => prev.filter((c) => c.id !== id));
         } catch (err) {
           message.error(
             err instanceof Error
