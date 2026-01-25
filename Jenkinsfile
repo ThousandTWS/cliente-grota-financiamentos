@@ -1,14 +1,13 @@
 pipeline {
     agent any
 
-    /* 
     tools {
-        // Essential: Configure these in 'Manage Jenkins > Global Tool Configuration'
-        // or ensure they are available in the system PATH.
+        // IMPORTANT: You MUST install the 'NodeJS Plugin' and 'JDK' in Jenkins
+        // Manage Jenkins > Plugins > Available Plugins
+        // Manage Jenkins > Global Tool Configuration
         jdk 'jdk17'
         nodejs 'node20'
     }
-    */
 
     environment {
         // Ensure pnpm is available. If using the nodejs plugin, npm is usually available.
