@@ -70,7 +70,7 @@ export function FinancingChart() {
 
   const hasData = useMemo(() => proposals.length > 0, [proposals]);
 
-  const options: AgChartOptions = {
+  const options: any = {
     data: chartData,
     theme: {
       palette: {
@@ -78,7 +78,7 @@ export function FinancingChart() {
         strokes: ["#059669", "#D97706", "#2563EB"],
       },
       overrides: {
-        column: {
+        bar: {
           series: {
             highlightStyle: {
               series: {
@@ -100,7 +100,7 @@ export function FinancingChart() {
         yName: "Aprovados",
         stacked: true,
         tooltip: {
-          renderer: (params) => {
+          renderer: (params: any) => {
             return {
               content: `R$ ${params.yValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
             };
@@ -114,7 +114,7 @@ export function FinancingChart() {
         yName: "Pendentes",
         stacked: true,
         tooltip: {
-          renderer: (params) => {
+          renderer: (params: any) => {
             return {
               content: `R$ ${params.yValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
             };
@@ -132,7 +132,7 @@ export function FinancingChart() {
           size: 6,
         },
         tooltip: {
-          renderer: (params) => {
+          renderer: (params: any) => {
             return {
               content: `R$ ${params.yValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
             };
@@ -153,7 +153,7 @@ export function FinancingChart() {
         type: "number",
         position: "left",
         label: {
-          formatter: (params) => `R$ ${(params.value / 1000).toFixed(0)}k`,
+          formatter: (params: any) => `R$ ${(params.value / 1000).toFixed(0)}k`,
           fontSize: 12,
           color: "#64748b",
         },

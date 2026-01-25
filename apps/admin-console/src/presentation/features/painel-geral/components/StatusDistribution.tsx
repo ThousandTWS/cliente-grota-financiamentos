@@ -72,7 +72,7 @@ export function StatusDistribution() {
 
   const total = useMemo(() => proposals.length, [proposals]);
 
-  const options: AgChartOptions = {
+  const options: any = {
     data: chartData,
     series: [
       {
@@ -86,10 +86,10 @@ export function StatusDistribution() {
         },
         sectorLabel: {
           enabled: true,
-          formatter: (params) => `${params.datum.count}`,
+          formatter: (params: any) => `${params.datum.count}`,
         },
         tooltip: {
-          renderer: (params) => ({
+          renderer: (params: any) => ({
             content: `${params.datum.status}: ${params.datum.count} propostas (${((params.datum.count / total) * 100).toFixed(1)}%)`,
           }),
         },

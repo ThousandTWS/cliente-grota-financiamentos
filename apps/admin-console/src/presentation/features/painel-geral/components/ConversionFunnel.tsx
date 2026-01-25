@@ -94,7 +94,7 @@ export function ConversionFunnel() {
   const approvalRate = total ? Math.round((approved / total) * 100) : 0;
   const finalizationRate = total ? Math.round((finalized / total) * 100) : 0;
 
-  const options: AgChartOptions = {
+  const options: any = {
     data: stages,
     series: [
       {
@@ -107,10 +107,10 @@ export function ConversionFunnel() {
           enabled: true,
           color: "#ffffff",
           placement: "inside",
-          formatter: (params) => `${params.value}`,
+          formatter: (params: any) => `${params.value}`,
         },
         tooltip: {
-          renderer: (params) => ({
+          renderer: (params: any) => ({
             content: `${params.datum.stage}: ${params.datum.count} (${total ? ((params.datum.count / total) * 100).toFixed(1) : 0}%)`,
           }),
         },

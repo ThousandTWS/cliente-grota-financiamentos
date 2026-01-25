@@ -213,7 +213,7 @@ export function QuickStats() {
                 }
               />
               <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between items-center">
-                <Text type="secondary" size="small">Volume Total</Text>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Volume Total</Text>
                 <Text strong>{currency(item.totalValue)}</Text>
               </div>
             </Card>
