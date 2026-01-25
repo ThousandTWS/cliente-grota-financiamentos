@@ -48,8 +48,7 @@ public class ProposalService {
             RealtimeBridgeClient realtimeBridgeClient,
             ObjectMapper objectMapper,
             ProposalEventFactory proposalEventFactory,
-            BillingService billingService
-    ) {
+            BillingService billingService) {
         this.proposalRepository = proposalRepository;
         this.dealerRepository = dealerRepository;
         this.sellerRepository = sellerRepository;
@@ -73,8 +72,7 @@ public class ProposalService {
                 saved.getStatus(),
                 normalizeActor(actor),
                 dto.notes(),
-                payload
-        );
+                payload);
         publishRealtime("PROPOSAL_CREATED", Map.of("proposal", toResponse(saved)));
         publishRealtime("PROPOSAL_EVENT_APPENDED", Map.of("proposalId", saved.getId()));
         return toResponse(saved);
@@ -104,10 +102,11 @@ public class ProposalService {
     /**
      * Atualiza o status da proposta.
      * Permite mudanças livres entre qualquer status sem validações ou bloqueios.
-     * Quando uma proposta muda para PAID, um contrato de cobrança é criado automaticamente (se não existir).
+     * Quando uma proposta muda para PAID, um contrato de cobrança é criado
+     * automaticamente (se não existir).
      * 
-     * @param id ID da proposta
-     * @param dto DTO com o novo status, notas e ator
+     * @param id       ID da proposta
+     * @param dto      DTO com o novo status, notas e ator
      * @param originIp IP de origem da requisição
      * @return Proposta atualizada
      */
@@ -118,34 +117,51 @@ public class ProposalService {
         Proposal proposal = proposalRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("Proposta não encontrada"));
         ProposalStatus previousStatus = proposal.getStatus();
-        
+
         if (dto.status() != null) {
             proposal.setStatus(dto.status());
         }
         if (dto.notes() != null) {
             proposal.setNotes(dto.notes());
         }
-        
-        if (dto.contractNumber() != null && !dto.contractNumber().isBlank() 
-                && dto.status() == ProposalStatus.PAID) {
+
+        if (dto.status() == ProposalStatus.PAID) {
             String currentMetadata = proposal.getMetadata();
             try {
                 Map<String, Object> metadataMap = new HashMap<>();
                 if (currentMetadata != null && !currentMetadata.isBlank()) {
-                    metadataMap = objectMapper.readValue(currentMetadata, 
+                    metadataMap = objectMapper.readValue(currentMetadata,
                             objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
                 }
-                metadataMap.put("contractNumber", dto.contractNumber());
+                if (dto.contractNumber() != null && !dto.contractNumber().isBlank()) {
+                    metadataMap.put("contractNumber", dto.contractNumber());
+                }
+                if (dto.financedValue() != null) {
+                    metadataMap.put("financedValue", dto.financedValue());
+                }
+                if (dto.installmentCount() != null) {
+                    metadataMap.put("installmentsTotal", dto.installmentCount());
+                }
+                if (dto.installmentValue() != null) {
+                    metadataMap.put("installmentValue", dto.installmentValue());
+                }
+                if (dto.paymentDate() != null) {
+                    metadataMap.put("paymentDate", dto.paymentDate().toString());
+                }
+                if (dto.firstDueDate() != null) {
+                    metadataMap.put("firstDueDate", dto.firstDueDate().toString());
+                }
                 proposal.setMetadata(objectMapper.writeValueAsString(metadataMap));
             } catch (JsonProcessingException e) {
             }
         }
-        
+
         Proposal saved = proposalRepository.save(proposal);
         String payload = buildPayload(null, originIp, dto.actor());
         appendEvent(saved, "STATUS_UPDATED", previousStatus, saved.getStatus(), dto.actor(), dto.notes(), payload);
         publishRealtime("PROPOSAL_STATUS_UPDATED", Map.of("proposal", toResponse(saved), "source", dto.actor()));
-        publishRealtime("PROPOSAL_EVENT_APPENDED", Map.of("proposalId", saved.getId(), "statusFrom", previousStatus, "statusTo", saved.getStatus(), "actor", dto.actor()));
+        publishRealtime("PROPOSAL_EVENT_APPENDED", Map.of("proposalId", saved.getId(), "statusFrom", previousStatus,
+                "statusTo", saved.getStatus(), "actor", dto.actor()));
 
         if (previousStatus != ProposalStatus.PAID && saved.getStatus() == ProposalStatus.PAID) {
             billingService.createFromPaidProposal(saved);
@@ -253,8 +269,7 @@ public class ProposalService {
                 proposal.getOtherIncomes(),
                 proposal.getMetadata(),
                 proposal.getCreatedAt(),
-                proposal.getUpdatedAt()
-        );
+                proposal.getUpdatedAt());
     }
 
     private ProposalEventResponseDTO toEventResponse(ProposalEvent event) {
@@ -268,8 +283,7 @@ public class ProposalService {
             ProposalStatus statusTo,
             String actor,
             String note,
-            String payload
-    ) {
+            String payload) {
         ProposalEvent event = proposalEventFactory.create(
                 proposal,
                 type,
@@ -277,8 +291,7 @@ public class ProposalService {
                 statusTo,
                 normalizeActor(actor),
                 note,
-                payload
-        );
+                payload);
         proposalEventRepository.save(event);
     }
 
@@ -315,5 +328,3 @@ public class ProposalService {
         }
     }
 }
-
-
