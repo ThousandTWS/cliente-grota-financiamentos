@@ -5,6 +5,7 @@
   "scripts": {
     "build": "./mvnw clean install -DskipTests",
     "test": "./mvnw test",
-    "lint": "echo 'No lint script for Java'"
+    "lint": "echo 'No lint script for Java'",
+    "run-java": "./mvnw spring-boot:run"
   }
 }

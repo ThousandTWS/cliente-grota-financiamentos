@@ -4,12 +4,12 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*", "pom.xml"],
-      "outputs": [".next/**", "!.next/cache/**", "target/**"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "pom.xml", "src/**"],
+      "outputs": [".next/**", "!.next/cache/**", "target/**", "dist/**"]
     },
     "run-java": {
-      "dependsOn": [],
-      "outputs": []
+      "cache": false,
+      "persistent": true
     },
     "test:e2e": {
       "dependsOn": ["grota-website#build"],
@@ -25,6 +25,7 @@
       "cache": false,
       "persistent": true
     }
+    
   },
   "globalEnv": [
     "NEXT_PUBLIC_URL_API",
