@@ -27,7 +27,7 @@ export async function encryptSession(
       iv,
     },
     key,
-    encoded,
+    encoded as BufferSource,
   );
 
   const encryptedBytes = new Uint8Array(cipherBuffer);

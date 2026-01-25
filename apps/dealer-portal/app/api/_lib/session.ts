@@ -1,3 +1,4 @@
+/* eslint-disable turbo/no-undeclared-env-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -16,7 +17,10 @@ import {
 } from "@/application/server/auth/config";
 
 const API_BASE_URL = getLogistaApiBaseUrl();
-const SESSION_SECRET = getLogistaSessionSecret();
+
+function getSessionSecret(): string {
+  return getLogistaSessionSecret();
+}
 
 export type DealerPortalSession = Awaited<ReturnType<typeof decryptSession>>;
 
@@ -46,7 +50,7 @@ async function setLogistaSessionCookie(
   cookieStore: Awaited<ReturnType<typeof cookies>>,
   session: SessionPayload,
 ) {
-  const encoded = await encryptSession(session, SESSION_SECRET);
+  const encoded = await encryptSession(session, getSessionSecret());
   const sameSite =
     process.env.NODE_ENV === "production" ? "none" : ("lax" as const);
   cookieStore.set({
@@ -100,7 +104,7 @@ export async function refreshLogistaSession(
 export async function getLogistaSession(): Promise<DealerPortalSession | null> {
   const cookieStore = await cookies();
   const encodedSession = cookieStore.get(LOGISTA_SESSION_COOKIE)?.value;
-  const session = await decryptSession(encodedSession, SESSION_SECRET);
+  const session = await decryptSession(encodedSession, getSessionSecret());
 
   if (!session || session.scope !== LOGISTA_SESSION_SCOPE) {
     await clearLogistaSessionCookie(cookieStore);
