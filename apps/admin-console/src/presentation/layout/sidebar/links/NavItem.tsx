@@ -9,7 +9,6 @@ import {
   UserCog,
   FileText,
   Receipt,
-  Bot,
   PlusCircle,
 } from "lucide-react";
 
