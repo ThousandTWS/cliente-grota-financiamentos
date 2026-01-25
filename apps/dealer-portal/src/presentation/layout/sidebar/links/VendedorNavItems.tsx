@@ -41,7 +41,7 @@ export const vendedorNavItems: NavItem[] = [
   {
     name: "Documentos",
     icon: <FileText />,
-    path: "/documentos",
+    path: "/meus-documentos",
   },
 ];
 
