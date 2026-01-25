@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React, { useEffect, useMemo, useState } from "react";
 import {
   REALTIME_CHANNELS,
@@ -10,20 +9,17 @@ import { getAllSellers, Seller } from "@/application/services/Seller/sellerServi
 import { getRealtimeUrl } from "@/application/config/realtime";
 import {
   Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/presentation/layout/components/ui/card";
-import { ScrollArea } from "@/presentation/layout/components/ui/scroll-area";
-import { Button } from "@/presentation/layout/components/ui/button";
-import {
+  Typography,
+  List,
   Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/presentation/layout/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { StatusBadge } from "../../logista/components/status-badge";
-import { Clock3, Filter } from "lucide-react";
+  Tag,
+  Space,
+  Badge,
+  Tooltip
+} from "antd";
+import { ClockCircleOutlined, SyncOutlined, UserOutlined } from "@ant-design/icons";
+
+const { Text } = Typography;
 
 interface SellerActivity {
   id: string;
@@ -38,31 +34,21 @@ interface SellerActivity {
 const typeConfig = {
   approval: {
     label: "Aprovação",
-    badgeClass:
-      "bg-green-500/10 text-green-700 border-green-500/30 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/40",
-    dotClass: "bg-green-500",
+    color: "green",
   },
   submission: {
     label: "Envio",
-    badgeClass:
-      "bg-blue-500/10 text-blue-700 border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/40",
-    dotClass: "bg-blue-500",
+    color: "blue",
   },
   rejection: {
     label: "Rejeição",
-    badgeClass:
-      "bg-red-500/10 text-red-700 border-red-500/30 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/40",
-    dotClass: "bg-red-500",
+    color: "red",
   },
   update: {
     label: "Atualização",
-    badgeClass:
-      "bg-amber-500/10 text-amber-700 border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40",
-    dotClass: "bg-amber-500",
+    color: "orange",
   },
 } as const;
-
-type ActivityStatus = keyof typeof typeConfig;
 
 const SALES_CHANNEL = REALTIME_CHANNELS.NOTIFICATIONS;
 const SALES_IDENTITY = "admin-sellers-activity";
@@ -76,18 +62,18 @@ const formatTimeDistance = (value: string, now = Date.now()) => {
 
   if (diff < minute) {
     const seconds = Math.floor(diff / 1000);
-    return `há ${seconds || 1} segundo${seconds === 1 ? "" : "s"}`;
+    return `há ${seconds || 1}s`;
   }
   if (diff < hour) {
     const minutes = Math.floor(diff / minute);
-    return `há ${minutes} minuto${minutes === 1 ? "" : "s"}`;
+    return `há ${minutes}m`;
   }
   if (diff < day) {
     const hours = Math.floor(diff / hour);
-    return `há ${hours} hora${hours === 1 ? "" : "s"}`;
+    return `há ${hours}h`;
   }
   const days = Math.floor(diff / day);
-  return `há ${days} dia${days === 1 ? "" : "s"}`;
+  return `há ${days}d`;
 };
 
 const deriveInitials = (name: string) => {
@@ -102,7 +88,6 @@ const deriveInitials = (name: string) => {
 export function RecentActivity() {
   const [activities, setActivities] = useState<SellerActivity[]>([]);
   const [sellersIndex, setSellersIndex] = useState<Record<number, Seller>>({});
-  const [statusFilter, setStatusFilter] = useState<keyof typeof typeConfig | "all">("all");
   const [now, setNow] = useState(() => Date.now());
 
   const { messages } = useRealtimeChannel({
@@ -116,7 +101,7 @@ export function RecentActivity() {
   useEffect(() => {
     const intervalId = setInterval(() => {
       setNow(Date.now());
-    }, 1000);
+    }, 10000); // 10s is enough for time display
 
     return () => clearInterval(intervalId);
   }, []);
@@ -142,7 +127,7 @@ export function RecentActivity() {
         }));
         setActivities(bootstrapActivities.slice(0, 10));
       } catch (error) {
-        console.error("[RecentActivity] Falha ao carregar vendedores", error);
+        console.error("[RecentActivity] Failed to load sellers", error);
       }
     };
 
@@ -170,7 +155,7 @@ export function RecentActivity() {
   }, [lastMessage]);
 
   const displayedActivities = useMemo(() => {
-    const withSeller = activities.map((activity) => {
+    return activities.map((activity) => {
       const seller = sellersIndex[activity.sellerId];
       return {
         ...activity,
@@ -180,149 +165,66 @@ export function RecentActivity() {
           : deriveInitials(activity.sellerName),
       };
     });
-
-    if (statusFilter === "all") return withSeller;
-    return withSeller.filter((item) => item.status === statusFilter);
-  }, [activities, sellersIndex, statusFilter]);
-
-  const filterOptions = useMemo(() => ["all"] as const, []);
-  const uniqueSellerCount = useMemo(
-    () => new Set(activities.map((activity) => activity.sellerId)).size,
-    [activities],
-  );
+  }, [activities, sellersIndex]);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="flex flex-col gap-4 border-b border-border/60 bg-gradient-to-br from-muted/60 via-muted/30 to-background/60">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1.5">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              Atividades recentes
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Eventos disparados pelos vendedores em tempo real.
-            </p>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Em tempo real
-              </span>
-              <span className="text-muted-foreground/60">•</span>
-              <span>{activities.length} eventos</span>
-              <span className="text-muted-foreground/60">•</span>
-              <span>{uniqueSellerCount} vendedores</span>
-            </div>
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-            <Clock3 className="h-3.5 w-3.5" />
-            <span>
-              Atualizado{" "}
-              {activities[0]
-                ? formatTimeDistance(activities[0].timestamp, now)
-                : "agora"}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {filterOptions.map((key) => {
-            const isActive = statusFilter === key;
-            const label =
-              key === "all" ? "Todos" : typeConfig[key as ActivityStatus]?.label;
-            const count =
-              key === "all"
-                ? activities.length
-                : activities.filter((a) => a.status === key).length;
-
-            return (
-              <Button
-                key={key}
-                variant={isActive ? "secondary" : "ghost"}
-                size="sm"
-                className="h-9 rounded-full border border-border/60 bg-background/70 px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground"
-                onClick={() =>
-                  setStatusFilter(key === "all" ? "all" : (key as ActivityStatus))
+    <Card 
+      className="shadow-sm border-slate-200 h-full"
+      title={
+        <Space orientation="vertical" size={0}>
+          <Typography.Title level={5} style={{ margin: 0 }}>Atividades Recentes</Typography.Title>
+          <Text type="secondary" style={{ fontSize: '12px' }}>Eventos em tempo real</Text>
+        </Space>
+      }
+      extra={
+        <Tag color="green" icon={<SyncOutlined spin />}>Live</Tag>
+      }
+    >
+      <div style={{ height: '430px', overflowY: 'auto', paddingRight: '8px' }}>
+        <List
+          itemLayout="horizontal"
+          dataSource={displayedActivities}
+          renderItem={(item) => (
+            <List.Item
+              extra={
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  <ClockCircleOutlined style={{ marginRight: '4px' }} />
+                  {formatTimeDistance(item.timestamp, now)}
+                </Text>
+              }
+            >
+              <List.Item.Meta
+                avatar={
+                  <Badge dot color={typeConfig[item.status]?.color || 'orange'} offset={[-2, 32]}>
+                    <Avatar 
+                      icon={<UserOutlined />} 
+                      style={{ backgroundColor: '#134B73' }}
+                    >
+                      {item.sellerInitials}
+                    </Avatar>
+                  </Badge>
                 }
-              >
-                <StatusBadge
-                  className={cn(
-                    "shadow-none px-2 py-0.5 text-[10px]",
-                    key !== "all" ? typeConfig[key as ActivityStatus]?.badgeClass : "",
-                  )}
-                >
-                  {label}
-                </StatusBadge>
-                <span className="ml-2">{count}</span>
-              </Button>
-            );
-          })}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[400px] pr-4">
-          <div className="space-y-4">
-            {displayedActivities.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center text-sm text-muted-foreground">
-                Nenhuma atividade registrada até o momento.
-              </div>
-            ) : (
-              displayedActivities.map((activity) => {
-                const dot =
-                  typeConfig[activity.status]?.dotClass ??
-                  typeConfig.update.dotClass;
-
-                return (
-                  <div
-                    key={activity.id}
-                    className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/70 px-3 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-border hover:bg-card hover:shadow-md"
-                  >
-                    <div className="relative">
-                      <Avatar className="h-10 w-10 ring-2 ring-border/60">
-                        <AvatarImage src={undefined} />
-                        <AvatarFallback className="text-xs font-semibold">
-                          {activity.sellerInitials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span
-                        className={cn(
-                          "absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-background",
-                          dot,
-                        )}
-                      />
-                    </div>
-
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm leading-none">
-                          <span className="font-semibold">{activity.sellerName}</span>{" "}
-                          <span className="text-muted-foreground">{activity.action}</span>
-                        </p>
-                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          {formatTimeDistance(activity.timestamp, now)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <StatusBadge
-                          className={cn(
-                            "inline-flex text-[11px] font-semibold px-2.5 py-1 border shadow-none",
-                            typeConfig[activity.status]?.badgeClass,
-                          )}
-                        >
-                          {typeConfig[activity.status]?.label}
-                        </StatusBadge>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {activity.target}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
+                title={
+                  <Space size={4}>
+                    <Text strong>{item.sellerName}</Text>
+                    <Text type="secondary">{item.action}</Text>
+                  </Space>
+                }
+                description={
+                  <Space orientation="vertical" size={0} style={{ width: '100%' }}>
+                    <Tag color={typeConfig[item.status]?.color || 'orange'} style={{ fontSize: '10px', lineHeight: '16px' }}>
+                      {typeConfig[item.status]?.label || 'Evento'}
+                    </Tag>
+                    <Text type="secondary" ellipsis style={{ fontSize: '11px', maxWidth: '200px' }}>
+                      {item.target}
+                    </Text>
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </div>
     </Card>
   );
 }

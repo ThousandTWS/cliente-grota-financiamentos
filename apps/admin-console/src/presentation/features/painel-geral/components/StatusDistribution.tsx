@@ -1,26 +1,18 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/presentation/layout/components/ui/card";
-import { ApexOptions } from "apexcharts";
+import { AgCharts } from "ag-charts-react";
+import { AgChartOptions } from "ag-charts-community";
+import { Card, Typography, Spin, Empty, Alert, Button, Space } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Loader2, RefreshCw } from "lucide-react";
-import { Button } from "@/presentation/layout/components/ui/button";
 
-const ReactApexChart = dynamic(() => import("react-apexcharts"), {
-  ssr: false,
-});
+const { Title, Text } = Typography;
 
 const STATUS_LABELS: Record<ProposalStatus, string> = {
   SUBMITTED: "Recebidas",
-  PENDING: "Em analise",
+  PENDING: "Em análise",
   APPROVED: "Aprovadas",
   REJECTED: "Rejeitadas",
   PAID: "Pagas",
@@ -48,7 +40,7 @@ export function StatusDistribution() {
       setHasError(false);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error("[StatusDistribution] Falha ao sincronizar", error);
+      console.error("[StatusDistribution] Failed to sync", error);
       setHasError(true);
     } finally {
       setIsLoading(false);
@@ -59,7 +51,7 @@ export function StatusDistribution() {
     sync();
   }, [sync]);
 
-  const distribution = useMemo(() => {
+  const chartData = useMemo(() => {
     const totals: Record<ProposalStatus, number> = {
       SUBMITTED: 0,
       PENDING: 0,
@@ -70,177 +62,87 @@ export function StatusDistribution() {
     proposals.forEach((proposal) => {
       totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;
     });
-    return totals;
+
+    return Object.entries(totals).map(([status, count]) => ({
+      status: STATUS_LABELS[status as ProposalStatus],
+      count,
+      statusKey: status as ProposalStatus,
+    }));
   }, [proposals]);
 
-  const series = useMemo(
-    () => Object.values(distribution),
-    [distribution],
-  );
+  const total = useMemo(() => proposals.length, [proposals]);
 
-  const labels = useMemo(
-    () => Object.keys(distribution).map((key) => STATUS_LABELS[key as ProposalStatus]),
-    [distribution],
-  );
-
-  const colors = useMemo(
-    () => Object.keys(distribution).map((key) => STATUS_COLORS[key as ProposalStatus]),
-    [distribution],
-  );
-
-  const total = useMemo(
-    () => series.reduce((acc, value) => acc + value, 0),
-    [series],
-  );
-
-  const options: ApexOptions = useMemo(
-    () => ({
-      chart: {
+  const options: AgChartOptions = {
+    data: chartData,
+    series: [
+      {
         type: "donut",
-        height: 340,
-        fontFamily: "Inter, sans-serif",
+        angleKey: "count",
+        calloutLabelKey: "status",
+        sectorLabelKey: "count",
+        innerRadiusRatio: 0.7,
+        calloutLabel: {
+          enabled: true,
+        },
+        sectorLabel: {
+          enabled: true,
+          formatter: (params) => `${params.datum.count}`,
+        },
+        tooltip: {
+          renderer: (params) => ({
+            content: `${params.datum.status}: ${params.datum.count} propostas (${((params.datum.count / total) * 100).toFixed(1)}%)`,
+          }),
+        },
+        fills: Object.keys(STATUS_COLORS).map(key => STATUS_COLORS[key as ProposalStatus]),
+        strokes: ["#ffffff"],
+        strokeWidth: 2,
       },
-      labels,
-      colors,
-      dataLabels: {
-        enabled: true,
-        formatter: function (val) {
-          return `${Number(val).toFixed(1)}%`;
-        },
-        style: {
-          fontSize: "12px",
-          fontWeight: 600,
-        },
-        dropShadow: {
-          enabled: false,
-        },
-      },
-      plotOptions: {
-        pie: {
-          donut: {
-            size: "70%",
-            labels: {
-              show: true,
-              name: {
-                show: true,
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "#94a3b8",
-                offsetY: 8,
-              },
-              value: {
-                show: true,
-                fontSize: "26px",
-                fontWeight: 700,
-                color: "#0F172A",
-                formatter: (val) => `${Number(val).toLocaleString("pt-BR")}`,
-              },
-              total: {
-                show: true,
-                label: "Total",
-                fontSize: "12px",
-                fontWeight: 600,
-                color: "#94a3b8",
-                formatter: (w) => {
-                  const sum = w.globals.seriesTotals.reduce(
-                    (a: number, b: number) => a + b,
-                    0,
-                  );
-                  return sum.toLocaleString("pt-BR");
-                },
-              },
-            },
-          },
-        },
-      },
-      legend: {
-        position: "bottom",
-        horizontalAlign: "center",
-        fontFamily: "Inter, sans-serif",
-        fontSize: "12px",
-        markers: {
-          size: 6,
-          shape: "circle" as const,
-        },
-        itemMargin: {
-          horizontal: 14,
-          vertical: 6,
-        },
-      },
-      tooltip: {
-        theme: "light",
-        y: {
-          formatter: (value) => `${value.toLocaleString("pt-BR")} propostas`,
-        },
-      },
-      stroke: {
-        width: 2,
-        colors: ["#0F172A"],
-      },
-    }),
-    [labels, colors],
-  );
+    ],
+    title: {
+      enabled: false,
+    },
+    legend: {
+      position: "bottom",
+    },
+  };
 
   return (
-    <Card className="w-full overflow-hidden border border-border/70 shadow-sm">
-      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-muted/40">
-        <div className="space-y-1">
-          <CardTitle className="text-lg font-semibold">Distribuição por Status</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Propostas agrupadas por etapa do pipeline.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {lastUpdated
-              ? `Atualizado às ${lastUpdated.toLocaleTimeString("pt-BR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}`
-              : "Aguardando sincronização"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-right text-xs text-muted-foreground">
-            Total: <span className="font-semibold text-foreground">{total}</span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={sync}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            Atualizar
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="flex items-center justify-center min-h-[360px]">
+    <Card 
+      className="w-full shadow-sm border-slate-200"
+      title={
+        <Space orientation="vertical" size={0}>
+          <Title level={5} style={{ margin: 0 }}>Distribuição por Status</Title>
+          <Text type="secondary" style={{ fontSize: '12px' }}>Propostas por etapa do pipeline</Text>
+        </Space>
+      }
+      extra={
+        <Button 
+          type="text" 
+          icon={<ReloadOutlined spin={isLoading} />} 
+          onClick={sync}
+          disabled={isLoading}
+        >
+          {lastUpdated && !isLoading ? lastUpdated.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : ""}
+        </Button>
+      }
+    >
+      <div style={{ height: "360px", width: "100%" }}>
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando distribuição...
+          <div className="flex h-full items-center justify-center">
+             <Spin tip="Carregando distribuição...">
+               <div style={{ minHeight: '100px', minWidth: '200px' }} />
+             </Spin>
           </div>
         ) : hasError ? (
-          <div className="text-sm text-muted-foreground">
-            Não foi possível carregar a distribuição no momento.
-          </div>
+          <Alert message="Erro ao carregar dados" type="error" showIcon />
         ) : total === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            Nenhuma proposta encontrada para exibir.
+          <div className="flex h-full items-center justify-center">
+            <Empty description="Nenhuma proposta encontrada" />
           </div>
         ) : (
-          <ReactApexChart
-            options={options}
-            series={series}
-            type="donut"
-            height={320}
-          />
+          <AgCharts options={options} />
         )}
-      </CardContent>
+      </div>
     </Card>
   );
 }

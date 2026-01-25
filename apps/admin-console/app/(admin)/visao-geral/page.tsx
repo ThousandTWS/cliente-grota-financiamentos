@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ConversionFunnel, DealersList, FinancingChart, ManagersList, OperatorsList, QuickStats, RecentActivity, SellersList } from "@/presentation/features/painel-geral";
-import { Skeleton } from "@/presentation/layout/components/ui/skeleton";
-
-const surfaceClasses =
-  "rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md";
+import { 
+  ConversionFunnel, 
+  FinancingChart, 
+  ManagersList, 
+  OperatorsList, 
+  QuickStats, 
+  RecentActivity, 
+  SellersList,
+  StatusDistribution
+} from "@/presentation/features/painel-geral";
+import { Skeleton, Row, Col, ConfigProvider, theme } from "antd";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,92 +26,77 @@ export default function Dashboard() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100"
-      data-oid="1bk:ed."
+    <ConfigProvider
+      theme={{
+        algorithm: theme.defaultAlgorithm,
+        token: {
+          borderRadius: 8,
+          colorPrimary: '#134B73',
+        },
+      }}
     >
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 pb-8 pt-6 sm:px-6 lg:px-8 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">
-        <QuickStats />
+      <div className="min-h-screen bg-[#f8fafc] p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <QuickStats />
 
-        <div className="grid grid-cols-1 gap-6" data-oid="j5wmoo7">
-          <div className={`${surfaceClasses} p-4 sm:p-5`} data-oid="-xo.n7c">
-            <FinancingChart data-oid="p_3v5hj" />
-          </div>
-        </div>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} xl={16}>
+              <FinancingChart />
+            </Col>
+            <Col xs={24} xl={8}>
+              <StatusDistribution />
+            </Col>
+          </Row>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2" data-oid="c0nd6ji">
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <ConversionFunnel data-oid="mt6yc_-" />
-          </div>
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <RecentActivity data-oid="m.cymte" />
-          </div>
-        </div>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={12}>
+              <ConversionFunnel />
+            </Col>
+            <Col xs={24} lg={12}>
+              <RecentActivity />
+            </Col>
+          </Row>
 
-        <div className="grid grid-cols-1 gap-6">
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <ManagersList />
-          </div>
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <OperatorsList />
-          </div>
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <SellersList />
+          <div className="space-y-6">
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <ManagersList />
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <OperatorsList />
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <SellersList />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </ConfigProvider>
   );
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 pb-8 pt-6 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <Skeleton className="h-8 w-60" />
-          <Skeleton className="h-3 w-24" />
+    <div className="min-h-screen bg-[#f8fafc] p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="space-y-4">
+          <Skeleton active paragraph={{ rows: 1 }} title={{ width: '200px' }} />
+          <Row gutter={[16, 16]}>
+            {[1, 2, 3, 4].map(i => (
+              <Col xs={24} sm={12} xl={6} key={i}>
+                <Skeleton.Button active block style={{ height: 120 }} />
+              </Col>
+            ))}
+          </Row>
         </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-36 rounded-2xl" />
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className={`${surfaceClasses} p-4 sm:p-5 lg:col-span-2`}>
-            <Skeleton className="h-72 rounded-2xl" />
-          </div>
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <Skeleton className="h-72 rounded-2xl" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <Skeleton className="h-72 rounded-2xl" />
-          </div>
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <Skeleton className="h-72 rounded-2xl" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <Skeleton className="h-64 rounded-2xl" />
-          </div>
-          <div className={`${surfaceClasses} p-4 sm:p-5`}>
-            <Skeleton className="h-64 rounded-2xl" />
-          </div>
-        </div>
-
-        <div className={`${surfaceClasses} p-4 sm:p-5`}>
-          <Skeleton className="h-72 rounded-2xl" />
-        </div>
-        <div className={`${surfaceClasses} p-4 sm:p-5`}>
-          <Skeleton className="h-72 rounded-2xl" />
-        </div>
+        <Row gutter={[24, 24]}>
+          <Col xs={24} xl={16}>
+            <Skeleton.Button active block style={{ height: 400 }} />
+          </Col>
+          <Col xs={24} xl={8}>
+            <Skeleton.Button active block style={{ height: 400 }} />
+          </Col>
+        </Row>
+        <Skeleton active />
       </div>
     </div>
   );

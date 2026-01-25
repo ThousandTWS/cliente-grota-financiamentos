@@ -61,6 +61,8 @@
     "@tailwindcss/postcss": "^4.0.9",
     "@tanstack/react-table": "^8.21.3",
     "ably": "^2.15.0",
+    "ag-charts-community": "^13.0.1",
+    "ag-charts-react": "^13.0.1",
     "antd": "^6.1.2",
     "apexcharts": "^4.3.0",
     "autoprefixer": "^10.4.20",

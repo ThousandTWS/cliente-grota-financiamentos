@@ -3,7 +3,6 @@ import { useSidebar } from "@/application/core/context/SidebarContext";
 import { UserProvider } from "@/application/core/context/UserContext";
 import AppHeader from "@/presentation/layout/header/AppHeader";
 import AppSidebar from "@/presentation/layout/sidebar/AppSidebar";
-import Backdrop from "@/presentation/layout/sidebar/Backdrop";
 import React from "react";
 import { Layout } from "antd";
 
@@ -20,14 +19,13 @@ export default function AdminLayout({
   const mainContentMargin = isMobileOpen
     ? "ml-0"
     : isExpanded || isHovered
-      ? "lg:ml-[290px]"
-      : "lg:ml-[90px]";
+      ? "lg:ml-[280px]"
+      : "lg:ml-[80px]";
 
   return (
     <UserProvider>
       <Layout style={{ minHeight: "100vh", background: "#f8fafc" }}>
         <AppSidebar />
-        <Backdrop />
         <Layout
           className={`transition-all duration-300 ease-in-out ${mainContentMargin}`}
           style={{ background: "transparent" }}
