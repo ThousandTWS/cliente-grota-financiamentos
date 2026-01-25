@@ -68,7 +68,6 @@ export const navItems: NavItem[] = [
       },
     ],
   },
-
   {
     name: "Gestão de Lojas",
     icon: <Building2 />,
