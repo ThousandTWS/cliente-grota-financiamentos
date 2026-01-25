@@ -17,10 +17,12 @@ import {
   Button,
   Card,
   Col,
+  DatePicker,
   Descriptions,
   Divider,
   Empty,
   Input,
+  InputNumber,
   Modal,
   Row,
   Select,
@@ -264,10 +266,20 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
     open: boolean;
     nextStatus: ProposalStatus | null;
     contractNumber: string;
+    financedValue: string;
+    installmentCount: string;
+    installmentValue: string;
+    paymentDate: string;
+    firstDueDate: string;
   }>({
     open: false,
     nextStatus: null,
     contractNumber: "",
+    financedValue: "",
+    installmentCount: "",
+    installmentValue: "",
+    paymentDate: "",
+    firstDueDate: "",
   });
 
   const metadata = useMemo(() => parseMetadata(proposal?.metadata), [proposal?.metadata]);
@@ -420,7 +432,14 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   }, [isValidId, proposalId]);
 
   const performStatusUpdate = useCallback(
-    async (nextStatus: ProposalStatus, contractNumber?: string) => {
+    async (nextStatus: ProposalStatus, contractData?: {
+      contractNumber?: string;
+      financedValue?: number;
+      installmentCount?: number;
+      installmentValue?: number;
+      paymentDate?: string;
+      firstDueDate?: string;
+    }) => {
       if (!proposal) return;
       setIsUpdatingStatus(true);
       try {
@@ -429,7 +448,12 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
           status: nextStatus,
           notes: note ? note : undefined,
           actor: "admin-console",
-          contractNumber,
+          contractNumber: contractData?.contractNumber,
+          financedValue: contractData?.financedValue,
+          installmentCount: contractData?.installmentCount,
+          installmentValue: contractData?.installmentValue,
+          paymentDate: contractData?.paymentDate,
+          firstDueDate: contractData?.firstDueDate,
         });
         setProposal(updated);
         setNoteDraft(updated.notes ?? "");
@@ -461,6 +485,11 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
           open: true,
           nextStatus: value,
           contractNumber: "",
+          financedValue: proposal.financedValue ? String(proposal.financedValue) : "",
+          installmentCount: proposal.termMonths ? String(proposal.termMonths) : "",
+          installmentValue: "",
+          paymentDate: "",
+          firstDueDate: "",
         });
         return;
       }
@@ -472,13 +501,49 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   const handleContractNumberOk = async () => {
     if (!contractNumberModal.nextStatus) return;
     const contractNumber = contractNumberModal.contractNumber.trim() || undefined;
+    const financedValue = contractNumberModal.financedValue 
+      ? Number(contractNumberModal.financedValue) 
+      : undefined;
+    const installmentCount = contractNumberModal.installmentCount 
+      ? Number(contractNumberModal.installmentCount) 
+      : undefined;
+    const installmentValue = contractNumberModal.installmentValue 
+      ? Number(contractNumberModal.installmentValue) 
+      : undefined;
+    const paymentDate = contractNumberModal.paymentDate || undefined;
+    const firstDueDate = contractNumberModal.firstDueDate || undefined;
     const nextStatus = contractNumberModal.nextStatus;
-    setContractNumberModal({ open: false, nextStatus: null, contractNumber: "" });
-    await performStatusUpdate(nextStatus, contractNumber);
+    setContractNumberModal({
+      open: false,
+      nextStatus: null,
+      contractNumber: "",
+      financedValue: "",
+      installmentCount: "",
+      installmentValue: "",
+      paymentDate: "",
+      firstDueDate: "",
+    });
+    await performStatusUpdate(nextStatus, {
+      contractNumber,
+      financedValue,
+      installmentCount,
+      installmentValue,
+      paymentDate,
+      firstDueDate,
+    });
   };
 
   const handleContractNumberCancel = () => {
-    setContractNumberModal({ open: false, nextStatus: null, contractNumber: "" });
+    setContractNumberModal({
+      open: false,
+      nextStatus: null,
+      contractNumber: "",
+      financedValue: "",
+      installmentCount: "",
+      installmentValue: "",
+      paymentDate: "",
+      firstDueDate: "",
+    });
   };
 
   const handleSaveMessage = async () => {
@@ -762,36 +827,136 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
       </Modal>
 
       <Modal
-        title="Inserir numero do contrato"
+        title="Inserir dados do contrato"
         open={contractNumberModal.open}
         onOk={handleContractNumberOk}
         onCancel={handleContractNumberCancel}
         okText="Confirmar"
         cancelText="Cancelar"
         confirmLoading={isUpdatingStatus}
+        width={600}
       >
         <div className="space-y-4 py-4">
           <p>
-            A proposta sera marcada como paga. Insira o numero do contrato ou deixe em branco
-            para gerar automaticamente.
+            A proposta será marcada como paga. Preencha os dados do contrato abaixo.
           </p>
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Numero do contrato
-            </label>
-            <Input
-              placeholder="Deixe em branco para gerar automaticamente"
-              value={contractNumberModal.contractNumber}
-              onChange={(e) =>
-                setContractNumberModal((prev) => ({
-                  ...prev,
-                  contractNumber: e.target.value,
-                }))
-              }
-              onPressEnter={handleContractNumberOk}
-              autoFocus
-            />
-          </div>
+          
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Número do contrato
+              </label>
+              <Input
+                placeholder="Deixe em branco para gerar automaticamente"
+                value={contractNumberModal.contractNumber}
+                onChange={(e) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    contractNumber: e.target.value,
+                  }))
+                }
+                autoFocus
+              />
+            </Col>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Valor financiado (R$)
+              </label>
+              <InputNumber
+                className="w-full"
+                placeholder="0,00"
+                value={contractNumberModal.financedValue ? Number(contractNumberModal.financedValue) : undefined}
+                onChange={(value) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    financedValue: value ? String(value) : "",
+                  }))
+                }
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                parser={(value) => value?.replace(/\./g, '').replace(',', '.') as unknown as number}
+                min={0}
+                precision={2}
+                decimalSeparator=","
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Quantidade de parcelas
+              </label>
+              <InputNumber
+                className="w-full"
+                placeholder="Ex: 48"
+                value={contractNumberModal.installmentCount ? Number(contractNumberModal.installmentCount) : undefined}
+                onChange={(value) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    installmentCount: value ? String(value) : "",
+                  }))
+                }
+                min={1}
+                max={120}
+              />
+            </Col>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Valor da parcela (R$)
+              </label>
+              <InputNumber
+                className="w-full"
+                placeholder="0,00"
+                value={contractNumberModal.installmentValue ? Number(contractNumberModal.installmentValue) : undefined}
+                onChange={(value) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    installmentValue: value ? String(value) : "",
+                  }))
+                }
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                parser={(value) => value?.replace(/\./g, '').replace(',', '.') as unknown as number}
+                min={0}
+                precision={2}
+                decimalSeparator=","
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Data de pagamento
+              </label>
+              <DatePicker
+                className="w-full"
+                format="DD/MM/YYYY"
+                placeholder="Selecione a data"
+                onChange={(date) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    paymentDate: date ? date.format("YYYY-MM-DD") : "",
+                  }))
+                }
+              />
+            </Col>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Data do primeiro vencimento
+              </label>
+              <DatePicker
+                className="w-full"
+                format="DD/MM/YYYY"
+                placeholder="Selecione a data"
+                onChange={(date) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    firstDueDate: date ? date.format("YYYY-MM-DD") : "",
+                  }))
+                }
+              />
+            </Col>
+          </Row>
         </div>
       </Modal>
     </>

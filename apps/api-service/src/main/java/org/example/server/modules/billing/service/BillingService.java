@@ -48,8 +48,7 @@ public class BillingService {
             BillingOccurrenceRepository occurrenceRepository,
             ProposalRepository proposalRepository,
             DealerRepository dealerRepository,
-            ObjectMapper objectMapper
-    ) {
+            ObjectMapper objectMapper) {
         this.contractRepository = contractRepository;
         this.installmentRepository = installmentRepository;
         this.occurrenceRepository = occurrenceRepository;
@@ -106,23 +105,30 @@ public class BillingService {
         contract.setPaidAt(paidAt);
         contract.setStartDate(startDate);
 
-        BigDecimal financedValue = proposal.getFinancedValue() != null
-                ? proposal.getFinancedValue()
-                : BigDecimal.ZERO;
+        // Priorizar valor do metadata (vem do modal), senão usar valor da proposta
+        BigDecimal metadataFinancedValue = resolveBigDecimal(metadata, "financedValue");
+        BigDecimal financedValue = metadataFinancedValue != null
+                ? metadataFinancedValue
+                : proposal.getFinancedValue() != null
+                        ? proposal.getFinancedValue()
+                        : BigDecimal.ZERO;
+
+        // Priorizar quantidade de parcelas do metadata (vem do modal)
         Integer metadataInstallments = resolveInteger(metadata, "installmentsTotal", "parcelas");
-        Integer installmentsTotal = proposal.getTermMonths() != null && proposal.getTermMonths() > 0
-                ? proposal.getTermMonths()
-                : metadataInstallments != null && metadataInstallments > 0
-                    ? metadataInstallments
-                    : 1;
+        Integer installmentsTotal = metadataInstallments != null && metadataInstallments > 0
+                ? metadataInstallments
+                : proposal.getTermMonths() != null && proposal.getTermMonths() > 0
+                        ? proposal.getTermMonths()
+                        : 1;
+
+        // Priorizar valor da parcela do metadata (vem do modal)
         BigDecimal installmentValue = resolveBigDecimal(metadata, "installmentValue", "parcelaValor");
         if (installmentValue == null) {
             if (installmentsTotal != null && installmentsTotal > 0 && financedValue != null) {
                 installmentValue = financedValue.divide(
                         BigDecimal.valueOf(installmentsTotal),
                         2,
-                        RoundingMode.HALF_UP
-                );
+                        RoundingMode.HALF_UP);
             } else {
                 installmentValue = BigDecimal.ZERO;
             }
@@ -137,7 +143,8 @@ public class BillingService {
         contract.setCustomerBirthDate(proposal.getCustomerBirthDate());
         contract.setCustomerEmail(proposal.getCustomerEmail());
         contract.setCustomerPhone(proposal.getCustomerPhone());
-        contract.setCustomerAddress(buildAddress(proposal.getAddress(), proposal.getAddressNumber(), proposal.getAddressComplement()));
+        contract.setCustomerAddress(
+                buildAddress(proposal.getAddress(), proposal.getAddressNumber(), proposal.getAddressComplement()));
         contract.setCustomerCity(proposal.getCity());
         contract.setCustomerState(proposal.getUf());
 
@@ -160,7 +167,8 @@ public class BillingService {
             firstDueDate = startDate;
         }
 
-        List<BillingInstallment> installments = buildInstallments(contract, installmentValue, installmentsTotal, firstDueDate);
+        List<BillingInstallment> installments = buildInstallments(contract, installmentValue, installmentsTotal,
+                firstDueDate);
         contract.setInstallments(installments);
         BillingContract saved = contractRepository.save(contract);
 
@@ -172,8 +180,7 @@ public class BillingService {
             Optional<String> name,
             Optional<String> document,
             Optional<String> contractNumber,
-            Optional<BillingStatus> status
-    ) {
+            Optional<BillingStatus> status) {
         String nameFilter = normalizeFilter(name.orElse(null));
         String documentFilter = normalizeFilter(document.orElse(null));
         String contractFilter = normalizeFilter(contractNumber.orElse(null));
@@ -186,25 +193,19 @@ public class BillingService {
                 predicates.add(
                         builder.like(
                                 builder.lower(root.get("customerName").as(String.class)),
-                                normalized
-                        )
-                );
+                                normalized));
             }
             if (documentFilter != null) {
                 predicates.add(
                         builder.like(
                                 root.get("customerDocument").as(String.class),
-                                "%" + documentFilter + "%"
-                        )
-                );
+                                "%" + documentFilter + "%"));
             }
             if (contractFilter != null) {
                 predicates.add(
                         builder.like(
                                 root.get("contractNumber").as(String.class),
-                                "%" + contractFilter + "%"
-                        )
-                );
+                                "%" + contractFilter + "%"));
             }
             if (statusFilter != null) {
                 predicates.add(builder.equal(root.get("status"), statusFilter));
@@ -216,8 +217,7 @@ public class BillingService {
 
         List<BillingContract> contracts = contractRepository.findAll(
                 spec,
-                Sort.by(Sort.Direction.DESC, "createdAt")
-        );
+                Sort.by(Sort.Direction.DESC, "createdAt"));
         return contracts.stream().map(this::toSummary).toList();
     }
 
@@ -229,7 +229,6 @@ public class BillingService {
         List<BillingOccurrence> occurrences = occurrenceRepository.findByContractOrderByDateDesc(contract);
         return toDetails(contract, installments, occurrences);
     }
-
 
     @Transactional
     public BillingOccurrenceDTO addOccurrence(String contractNumber, BillingOccurrenceRequestDTO dto) {
@@ -248,15 +247,15 @@ public class BillingService {
     public BillingContractDetailsDTO updateContract(String contractNumber, BillingContractUpdateDTO dto) {
         BillingContract contract = contractRepository.findByContractNumber(contractNumber)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
-        
+
         if (dto.paidAt() != null) {
             contract.setPaidAt(dto.paidAt());
         }
-        
+
         if (dto.startDate() != null) {
             contract.setStartDate(dto.startDate());
         }
-        
+
         syncContractStatus(contract);
         BillingContract saved = contractRepository.save(contract);
         List<BillingInstallment> installments = installmentRepository.findByContractOrderByNumberAsc(saved);
@@ -268,7 +267,7 @@ public class BillingService {
     public BillingContractDetailsDTO updateVehicle(String contractNumber, BillingVehicleUpdateDTO dto) {
         BillingContract contract = contractRepository.findByContractNumber(contractNumber)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
-        
+
         if (dto.plate() != null) {
             contract.setVehiclePlate(dto.plate());
         }
@@ -284,7 +283,7 @@ public class BillingService {
         if (dto.dutPaidDate() != null) {
             contract.setDutPaidDate(dto.dutPaidDate());
         }
-        
+
         BillingContract saved = contractRepository.save(contract);
         List<BillingInstallment> installments = installmentRepository.findByContractOrderByNumberAsc(saved);
         List<BillingOccurrence> occurrences = occurrenceRepository.findByContractOrderByDateDesc(saved);
@@ -295,8 +294,7 @@ public class BillingService {
     public BillingInstallmentDTO updateInstallmentDueDate(
             String contractNumber,
             Integer installmentNumber,
-            BillingInstallmentDueDateUpdateDTO dto
-    ) {
+            BillingInstallmentDueDateUpdateDTO dto) {
         BillingContract contract = contractRepository.findByContractNumber(contractNumber)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
         BillingInstallment installment = installmentRepository.findByContractAndNumber(contract, installmentNumber)
@@ -304,10 +302,10 @@ public class BillingService {
 
         installment.setDueDate(dto.dueDate());
         BillingInstallment saved = installmentRepository.save(installment);
-        
+
         syncContractStatus(contract);
         contractRepository.save(contract);
-        
+
         return toInstallment(saved);
     }
 
@@ -315,8 +313,7 @@ public class BillingService {
     public BillingInstallmentDTO updateInstallment(
             String contractNumber,
             Integer installmentNumber,
-            BillingInstallmentUpdateDTO dto
-    ) {
+            BillingInstallmentUpdateDTO dto) {
         BillingContract contract = contractRepository.findByContractNumber(contractNumber)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
         BillingInstallment installment = installmentRepository.findByContractAndNumber(contract, installmentNumber)
@@ -330,14 +327,14 @@ public class BillingService {
             installment.setPaidAt(null);
         }
         BillingInstallment saved = installmentRepository.save(installment);
-        
+
         contract = contractRepository.findByContractNumber(contractNumber)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
-        
+
         List<BillingInstallment> updatedInstallments = installmentRepository.findByContractOrderByNumberAsc(contract);
         syncContractStatusWithInstallments(contract, updatedInstallments);
         contractRepository.save(contract);
-        
+
         return toInstallment(saved);
     }
 
@@ -371,19 +368,20 @@ public class BillingService {
     }
 
     @Transactional
-    public BillingContractDetailsDTO updateContractNumber(String currentContractNumber, BillingContractNumberUpdateDTO dto) {
+    public BillingContractDetailsDTO updateContractNumber(String currentContractNumber,
+            BillingContractNumberUpdateDTO dto) {
         BillingContract contract = contractRepository.findByContractNumber(currentContractNumber)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
-        
+
         String newContractNumber = dto.contractNumber();
         if (newContractNumber == null || newContractNumber.isBlank()) {
             throw new IllegalArgumentException("Numero do contrato nao pode ser vazio");
         }
-        
+
         if (contractRepository.findByContractNumber(newContractNumber).isPresent()) {
             throw new DataAlreadyExistsException("Numero de contrato ja existe");
         }
-        
+
         contract.setContractNumber(newContractNumber);
         BillingContract saved = contractRepository.save(contract);
         List<BillingInstallment> installments = installmentRepository.findByContractOrderByNumberAsc(saved);
@@ -411,15 +409,15 @@ public class BillingService {
     public BillingContractDetailsDTO updateContractById(Long id, BillingContractUpdateDTO dto) {
         BillingContract contract = contractRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
-        
+
         if (dto.paidAt() != null) {
             contract.setPaidAt(dto.paidAt());
         }
-        
+
         if (dto.startDate() != null) {
             contract.setStartDate(dto.startDate());
         }
-        
+
         syncContractStatus(contract);
         BillingContract saved = contractRepository.save(contract);
         List<BillingInstallment> installments = installmentRepository.findByContractOrderByNumberAsc(saved);
@@ -438,7 +436,7 @@ public class BillingService {
     public BillingContractDetailsDTO updateVehicleById(Long id, BillingVehicleUpdateDTO dto) {
         BillingContract contract = contractRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
-        
+
         if (dto.plate() != null) {
             contract.setVehiclePlate(dto.plate());
         }
@@ -454,7 +452,7 @@ public class BillingService {
         if (dto.dutPaidDate() != null) {
             contract.setDutPaidDate(dto.dutPaidDate());
         }
-        
+
         BillingContract saved = contractRepository.save(contract);
         List<BillingInstallment> installments = installmentRepository.findByContractOrderByNumberAsc(saved);
         List<BillingOccurrence> occurrences = occurrenceRepository.findByContractOrderByDateDesc(saved);
@@ -462,7 +460,8 @@ public class BillingService {
     }
 
     @Transactional
-    public BillingInstallmentDTO updateInstallmentById(Long contractId, Integer installmentNumber, BillingInstallmentUpdateDTO dto) {
+    public BillingInstallmentDTO updateInstallmentById(Long contractId, Integer installmentNumber,
+            BillingInstallmentUpdateDTO dto) {
         BillingContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
         BillingInstallment installment = installmentRepository.findByContractAndNumber(contract, installmentNumber)
@@ -479,16 +478,16 @@ public class BillingService {
         BillingInstallment saved = installmentRepository.save(installment);
         contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
-        
-        List<BillingInstallment> updatedInstallments = 
-                installmentRepository.findByContractOrderByNumberAsc(contract);
+
+        List<BillingInstallment> updatedInstallments = installmentRepository.findByContractOrderByNumberAsc(contract);
         syncContractStatusWithInstallments(contract, updatedInstallments);
-        
+
         return toInstallment(saved);
     }
 
     @Transactional
-    public BillingInstallmentDTO updateInstallmentDueDateById(Long contractId, Integer installmentNumber, BillingInstallmentDueDateUpdateDTO dto) {
+    public BillingInstallmentDTO updateInstallmentDueDateById(Long contractId, Integer installmentNumber,
+            BillingInstallmentDueDateUpdateDTO dto) {
         BillingContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
         BillingInstallment installment = installmentRepository.findByContractAndNumber(contract, installmentNumber)
@@ -503,16 +502,16 @@ public class BillingService {
     public BillingContractDetailsDTO updateContractNumberById(Long id, BillingContractNumberUpdateDTO dto) {
         BillingContract contract = contractRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));
-        
+
         String newContractNumber = dto.contractNumber();
         if (newContractNumber == null || newContractNumber.isBlank()) {
             throw new IllegalArgumentException("Numero do contrato nao pode ser vazio");
         }
-        
+
         if (contractRepository.findByContractNumber(newContractNumber).isPresent()) {
             throw new DataAlreadyExistsException("Numero de contrato ja existe");
         }
-        
+
         contract.setContractNumber(newContractNumber);
         BillingContract saved = contractRepository.save(contract);
         List<BillingInstallment> installments = installmentRepository.findByContractOrderByNumberAsc(saved);
@@ -600,8 +599,7 @@ public class BillingService {
             BillingContract contract,
             BigDecimal installmentValue,
             Integer installmentsTotal,
-            LocalDate firstDueDate
-    ) {
+            LocalDate firstDueDate) {
         int total = installmentsTotal != null && installmentsTotal > 0 ? installmentsTotal : 1;
         List<BillingInstallment> generated = new ArrayList<>();
         for (int i = 0; i < total; i++) {
@@ -626,19 +624,18 @@ public class BillingService {
                 contract.getInstallmentValue(),
                 contract.getInstallmentsTotal(),
                 toCustomer(contract),
-                contract.getCreatedAt()
-        );
+                contract.getCreatedAt());
     }
 
     private BillingContractDetailsDTO toDetails(
             BillingContract contract,
             List<BillingInstallment> installments,
-            List<BillingOccurrence> occurrences
-    ) {
+            List<BillingOccurrence> occurrences) {
         BigDecimal outstandingBalance = calculateOutstandingBalance(contract, installments);
         BigDecimal remainingBalance = calculateRemainingBalance(outstandingBalance, installments);
         List<BillingContractSummaryDTO> otherContracts = contractRepository
-                .findByCustomerDocumentAndContractNumberNot(contract.getCustomerDocument(), contract.getContractNumber())
+                .findByCustomerDocumentAndContractNumberNot(contract.getCustomerDocument(),
+                        contract.getContractNumber())
                 .stream()
                 .map(this::toSummary)
                 .toList();
@@ -663,8 +660,7 @@ public class BillingService {
                 occurrences.stream().map(this::toOccurrence).toList(),
                 otherContracts,
                 contract.getCreatedAt(),
-                contract.getUpdatedAt()
-        );
+                contract.getUpdatedAt());
     }
 
     private BillingCustomerDTO toCustomer(BillingContract contract) {
@@ -676,8 +672,7 @@ public class BillingService {
                 contract.getCustomerPhone(),
                 contract.getCustomerAddress(),
                 contract.getCustomerCity(),
-                contract.getCustomerState()
-        );
+                contract.getCustomerState());
     }
 
     private BillingVehicleDTO toVehicle(BillingContract contract) {
@@ -689,8 +684,7 @@ public class BillingService {
                 contract.getVehicleRenavam(),
                 contract.getDutIssued(),
                 contract.getDutPaid(),
-                contract.getDutPaidDate()
-        );
+                contract.getDutPaidDate());
     }
 
     private BillingProfessionalDataDTO toProfessionalData(BillingContract contract) {
@@ -700,8 +694,7 @@ public class BillingService {
                 contract.getProfessionalAdmissionDate(),
                 contract.getProfessionalIncome(),
                 contract.getProfessionalOtherIncomes(),
-                contract.getProfessionalMaritalStatus()
-        );
+                contract.getProfessionalMaritalStatus());
     }
 
     private BillingDealerDTO toDealer(BillingContract contract) {
@@ -715,8 +708,7 @@ public class BillingService {
                         dealer.getEnterprise(),
                         dealer.getFullNameEnterprise(),
                         dealer.getCnpj(),
-                        dealer.getPhone()
-                ))
+                        dealer.getPhone()))
                 .orElse(null);
     }
 
@@ -727,8 +719,7 @@ public class BillingService {
                 installment.getAmount(),
                 installment.isPaid(),
                 installment.getPaidAt(),
-                calculateDaysLate(installment)
-        );
+                calculateDaysLate(installment));
     }
 
     private BillingOccurrenceDTO toOccurrence(BillingOccurrence occurrence) {
@@ -737,8 +728,7 @@ public class BillingService {
                 occurrence.getDate(),
                 occurrence.getContact(),
                 occurrence.getNote(),
-                occurrence.getCreatedAt()
-        );
+                occurrence.getCreatedAt());
     }
 
     private String normalizeFilter(String value) {
@@ -754,7 +744,8 @@ public class BillingService {
             return Collections.emptyMap();
         }
         try {
-            return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {});
+            return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {
+            });
         } catch (Exception ignored) {
             return Collections.emptyMap();
         }
@@ -765,12 +756,12 @@ public class BillingService {
         if (fromMetadata != null && !fromMetadata.isBlank()) {
             return fromMetadata;
         }
-    
+
         SecureRandom random = new SecureRandom();
         String contractNumber;
         int attempts = 0;
         do {
-            long randomNumber = 1000000000L + (long)(random.nextDouble() * 9000000000L);
+            long randomNumber = 1000000000L + (long) (random.nextDouble() * 9000000000L);
             contractNumber = String.valueOf(randomNumber);
             attempts++;
             if (attempts > 100) {
@@ -778,7 +769,7 @@ public class BillingService {
                 break;
             }
         } while (contractRepository.findByContractNumber(contractNumber).isPresent());
-        
+
         return contractNumber;
     }
 
@@ -865,8 +856,7 @@ public class BillingService {
 
     private BigDecimal calculateOutstandingBalance(
             BillingContract contract,
-            List<BillingInstallment> installments
-    ) {
+            List<BillingInstallment> installments) {
         if (installments != null && !installments.isEmpty()) {
             BigDecimal total = BigDecimal.ZERO;
             for (BillingInstallment installment : installments) {
@@ -887,8 +877,7 @@ public class BillingService {
 
     private BigDecimal calculateRemainingBalance(
             BigDecimal outstandingBalance,
-            List<BillingInstallment> installments
-    ) {
+            List<BillingInstallment> installments) {
         BigDecimal paidTotal = BigDecimal.ZERO;
         if (installments != null && !installments.isEmpty()) {
             for (BillingInstallment installment : installments) {
@@ -917,8 +906,7 @@ public class BillingService {
         List<DateTimeFormatter> formats = List.of(
                 DateTimeFormatter.ISO_LOCAL_DATE,
                 DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-                DateTimeFormatter.ofPattern("dd-MM-yyyy")
-        );
+                DateTimeFormatter.ofPattern("dd-MM-yyyy"));
         for (DateTimeFormatter formatter : formats) {
             try {
                 return LocalDate.parse(value, formatter);
@@ -935,16 +923,15 @@ public class BillingService {
             builder.append(address.trim());
         }
         if (number != null && !number.isBlank()) {
-            if (!builder.isEmpty()) builder.append(", ");
+            if (!builder.isEmpty())
+                builder.append(", ");
             builder.append(number.trim());
         }
         if (complement != null && !complement.isBlank()) {
-            if (!builder.isEmpty()) builder.append(" ");
+            if (!builder.isEmpty())
+                builder.append(" ");
             builder.append(complement.trim());
         }
         return builder.length() == 0 ? null : builder.toString();
     }
 }
-
-
-

@@ -27,7 +27,7 @@ import {
 import { StatusLegend } from "./components/StatusLegend";
 import { QueueFilters } from "./components/QueueFilters";
 import { ProposalsTable } from "./components/ProposalsTable";
-import { Alert, Modal, Input } from "antd";
+import { Alert, Modal, Input, InputNumber, DatePicker, Row, Col } from "antd";
 import { getAllLogistics } from "@/application/services/Logista/logisticService";
 import { getAllSellers } from "@/application/services/Seller/sellerService";
 import { getAllOperators } from "@/application/services/Operator/operatorService";
@@ -104,11 +104,21 @@ export default function EsteiraDePropostasFeature() {
     proposal: Proposal | null;
     nextStatus: ProposalStatus | null;
     contractNumber: string;
+    financedValue: string;
+    installmentCount: string;
+    installmentValue: string;
+    paymentDate: string;
+    firstDueDate: string;
   }>({
     open: false,
     proposal: null,
     nextStatus: null,
     contractNumber: "",
+    financedValue: "",
+    installmentCount: "",
+    installmentValue: "",
+    paymentDate: "",
+    firstDueDate: "",
   });
   const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
   const [dealerIndex, setDealerIndex] = useState<Record<number, { name: string; enterprise?: string }>>({});
@@ -559,6 +569,11 @@ export default function EsteiraDePropostasFeature() {
         proposal,
         nextStatus,
         contractNumber: "",
+        financedValue: proposal.financedValue ? String(proposal.financedValue) : "",
+        installmentCount: proposal.termMonths ? String(proposal.termMonths) : "",
+        installmentValue: "",
+        paymentDate: "",
+        firstDueDate: "",
       });
       return;
     }
@@ -570,7 +585,14 @@ export default function EsteiraDePropostasFeature() {
   const performStatusUpdate = async (
     proposal: Proposal,
     nextStatus: ProposalStatus,
-    contractNumber?: string,
+    contractData?: {
+      contractNumber?: string;
+      financedValue?: number;
+      installmentCount?: number;
+      installmentValue?: number;
+      paymentDate?: string;
+      firstDueDate?: string;
+    },
   ) => {
     setUpdatingId(proposal.id);
     try {
@@ -580,7 +602,12 @@ export default function EsteiraDePropostasFeature() {
         status: nextStatus,
         notes: note,
         actor: "admin-console",
-        contractNumber: contractNumber,
+        contractNumber: contractData?.contractNumber,
+        financedValue: contractData?.financedValue,
+        installmentCount: contractData?.installmentCount,
+        installmentValue: contractData?.installmentValue,
+        paymentDate: contractData?.paymentDate,
+        firstDueDate: contractData?.firstDueDate,
       });
       applyRealtimeSnapshot(updated);
       setNoteDrafts((prev) => ({
@@ -624,15 +651,31 @@ export default function EsteiraDePropostasFeature() {
   const handleContractNumberModalOk = async () => {
     if (!contractNumberModal.proposal || !contractNumberModal.nextStatus) return;
     
-    const contractNumber = contractNumberModal.contractNumber.trim();
-    // Permite deixar em branco para gerar automaticamente
-    const finalContractNumber = contractNumber || undefined;
+    const contractNumber = contractNumberModal.contractNumber.trim() || undefined;
+    const financedValue = contractNumberModal.financedValue 
+      ? Number(contractNumberModal.financedValue) 
+      : undefined;
+    const installmentCount = contractNumberModal.installmentCount 
+      ? Number(contractNumberModal.installmentCount) 
+      : undefined;
+    const installmentValue = contractNumberModal.installmentValue 
+      ? Number(contractNumberModal.installmentValue) 
+      : undefined;
+    const paymentDate = contractNumberModal.paymentDate || undefined;
+    const firstDueDate = contractNumberModal.firstDueDate || undefined;
 
     setContractNumberModal((prev) => ({ ...prev, open: false }));
     await performStatusUpdate(
       contractNumberModal.proposal!,
       contractNumberModal.nextStatus!,
-      finalContractNumber,
+      {
+        contractNumber,
+        financedValue,
+        installmentCount,
+        installmentValue,
+        paymentDate,
+        firstDueDate,
+      },
     );
   };
 
@@ -642,6 +685,11 @@ export default function EsteiraDePropostasFeature() {
       proposal: null,
       nextStatus: null,
       contractNumber: "",
+      financedValue: "",
+      installmentCount: "",
+      installmentValue: "",
+      paymentDate: "",
+      firstDueDate: "",
     });
     setUpdatingId(null);
   };
@@ -767,36 +815,137 @@ export default function EsteiraDePropostasFeature() {
       />
 
       <Modal
-        title="Inserir número do contrato"
+        title="Inserir dados do contrato"
         open={contractNumberModal.open}
         onOk={handleContractNumberModalOk}
         onCancel={handleContractNumberModalCancel}
         okText="Confirmar"
         cancelText="Cancelar"
         confirmLoading={updatingId === contractNumberModal.proposal?.id}
+        width={600}
       >
         <div className="space-y-4 py-4">
           <p>
             A proposta de <strong>{contractNumberModal.proposal?.customerName}</strong> será marcada como paga.
-            Insira o número do contrato ou deixe em branco para gerar automaticamente.
+            Preencha os dados do contrato abaixo.
           </p>
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Número do contrato
-            </label>
-            <Input
-              placeholder="Deixe em branco para gerar automaticamente"
-              value={contractNumberModal.contractNumber}
-              onChange={(e) =>
-                setContractNumberModal((prev) => ({
-                  ...prev,
-                  contractNumber: e.target.value,
-                }))
-              }
-              onPressEnter={handleContractNumberModalOk}
-              autoFocus
-            />
-          </div>
+          
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Número do contrato
+              </label>
+              <Input
+                placeholder="Deixe em branco para gerar automaticamente"
+                value={contractNumberModal.contractNumber}
+                onChange={(e) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    contractNumber: e.target.value,
+                  }))
+                }
+                autoFocus
+              />
+            </Col>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Valor financiado (R$)
+              </label>
+              <InputNumber
+                className="w-full"
+                placeholder="0,00"
+                value={contractNumberModal.financedValue ? Number(contractNumberModal.financedValue) : undefined}
+                onChange={(value) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    financedValue: value ? String(value) : "",
+                  }))
+                }
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                parser={(value) => value?.replace(/\./g, '').replace(',', '.') as unknown as number}
+                min={0}
+                precision={2}
+                decimalSeparator=","
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Quantidade de parcelas
+              </label>
+              <InputNumber
+                className="w-full"
+                placeholder="Ex: 48"
+                value={contractNumberModal.installmentCount ? Number(contractNumberModal.installmentCount) : undefined}
+                onChange={(value) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    installmentCount: value ? String(value) : "",
+                  }))
+                }
+                min={1}
+                max={120}
+              />
+            </Col>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Valor da parcela (R$)
+              </label>
+              <InputNumber
+                className="w-full"
+                placeholder="0,00"
+                value={contractNumberModal.installmentValue ? Number(contractNumberModal.installmentValue) : undefined}
+                onChange={(value) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    installmentValue: value ? String(value) : "",
+                  }))
+                }
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                parser={(value) => value?.replace(/\./g, '').replace(',', '.') as unknown as number}
+                min={0}
+                precision={2}
+                decimalSeparator=","
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Data de pagamento
+              </label>
+              <DatePicker
+                className="w-full"
+                format="DD/MM/YYYY"
+                placeholder="Selecione a data"
+                onChange={(date) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    paymentDate: date ? date.format("YYYY-MM-DD") : "",
+                  }))
+                }
+              />
+            </Col>
+            <Col xs={24} sm={12}>
+              <label className="block text-sm font-medium mb-2">
+                Data do primeiro vencimento
+              </label>
+              <DatePicker
+                className="w-full"
+                format="DD/MM/YYYY"
+                placeholder="Selecione a data"
+                onChange={(date) =>
+                  setContractNumberModal((prev) => ({
+                    ...prev,
+                    firstDueDate: date ? date.format("YYYY-MM-DD") : "",
+                  }))
+                }
+              />
+            </Col>
+          </Row>
         </div>
       </Modal>
     </div>
