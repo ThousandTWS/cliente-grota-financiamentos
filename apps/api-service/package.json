@@ -1,0 +1,10 @@
+{
+  "name": "grota-api-service",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "./mvnw clean install -DskipTests",
+    "test": "./mvnw test",
+    "lint": "echo 'No lint script for Java'"
+  }
+}

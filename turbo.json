@@ -4,8 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "pom.xml"],
+      "outputs": [".next/**", "!.next/cache/**", "target/**"]
     },
     "run-java": {
       "dependsOn": [],
