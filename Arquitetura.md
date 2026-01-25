@@ -2,10 +2,6 @@ Este repositório é um **starter Turborepo** adaptado para o projeto **Grota Fi
 
 > Estrutura pensada para desenvolvimento rápido, deploy independente de cada app e compartilhamento de componentes e tipos.
 
----
-
-## O que tem aqui
-
 ### Aplicações e pacotes
 
 - `public-site` — site institucional e páginas públicas (Next.js)
