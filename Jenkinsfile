@@ -1,13 +1,14 @@
 pipeline {
     agent any
 
+    /* 
     tools {
-        // These names should match the tool names configured in your Jenkins Global Tool Configuration
-        // Example: jdk 'jdk17', nodejs 'node20'
-        // If tools are not configured, you can remove this block and ensure they are in the PATH.
+        // Essential: Configure these in 'Manage Jenkins > Global Tool Configuration'
+        // or ensure they are available in the system PATH.
         jdk 'jdk17'
         nodejs 'node20'
     }
+    */
 
     environment {
         // Ensure pnpm is available. If using the nodejs plugin, npm is usually available.
