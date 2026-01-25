@@ -35,7 +35,7 @@ public class DocumentService {
     private final DocumentMapper mapper;
 
     private static final long MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
-    private static final String[] ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"};
+    private static final String[] ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "application/pdf"};
 
     public DocumentService(CloudinaryDocumentService cloudinaryDocumentService, DocumentRepository documentRepository, DealerRepository dealerRepository, EmailService emailService, DocumentFactory documentFactory, DocumentMapper mapper) {
         this.cloudinaryDocumentService = cloudinaryDocumentService;
@@ -162,7 +162,7 @@ public class DocumentService {
         }
 
         if (!ok) {
-            throw new DocumentUploadException("Tipo de arquivo não permitido. Use JPEG ou PNG.");
+            throw new DocumentUploadException("Tipo de arquivo não permitido. Use JPEG, PNG ou PDF.");
         }
     }
 }

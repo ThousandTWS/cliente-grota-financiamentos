@@ -1,7 +1,7 @@
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Button, Card, Input, Modal, Select, Skeleton, Space, Typography } from "antd";
+import { Button, Card, Input, Modal, Select, Skeleton, Typography } from "antd";
 import { StatusBadge } from "../../logista/components/status-badge";
-import { Clock3, Eye, RefreshCw, StickyNote, Trash2 } from "lucide-react";
+import { Clock3, Eye, StickyNote, Trash2, BellRing, CheckCircle2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTime } from "../utils/date";
@@ -16,6 +16,8 @@ type ProposalsTableProps = {
   noteDrafts: Record<number, string>;
   savingNoteId?: number | null;
   recentIds?: Record<number, boolean>;
+  unconfirmedIds?: Record<number, boolean>;
+  onConfirmArrival?: (proposalId: number) => void;
   onStatusChange: (proposal: Proposal, status: ProposalStatus) => void;
   onDelete: (proposal: Proposal) => Promise<void> | void;
   onNoteChange: (proposalId: number, value: string) => void;
@@ -93,6 +95,8 @@ export function ProposalsTable({
   dealersById = {},
   sellersById = {},
   operatorsByDealerId = {},
+  unconfirmedIds = {},
+  onConfirmArrival,
 }: ProposalsTableProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -190,7 +194,7 @@ export function ProposalsTable({
       {cards.map((proposal) => (
         <Card
           key={proposal.id}
-          className={`bg-gradient-to-br from-white via-slate-50 to-white shadow-sm ${recentIds[proposal.id] ? "proposal-flash ring-2 ring-amber-300/70 border border-amber-200/80" : ""}`}
+          className={`bg-gradient-to-br from-white via-slate-50 to-white shadow-sm transition-all duration-300 ${unconfirmedIds[proposal.id] ? "proposal-flash ring-2 ring-amber-400 border-amber-300" : recentIds[proposal.id] ? "ring-2 ring-sky-300/50 border-sky-200" : ""}`}
         >
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
@@ -200,6 +204,12 @@ export function ProposalsTable({
               <p className="text-lg font-semibold text-[#134B73]">{proposal.customerName}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {unconfirmedIds[proposal.id] && (
+                <div className="flex items-center gap-1.5 animate-bounce rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white shadow-lg">
+                  <BellRing className="size-3.5" />
+                  NOVA FICHA
+                </div>
+              )}
               <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
                 <Clock3 className="size-4" />
                 {formatDateTime(proposal.createdAt)}
@@ -242,6 +252,16 @@ export function ProposalsTable({
             </div>
 
             <div className="space-y-3">
+              {unconfirmedIds[proposal.id] && (
+                <Button
+                  type="primary"
+                  className="w-full bg-amber-600 hover:bg-amber-700 border-none shadow-md"
+                  icon={<CheckCircle2 className="size-4" />}
+                  onClick={() => onConfirmArrival?.(proposal.id)}
+                >
+                  Confirmar Chegada
+                </Button>
+              )}
               <Select
                 value={proposal.status}
                 onChange={(value) => onStatusChange(proposal, value as ProposalStatus)}
@@ -331,22 +351,19 @@ export function ProposalsTable({
       </Modal>
       <style jsx global>{`
         @keyframes proposal-blink {
-          0%,
-          100% {
-            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.45),
-              0 12px 28px -10px rgba(17, 24, 39, 0.18);
-            filter: brightness(1);
+          0%, 100% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: scale(1);
           }
           50% {
-            box-shadow: 0 0 0 14px rgba(251, 191, 36, 0.12),
-              0 14px 30px -10px rgba(251, 191, 36, 0.45);
-            filter: brightness(1.04);
+            box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.1), 0 10px 15px -3px rgba(245, 158, 11, 0.4);
+            transform: scale(1.002);
           }
         }
         .proposal-flash {
-          animation: proposal-blink 1s ease-in-out infinite;
-          border-color: rgba(251, 191, 36, 0.6) !important;
-          will-change: box-shadow, filter;
+          animation: proposal-blink 1.5s ease-in-out infinite;
+          background-color: #fffbeb !important;
+          border-color: #f59e0b !important;
         }
       `}</style>
     </div>

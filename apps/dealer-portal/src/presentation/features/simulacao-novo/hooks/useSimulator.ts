@@ -42,6 +42,7 @@ export type SimulatorAddress = {
 export type SimulatorProfessional = {
   enterprise: string;
   enterpriseFunction: string;
+  occupationNature: string;
   admissionDate: string;
   income: number;
   otherIncomes: number;
@@ -127,6 +128,7 @@ const defaultFormData: SimulatorFormData = {
   professional: {
     enterprise: "",
     enterpriseFunction: "",
+    occupationNature: "",
     admissionDate: "",
     income: 0,
     otherIncomes: 0,

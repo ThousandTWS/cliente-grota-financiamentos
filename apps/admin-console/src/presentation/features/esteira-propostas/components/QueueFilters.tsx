@@ -1,6 +1,6 @@
 import { ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Button, Input, Select, Space, Typography } from "antd";
-import { Download, Filter, Plus, RefreshCw, Search } from "lucide-react";
+import { Button, Input, Select, Typography } from "antd";
+import { Download, Filter, Plus, RefreshCw, Search, Volume2 } from "lucide-react";
 
 const { Text } = Typography;
 
@@ -19,6 +19,7 @@ type QueueFiltersProps = {
   onRefresh: () => void;
   onCreate?: () => void;
   onExport?: () => void;
+  onTestSound?: () => void;
   isRefreshing?: boolean;
 };
 
@@ -31,6 +32,7 @@ export function QueueFilters({
   onRefresh,
   onCreate,
   onExport,
+  onTestSound,
   isRefreshing,
 }: QueueFiltersProps) {
   const handleReset = () => {
@@ -126,6 +128,16 @@ export function QueueFilters({
             >
               Exportar CSV
             </Button>
+          ) : null}
+          {onTestSound ? (
+             <Button
+               type="text"
+               icon={<Volume2 className="size-4" />}
+               onClick={onTestSound}
+               title="Testar som de notificação"
+             >
+               Testar Som
+             </Button>
           ) : null}
           {onCreate ? (
             <Button type="primary" icon={<Plus className="size-4" />} onClick={onCreate}>

@@ -23,7 +23,7 @@ const AppSidebar = () => {
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group text-white hover:text-[#E0F2FF] !bg-transparent hover:!bg-white/10 active:!bg-white/15 ${openSubmenu?.type === menuType && openSubmenu?.index === index
+              className={`menu-item group !text-white hover:text-[#E0F2FF] !bg-transparent hover:!bg-white/10 active:!bg-white/15 ${openSubmenu?.type === menuType && openSubmenu?.index === index
                 ? "menu-item-active"
                 : "menu-item-inactive"
                 } cursor-pointer ${!isExpanded && !isHovered
@@ -32,7 +32,7 @@ const AppSidebar = () => {
                 }`}
             >
               <span
-                className={`text-white group-hover:text-[#E0F2FF] ${openSubmenu?.type === menuType && openSubmenu?.index === index
+                  className={`!text-white group-hover:text-[#E0F2FF] ${openSubmenu?.type === menuType && openSubmenu?.index === index
                   ? "menu-item-icon-active"
                   : "menu-item-icon-inactive"
                   }`}
@@ -56,11 +56,11 @@ const AppSidebar = () => {
             nav.path && (
               <Link
                 href={nav.path}
-                className={`menu-item group text-white hover:text-[#E0F2FF] !bg-transparent hover:!bg-white/10 active:!bg-white/15 ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                className={`menu-item group !text-white hover:text-[#E0F2FF] !bg-transparent hover:!bg-white/10 active:!bg-white/15 ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                   }`}
               >
                 <span
-                  className={`text-white group-hover:text-[#E0F2FF] ${isActive(nav.path)
+                  className={`!text-white group-hover:text-[#E0F2FF] ${isActive(nav.path)
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
                     }`}
@@ -91,7 +91,7 @@ const AppSidebar = () => {
                   <li key={subItem.name}>
                     <Link
                       href={subItem.path}
-                      className={`menu-dropdown-item text-white hover:text-[#E0F2FF] !bg-transparent hover:!bg-white/10 active:!bg-white/15 ${isActive(subItem.path)
+                      className={`menu-dropdown-item !text-white hover:text-[#E0F2FF] !bg-transparent hover:!bg-white/10 active:!bg-white/15 ${isActive(subItem.path)
                         ? "menu-dropdown-item-active"
                         : "menu-dropdown-item-inactive"
                         }`}

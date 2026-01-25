@@ -126,6 +126,7 @@ export default function EsteiraDePropostasFeature() {
   // Índice de operadores por dealerId - permite encontrar o operador responsável pela loja
   const [operatorByDealerIndex, setOperatorByDealerIndex] = useState<Record<number, string>>({});
   const [recentIds, setRecentIds] = useState<Record<number, boolean>>({});
+  const [unconfirmedIds, setUnconfirmedIds] = useState<Record<number, boolean>>({});
   const recentTimeouts = useRef<Record<number, number>>({});
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -135,14 +136,14 @@ export default function EsteiraDePropostasFeature() {
     url: getRealtimeUrl(),
   });
 
-  const latestRealtimeMessage =
-    messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastProcessedIndexRef = useRef(0);
 
   const ensureAudioContext = useCallback(async () => {
     if (audioContextRef.current) {
       if (audioContextRef.current.state === "suspended") {
         try {
           await audioContextRef.current.resume();
+          console.log("[Admin Esteira] AudioContext retomado");
         } catch (error) {
           console.warn("[Admin Esteira] Nao foi possivel retomar audio", error);
         }
@@ -161,6 +162,7 @@ export default function EsteiraDePropostasFeature() {
     try {
       const context = new AudioContextCtor();
       audioContextRef.current = context;
+      console.log("[Admin Esteira] AudioContext criado:", context.state);
       if (context.state === "suspended") {
         await context.resume();
       }
@@ -179,13 +181,14 @@ export default function EsteiraDePropostasFeature() {
         const oscillator = context.createOscillator();
         const gain = context.createGain();
 
-        oscillator.type = "triangle";
-        oscillator.frequency.setValueAtTime(1040, now);
-        oscillator.frequency.exponentialRampToValueAtTime(780, now + 0.2);
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(880, now);
+        oscillator.frequency.exponentialRampToValueAtTime(1100, now + 0.1);
+        oscillator.frequency.exponentialRampToValueAtTime(880, now + 0.2);
 
         gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.7);
+        gain.gain.exponentialRampToValueAtTime(0.15, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.6);
 
         oscillator.connect(gain);
         gain.connect(context.destination);
@@ -252,6 +255,7 @@ export default function EsteiraDePropostasFeature() {
 
   const markRecent = useCallback((proposalId: number) => {
     setRecentIds((prev) => ({ ...prev, [proposalId]: true }));
+    setUnconfirmedIds((prev) => ({ ...prev, [proposalId]: true }));
     playNotificationSound();
     const existing = recentTimeouts.current[proposalId];
     if (existing) {
@@ -266,6 +270,14 @@ export default function EsteiraDePropostasFeature() {
       delete recentTimeouts.current[proposalId];
     }, 8000);
   }, [playNotificationSound]);
+
+  const handleConfirmArrival = useCallback((proposalId: number) => {
+    setUnconfirmedIds((prev) => {
+      const next = { ...prev };
+      delete next[proposalId];
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     loadProposals();
@@ -370,42 +382,50 @@ export default function EsteiraDePropostasFeature() {
   }, []);
 
   useEffect(() => {
-    if (!latestRealtimeMessage) return;
-    const parsed = parseBridgeEvent(latestRealtimeMessage);
-    if (!parsed) return;
+    if (messages.length <= lastProcessedIndexRef.current) return;
 
-    const payload = (parsed.payload ?? {}) as {
-      proposal?: Proposal;
-      source?: string;
-    };
+    const newMessages = messages.slice(lastProcessedIndexRef.current);
+    lastProcessedIndexRef.current = messages.length;
 
-    if (
-      parsed.event === REALTIME_EVENT_TYPES.PROPOSAL_CREATED &&
-      payload.proposal
-    ) {
-      applyRealtimeSnapshot(payload.proposal);
-      markRecent(payload.proposal.id);
-      toast({
-        title: "Nova ficha do lojista",
-        description: `${payload.proposal.customerName} aguardando analise.`,
-      });
-      return;
-    }
+    newMessages.forEach((msg) => {
+      const parsed = parseBridgeEvent(msg);
+      console.log("[Admin Esteira] Processando evento:", parsed?.event, parsed);
+      if (!parsed) return;
 
-    if (
-      parsed.event === REALTIME_EVENT_TYPES.PROPOSAL_STATUS_UPDATED &&
-      payload.proposal &&
-      payload.source !== ADMIN_PROPOSALS_IDENTITY
-    ) {
-      applyRealtimeSnapshot(payload.proposal);
-      return;
-    }
+      const payload = (parsed.payload ?? {}) as {
+        proposal?: Proposal;
+        source?: string;
+      };
 
-    if (parsed.event === REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST) {
-      loadProposals({ silent: true });
-    }
+      if (
+        parsed.event === REALTIME_EVENT_TYPES.PROPOSAL_CREATED &&
+        payload.proposal
+      ) {
+        console.log("[Admin Esteira] Nova proposta recebida via realtime:", payload.proposal.id);
+        applyRealtimeSnapshot(payload.proposal);
+        markRecent(payload.proposal.id);
+        toast({
+          title: "Nova ficha do lojista",
+          description: `${payload.proposal.customerName} aguardando analise.`,
+        });
+        return;
+      }
+
+      if (
+        parsed.event === REALTIME_EVENT_TYPES.PROPOSAL_STATUS_UPDATED &&
+        payload.proposal &&
+        payload.source !== ADMIN_PROPOSALS_IDENTITY
+      ) {
+        applyRealtimeSnapshot(payload.proposal);
+        return;
+      }
+
+      if (parsed.event === REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST) {
+        loadProposals({ silent: true });
+      }
+    });
   }, [
-    latestRealtimeMessage,
+    messages,
     applyRealtimeSnapshot,
     markRecent,
     loadProposals,
@@ -786,6 +806,7 @@ export default function EsteiraDePropostasFeature() {
         onCreate={handleCreate}
         onExport={handleExport}
         isRefreshing={isRefreshing}
+        onTestSound={playNotificationSound}
       />
       <div className="mb-5">
       <Alert
@@ -812,6 +833,8 @@ export default function EsteiraDePropostasFeature() {
         sellersById={sellerIndex}
         operatorsByDealerId={operatorByDealerIndex}
         recentIds={recentIds}
+        unconfirmedIds={unconfirmedIds}
+        onConfirmArrival={handleConfirmArrival}
       />
 
       <Modal

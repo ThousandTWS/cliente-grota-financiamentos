@@ -1,184 +1,152 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
-  BadgeCheck,
-  Building2,
-  Check,
-  Loader2,
-  Mail,
-  ShieldCheck,
-  UserCircle2,
-  UserCog,
-} from "lucide-react";
-import { toast } from "sonner";
-import { Badge } from "@/presentation/layout/components/ui/badge";
-import { Button } from "@/presentation/layout/components/ui/button";
-import {
+  Form,
+  Input,
+  Button,
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/presentation/layout/components/ui/card";
-import { Input } from "@/presentation/layout/components/ui/input";
-import { Label } from "@/presentation/layout/components/ui/label";
-import { Separator } from "@/presentation/layout/components/ui/separator";
-import { Skeleton } from "@/presentation/layout/components/ui/skeleton";
+  Row,
+  Col,
+  Typography,
+  Avatar,
+  Tag,
+  Divider,
+  Skeleton,
+  message,
+  Space,
+  AutoComplete,
+} from "antd";
+import {
+  UserOutlined,
+  LockOutlined,
+  MailOutlined,
+  SolutionOutlined,
+  SafetyCertificateOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined,
+  IdcardOutlined,
+} from "@ant-design/icons";
+
+const COMMON_ROLES = [
+  { value: "Administrador" },
+  { value: "Gerente de Vendas" },
+  { value: "Operador de Financiamento" },
+  { value: "Analista de Crédito" },
+  { value: "Consultor de Vendas" },
+  { value: "Diretor Operacional" },
+  { value: "Supervisor" },
+  { value: "Sócio Proprietário" },
+];
+
+const OCCUPATION_NATURES = [
+  { value: "Assalariado Empresa Privada" },
+  { value: "Assalariado Órgão Público" },
+  { value: "Autônomo com Comprovação de Renda" },
+  { value: "Autônomo sem Comprovação de Renda" },
+  { value: "Profissional Liberal" },
+  { value: "Empresário / Microempresário" },
+  { value: "Aposentado / Pensionista" },
+  { value: "Militar" },
+  { value: "Do Lar" },
+  { value: "Estudante" },
+];
 
 type AdminProfile = {
   fullName: string;
   email: string;
   status?: string;
   role?: string;
+  nature?: string;
   createdAt?: string;
-};
-
-const defaultProfile: AdminProfile = {
-  fullName: "",
-  email: "",
 };
 
 export default function ConfiguracoesAdminPage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [profile, setProfile] = useState<AdminProfile | null>(null);
+  
+  const [profileForm] = Form.useForm();
+  const [passwordForm] = Form.useForm();
 
-  const [profile, setProfile] = useState<AdminProfile>(defaultProfile);
-  const [passwordForm, setPasswordForm] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
+  const loadProfile = useCallback(async () => {
+    try {
+      const res = await fetch("/api/users/me", { cache: "no-store" });
+      const data = await res.json();
 
-  const statusTone = useMemo(() => {
-    const status = (profile.status ?? "").toUpperCase();
-    if (status === "ATIVO" || status === "ACTIVE") {
-      return "bg-[#0f3c5a] text-white border border-white/20 shadow-sm";
+      if (!res.ok) {
+        throw new Error(data?.error || "Falha ao carregar perfil.");
+      }
+
+      const profileData = {
+        fullName: data.fullName ?? "",
+        email: data.email ?? "",
+        status: data.status ?? "",
+        role: data.role ?? "",
+        nature: data.nature ?? "",
+        createdAt: data.createdAt ?? "",
+      };
+      setProfile(profileData);
+      profileForm.setFieldsValue(profileData);
+    } catch (error) {
+      console.error("[admin][config] loadProfile", error);
+      message.error(error instanceof Error ? error.message : "Erro ao carregar perfil.");
+    } finally {
+      setLoadingProfile(false);
     }
-    if (status === "PENDENTE") {
-      return "bg-amber-500 text-white border border-amber-200/80 shadow-sm";
-    }
-    return "bg-slate-600 text-white border border-slate-300/70 shadow-sm";
-  }, [profile.status]);
+  }, [profileForm]);
 
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const res = await fetch("/api/users/me", { cache: "no-store" });
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data?.error || "Falha ao carregar perfil.");
-        }
-
-        setProfile({
-          fullName: data.fullName ?? "",
-          email: data.email ?? "",
-          status: data.status ?? "",
-          role: data.role ?? "",
-          createdAt: data.createdAt ?? "",
-        });
-      } catch (error) {
-        console.error("[admin][config] loadProfile", error);
-        toast.error(
-          error instanceof Error ? error.message : "Erro ao carregar perfil.",
-        );
-      } finally {
-        setLoadingProfile(false);
-      }
-    };
-
     loadProfile();
-  }, []);
+  }, [loadProfile]);
 
-  const validateProfile = () => {
-    if (!profile.fullName.trim()) {
-      toast.error("Informe o nome completo.");
-      return false;
-    }
-    if (!profile.email.trim()) {
-      toast.error("Informe um e-mail válido.");
-      return false;
-    }
-    return true;
-  };
-
-  const handleSaveProfile = async () => {
-    if (!validateProfile()) return;
+  const handleSaveProfile = async (values: any) => {
     setSavingProfile(true);
     try {
       const res = await fetch("/api/users/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: profile.fullName,
-          email: profile.email,
-        }),
+        body: JSON.stringify(values),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.error || "Não foi possível salvar o perfil.");
       }
-      toast.success("Perfil atualizado com sucesso!");
+      message.success("Perfil atualizado com sucesso!");
+      loadProfile();
     } catch (error) {
       console.error("[admin][config] saveProfile", error);
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao salvar perfil.",
-      );
+      message.error(error instanceof Error ? error.message : "Erro ao salvar perfil.");
     } finally {
       setSavingProfile(false);
     }
   };
 
-  const handlePasswordChange = async () => {
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error("As senhas não coincidem.");
-      return;
-    }
-    if (passwordForm.newPassword.length < 6) {
-      toast.error("A nova senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
+  const handlePasswordChange = async (values: any) => {
     setChangingPassword(true);
     try {
       const res = await fetch("/api/auth/change-password", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          oldPassword: passwordForm.oldPassword,
-          newPassword: passwordForm.newPassword,
+          oldPassword: values.oldPassword,
+          newPassword: values.newPassword,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.error || "Não foi possível alterar a senha.");
       }
-      toast.success("Senha alterada com sucesso!");
-      setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      message.success("Senha alterada com sucesso!");
+      passwordForm.resetFields();
     } catch (error) {
       console.error("[admin][config] changePassword", error);
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao alterar senha.",
-      );
+      message.error(error instanceof Error ? error.message : "Erro ao alterar senha.");
     } finally {
       setChangingPassword(false);
     }
   };
-
-  const renderProfileSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {Array.from({ length: 6 }).map((_, idx) => (
-        <div key={idx} className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      ))}
-      <div className="md:col-span-2">
-        <Skeleton className="h-10 w-40" />
-      </div>
-    </div>
-  );
 
   const formatDate = (value?: string) => {
     if (!value) return "--";
@@ -187,248 +155,304 @@ export default function ConfiguracoesAdminPage() {
     return date.toLocaleDateString("pt-BR");
   };
 
+  const getStatusTag = (status?: string) => {
+    const s = (status ?? "").toUpperCase();
+    if (s === "ATIVO" || s === "ACTIVE") return <Tag color="success">Ativo</Tag>;
+    if (s === "PENDENTE") return <Tag color="warning">Pendente</Tag>;
+    return <Tag color="default">{status || "Não informado"}</Tag>;
+  };
+
   return (
-    <div className="space-y-8">
-      <div className="bg-gradient-to-r from-[#134B73] via-[#0f3c5a] to-[#0a2c45] text-white shadow-theme-lg border border-white/10 p-6 md:p-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-white/15 border border-white/30 flex items-center justify-center overflow-hidden shadow-theme-lg">
-              <UserCircle2 className="h-10 w-10 text-white" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.35em] text-white/70">
-                Painel Admin Grota
-              </p>
-              <h1 className="text-3xl md:text-4xl font-bold leading-tight">
-                Configurações da conta
-              </h1>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
-                <Badge className={statusTone}>
-                  {profile.status ? profile.status : "Status não informado"}
-                </Badge>
-                <span className="flex items-center gap-2 text-white/80">
-                  <ShieldCheck size={16} /> Ambiente seguro
-                </span>
-                <span className="flex items-center gap-2 text-white/80">
-                  <BadgeCheck size={16} /> Desde {formatDate(profile.createdAt)}
-                </span>
+    <div style={{ padding: '0 0 40px 0' }}>
+      <div 
+        style={{ 
+          background: 'linear-gradient(135deg, #134B73 0%, #0f3c5a 100%)', 
+          padding: '40px 32px', 
+          marginBottom: '32px',
+          borderRadius: '0 0 16px 16px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }}
+      >
+        <Row gutter={[24, 24]} align="middle" justify="space-between">
+          <Col xs={24} md={16}>
+            <Space size={24} align="start">
+              <Avatar 
+                size={80} 
+                icon={<UserOutlined />} 
+                style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)', 
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
+                }} 
+              />
+              <div style={{ marginTop: 4 }}>
+                <Typography.Text style={{ color: 'rgba(224, 242, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.2em', fontSize: '12px', fontWeight: 600 }}>
+                  Painel Administrativo
+                </Typography.Text>
+                <Typography.Title level={2} style={{ color: 'white', margin: '4px 0 12px 0' }}>
+                  Configurações do Perfil
+                </Typography.Title>
+                <Space separator={<Divider orientation="vertical" style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }} />}>
+                  {getStatusTag(profile?.status)}
+                  <Space style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                    <SafetyCertificateOutlined />
+                    <Typography.Text style={{ color: 'inherit' }}>Ambiente Seguro</Typography.Text>
+                  </Space>
+                  <Space style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                    <CheckCircleOutlined />
+                    <Typography.Text style={{ color: 'inherit' }}>Registrado em {formatDate(profile?.createdAt)}</Typography.Text>
+                  </Space>
+                </Space>
               </div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2 rounded-2xl bg-white/10 border border-white/20 p-4 min-w-[260px]">
-            <div className="flex items-center justify-between text-sm text-white/80">
-              <span>Perfil</span>
-              <span className="font-semibold flex items-center gap-1">
-                <UserCog size={16} /> {profile.role || "--"}
-              </span>
-            </div>
-            <Separator className="bg-white/20" />
-            <div className="flex items-center justify-between text-sm text-white/80">
-              <span>E-mail</span>
-              <span className="font-semibold flex items-center gap-1">
-                <Mail size={16} /> {profile.email || "--"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border border-slate-200/70 shadow-theme-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-[#134B73]">
-              <Building2 size={20} /> Dados do administrador
-            </CardTitle>
-            <CardDescription>
-              Atualize suas informações de acesso e contato.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {loadingProfile ? (
-              renderProfileSkeleton()
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-sm text-[#134B73]">Nome completo</Label>
-                  <Input
-                    placeholder="Seu nome"
-                    value={profile.fullName}
-                    onChange={(e) =>
-                      setProfile((prev) => ({ ...prev, fullName: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm text-[#134B73]">E-mail</Label>
-                  <Input
-                    placeholder="seuemail@empresa.com"
-                    value={profile.email}
-                    onChange={(e) =>
-                      setProfile((prev) => ({ ...prev, email: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm text-[#134B73]">Perfil</Label>
-                  <Input disabled value={profile.role ?? "ADMIN"} className="bg-slate-50" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm text-[#134B73]">Status</Label>
-                  <div className="flex items-center gap-2">
-                    <Badge className={statusTone}>
-                      {profile.status ? profile.status : "Status não informado"}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <Button
-                className="sm:w-auto w-full bg-[#134B73] hover:bg-[#0f3c5a]"
-                onClick={handleSaveProfile}
-                disabled={savingProfile || loadingProfile}
-              >
-                {savingProfile ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Check size={16} /> Salvar alterações
-                  </span>
-                )}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Nome e e-mail são usados nas notificações e acessos ao painel.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-slate-200/70 shadow-theme-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-[#134B73]">
-              <ShieldCheck size={20} /> Segurança e senha
-            </CardTitle>
-            <CardDescription>
-              Atualize a senha de acesso ao painel admin.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Senha atual</Label>
-              <Input
-                placeholder="••••••••"
-                type="password"
-                value={passwordForm.oldPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({ ...prev, oldPassword: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Nova senha</Label>
-              <Input
-                placeholder="Mínimo 6 caracteres"
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Confirmar nova senha</Label>
-              <Input
-                placeholder="Repita a nova senha"
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    confirmPassword: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <Button
-              className="w-full bg-[#134B73] hover:bg-[#0f3c5a]"
-              onClick={handlePasswordChange}
-              disabled={changingPassword}
+            </Space>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card 
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.08)', 
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(10px)'
+              }} 
+              styles={{ body: { padding: '16px 20px' } }}
             >
-              {changingPassword ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Alterando...
-                </span>
-              ) : (
-                "Alterar senha"
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+              <Space orientation="vertical" style={{ width: '100%' }} size={12}>
+                <Row justify="space-between">
+                  <Typography.Text style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Nível de Acesso</Typography.Text>
+                  <Tag color="blue" style={{ margin: 0 }}>{profile?.role || 'Painel Admin'}</Tag>
+                </Row>
+                <Divider style={{ margin: 0, backgroundColor: 'rgba(255, 255, 255, 0.1)' }} />
+                <Row justify="space-between" align="middle">
+                  <Typography.Text style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Email Principal</Typography.Text>
+                  <Typography.Text ellipsis style={{ maxWidth: 180, color: 'white', fontWeight: 500 }}>{profile?.email || '--'}</Typography.Text>
+                </Row>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border border-slate-200/70 shadow-theme-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-[#134B73]">
-              <UserCog size={20} /> Boas práticas de acesso
-            </CardTitle>
-            <CardDescription>
-              Dicas rápidas para manter o painel admin seguro e consistente.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <div className="flex items-start gap-3">
-              <Check className="text-emerald-600 mt-0.5" size={16} />
-              <p>Use e-mail corporativo e mantenha-o atualizado para notificações críticas.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="text-emerald-600 mt-0.5" size={16} />
-              <p>Troque a senha regularmente e evite reutilizar senhas antigas.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="text-emerald-600 mt-0.5" size={16} />
-              <p>Habilite 2FA assim que estiver disponível e nunca compartilhe credenciais.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="text-emerald-600 mt-0.5" size={16} />
-              <p>Revise permissões periodicamente e revogue acessos obsoletos.</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border border-slate-200/70 shadow-theme-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-[#134B73]">
-              <Building2 size={20} /> Registro de conta
-            </CardTitle>
-            <CardDescription>
-              Dados de criação e status da sua conta no painel admin.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span>Perfil</span>
-              <span className="font-semibold text-[#134B73]">
-                {profile.role || "ADMIN"}
-              </span>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <span>Status</span>
-              <Badge className={statusTone}>
-                {profile.status ? profile.status : "Status não informado"}
-              </Badge>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <span>Criado em</span>
-              <span className="font-semibold text-[#134B73]">
-                {formatDate(profile.createdAt)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      <div style={{ padding: '0 32px' }}>
+        <Row gutter={[32, 32]}>
+          <Col xs={24} lg={16}>
+            <Card 
+              title={<Space><SolutionOutlined /> Informações Pessoais</Space>}
+              variant="borderless"
+              style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', height: '100%' }}
+            >
+              <Form
+                form={profileForm}
+                layout="vertical"
+                onFinish={handleSaveProfile}
+                initialValues={profile || {}}
+              >
+                {loadingProfile ? (
+                   <Skeleton active paragraph={{ rows: 4 }} />
+                ) : (
+                  <>
+                    <Row gutter={24}>
+                      <Col xs={24} md={12}>
+                        <Form.Item
+                          name="fullName"
+                          label="Nome Completo"
+                          rules={[{ required: true, message: 'Por favor, insira seu nome completo' }]}
+                        >
+                          <Input prefix={<UserOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="Seu nome" size="large" />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Form.Item
+                          name="email"
+                          label="Endereço de E-mail"
+                          rules={[
+                            { required: true, message: 'Por favor, insira seu e-mail' },
+                            { type: 'email', message: 'Por favor, insira um e-mail válido' }
+                          ]}
+                        >
+                          <Input prefix={<MailOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="seu.email@exemplo.com" size="large" />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Form.Item
+                          name="role"
+                          label="Função/Cargo"
+                          rules={[{ required: true, message: 'Por favor, informe sua função ou cargo' }]}
+                        >
+                          <AutoComplete
+                            options={COMMON_ROLES}
+                            placeholder="Seu cargo na empresa"
+                            filterOption={(inputValue, option) =>
+                              option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                            }
+                          >
+                            <Input prefix={<IdcardOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} size="large" />
+                          </AutoComplete>
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Form.Item
+                          name="nature"
+                          label="Natureza"
+                          rules={[{ required: true, message: 'Por favor, informe a natureza' }]}
+                        >
+                          <AutoComplete
+                            options={OCCUPATION_NATURES}
+                            placeholder="Selecione ou digite a natureza"
+                            filterOption={(inputValue, option) =>
+                              option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                            }
+                          >
+                            <Input prefix={<SolutionOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} size="large" />
+                          </AutoComplete>
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Form.Item label="Status da Conta">
+                          <div style={{ height: 40, display: 'flex', alignItems: 'center' }}>
+                            {getStatusTag(profile?.status)}
+                          </div>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Divider />
+                    <Space align="center" size={16}>
+                      <Button 
+                        type="primary" 
+                        htmlType="submit" 
+                        loading={savingProfile}
+                        size="large"
+                        style={{ background: '#134B73', minWidth: 160 }}
+                      >
+                        Salvar Alterações
+                      </Button>
+                      <Typography.Text type="secondary" style={{ fontSize: '13px' }}>
+                        <InfoCircleOutlined /> As alterações serão aplicadas em todo o ecossistema Grota.
+                      </Typography.Text>
+                    </Space>
+                  </>
+                )}
+              </Form>
+            </Card>
+          </Col>
+
+          <Col xs={24} lg={8}>
+            <Card 
+              title={<Space><LockOutlined /> Segurança</Space>}
+              variant="borderless"
+              style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+            >
+              <Form
+                form={passwordForm}
+                layout="vertical"
+                onFinish={handlePasswordChange}
+              >
+                <Form.Item
+                  name="oldPassword"
+                  label="Senha Atual"
+                  rules={[{ required: true, message: 'Por favor, insira sua senha atual' }]}
+                >
+                  <Input.Password prefix={<LockOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="••••••••" size="large" />
+                </Form.Item>
+                <Form.Item
+                  name="newPassword"
+                  label="Nova Senha"
+                  rules={[
+                    { required: true, message: 'Por favor, insira a nova senha' },
+                    { min: 6, message: 'A senha deve ter pelo menos 6 caracteres' }
+                  ]}
+                >
+                  <Input.Password prefix={<LockOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="Nova Senha" size="large" />
+                </Form.Item>
+                <Form.Item
+                  name="confirmPassword"
+                  label="Confirmar Nova Senha"
+                  dependencies={['newPassword']}
+                  rules={[
+                    { required: true, message: 'Por favor, confirme sua nova senha' },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue('newPassword') === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error('As senhas não coincidem'));
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password prefix={<LockOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="Repetir Senha" size="large" />
+                </Form.Item>
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  loading={changingPassword} 
+                  block 
+                  size="large"
+                  style={{ background: '#134B73', marginTop: 8 }}
+                >
+                  Atualizar Senha
+                </Button>
+              </Form>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={[32, 32]} style={{ marginTop: 32 }}>
+          <Col xs={24} md={12}>
+            <Card 
+              title={<Space><CheckCircleOutlined /> Boas Práticas</Space>}
+              variant="borderless"
+              style={{ height: '100%', borderRadius: '12px' }}
+              styles={{ body: { paddingTop: 0 } }}
+            >
+              <ul style={{ paddingLeft: 0, listStyle: 'none' }}>
+                <li style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                  <Space align="start">
+                    <CheckCircleOutlined style={{ color: '#52c41a', marginTop: 4 }} />
+                    <Typography.Text type="secondary">Mantenha seu e-mail corporativo atualizado para receber alertas críticos.</Typography.Text>
+                  </Space>
+                </li>
+                <li style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                  <Space align="start">
+                    <CheckCircleOutlined style={{ color: '#52c41a', marginTop: 4 }} />
+                    <Typography.Text type="secondary">Crie senhas fortes misturando letras, números e caracteres especiais.</Typography.Text>
+                  </Space>
+                </li>
+                <li style={{ padding: '12px 0' }}>
+                  <Space align="start">
+                    <CheckCircleOutlined style={{ color: '#52c41a', marginTop: 4 }} />
+                    <Typography.Text type="secondary">Nunca compartilhe suas credenciais de acesso com outros colaboradores.</Typography.Text>
+                  </Space>
+                </li>
+              </ul>
+            </Card>
+          </Col>
+          <Col xs={24} md={12}>
+            <Card 
+              title={<Space><InfoCircleOutlined /> Histórico da Conta</Space>}
+              variant="borderless"
+              style={{ height: '100%', borderRadius: '12px' }}
+            >
+               <Row justify="space-between" style={{ padding: '8px 0' }}>
+                <Typography.Text type="secondary">Perfil de Usuário</Typography.Text>
+                <Typography.Text strong>{profile?.role || 'Administrador'}</Typography.Text>
+              </Row>
+              <Divider style={{ margin: '8px 0' }} />
+              <Row justify="space-between" style={{ padding: '8px 0' }}>
+                <Typography.Text type="secondary">Status de Verificação</Typography.Text>
+                {getStatusTag(profile?.status)}
+              </Row>
+              <Divider style={{ margin: '8px 0' }} />
+              <Row justify="space-between" style={{ padding: '8px 0' }}>
+                <Typography.Text type="secondary">Membro desde</Typography.Text>
+                <Typography.Text strong>{formatDate(profile?.createdAt)}</Typography.Text>
+              </Row>
+              <Divider style={{ margin: '8px 0' }} />
+               <Row justify="space-between" style={{ padding: '8px 0' }}>
+                <Typography.Text type="secondary">Última atualização</Typography.Text>
+                <Typography.Text strong>{new Date().toLocaleDateString('pt-BR')}</Typography.Text>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
       </div>
     </div>
   );

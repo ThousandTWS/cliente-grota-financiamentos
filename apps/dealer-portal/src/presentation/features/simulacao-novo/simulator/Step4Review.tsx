@@ -294,6 +294,7 @@ const buildPdf = async (
   addSection("Dados profissionais", [
     ["Empresa", formData.professional.enterprise || "-"],
     ["Funcao", formData.professional.enterpriseFunction || "-"],
+    ["Natureza", formData.professional.occupationNature || "-"],
     ["Data de admissao", formData.professional.admissionDate || "-"],
     ["Renda mensal", formatNumberToBRL(formData.professional.income)],
     [
@@ -636,6 +637,7 @@ export default function Step4Review({
           motherName: formData.personal.motherName,
           enterprise: formData.professional.enterprise,
           enterpriseFunction: formData.professional.enterpriseFunction,
+          occupationNature: formData.professional.occupationNature,
           admissionDate: formData.professional.admissionDate,
           vehicleCodes: {
             brandCode: formData.vehicle.brandCode,

@@ -54,6 +54,30 @@ const NATURALITY_OPTIONS = Array.from(
   ),
 );
 
+const COMMON_ROLES = [
+  "Administrador",
+  "Gerente de Vendas",
+  "Operador de Financiamento",
+  "Analista de Crédito",
+  "Consultor de Vendas",
+  "Diretor Operacional",
+  "Supervisor",
+  "Sócio Proprietário",
+];
+
+const OCCUPATION_NATURES = [
+  "Assalariado Empresa Privada",
+  "Assalariado Órgão Público",
+  "Autônomo com Comprovação de Renda",
+  "Autônomo sem Comprovação de Renda",
+  "Profissional Liberal",
+  "Empresário / Microempresário",
+  "Aposentado / Pensionista",
+  "Militar",
+  "Do Lar",
+  "Estudante",
+];
+
 export default function Step3ProfessionalData({
   formData,
   updateFormData,
@@ -148,7 +172,31 @@ export default function Step3ProfessionalData({
                 }
                 placeholder="Seu cargo na empresa"
                 className={blueInputClass}
+                list="cargo-options"
               />
+              <datalist id="cargo-options">
+                {COMMON_ROLES.map((role) => (
+                  <option key={role} value={role} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Natureza da Ocupação</Label>
+              <Input
+                value={formData.professional.occupationNature}
+                onChange={(e) =>
+                  updateFormData("professional", { occupationNature: e.target.value })
+                }
+                placeholder="Selecione ou digite a natureza"
+                className={blueInputClass}
+                list="natureza-options"
+              />
+              <datalist id="natureza-options">
+                {OCCUPATION_NATURES.map((nature) => (
+                  <option key={nature} value={nature} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-2">

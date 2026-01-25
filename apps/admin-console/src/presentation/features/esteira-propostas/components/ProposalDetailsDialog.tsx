@@ -95,6 +95,30 @@ export function ProposalDetailsDialog({
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <Text className="text-xs uppercase tracking-wide text-slate-500">Dados Profissionais</Text>
+            {(() => {
+              let meta: any = {};
+              try {
+                meta = typeof proposal.metadata === "string" ? JSON.parse(proposal.metadata) : (proposal.metadata || {});
+              } catch (e) {
+                console.warn("Falha ao processar metadata", e);
+              }
+              return (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="text-sm text-slate-700">
+                    <p>Empresa: {meta.enterprise || "Nao informado"}</p>
+                    <p>Cargo: {meta.enterpriseFunction || "Nao informado"}</p>
+                  </div>
+                  <div className="text-sm text-slate-700">
+                    <p>Natureza: {meta.occupationNature || "Nao informado"}</p>
+                    <p>Admissao: {meta.admissionDate || "Nao informado"}</p>
+                  </div>
+                </div>
+              );
+            })()}
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <Text className="text-xs uppercase tracking-wide text-slate-500">Financiamento</Text>
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="text-sm text-slate-700">

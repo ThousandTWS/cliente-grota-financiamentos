@@ -32,7 +32,7 @@ public class CloudinaryDocumentService {
                         "public_id", publicId,
                         "overwrite", true,
                         "invalidate", true,
-                        "resource_type", "image"
+                        "resource_type", "auto"
                 )
         );
 
@@ -47,7 +47,7 @@ public class CloudinaryDocumentService {
     public URL generateFileUrl(String publicId) {
         String url = cloudinary.url()
                 .secure(true)
-                .resourceType("image")
+                .resourceType("auto")
                 .generate(publicId);
 
         try {

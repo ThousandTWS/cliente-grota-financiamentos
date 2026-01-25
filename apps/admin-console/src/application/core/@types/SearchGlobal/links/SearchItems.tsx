@@ -1,76 +1,137 @@
-import { Car, DollarSign, FileText, Home, Settings, TrendingUp, User, Users } from "lucide-react";
+import { 
+    LayoutDashboard, 
+    ClipboardList, 
+    Users2, 
+    Building2, 
+    Receipt, 
+    Settings, 
+    FileText, 
+    UserCog, 
+    ShieldCheck, 
+    BadgeCheck,
+    MessageSquare,
+    DollarSign,
+    BarChart3,
+    Files
+} from "lucide-react";
 import { SearchItem } from "../SearchItem";
 
 export const searchItems: SearchItem[] = [
     {
         id: "dashboard",
         title: "Visão Geral",
-        description: "Dashboard principal",
-        icon: <Home className="size-4" data-oid="7sqy6rg" />,
-        href: "/",
+        description: "Painel geral de métricas e status",
+        icon: <LayoutDashboard className="size-4" />,
+        href: "/visao-geral",
         group: "Navegação",
-        keywords: ["home", "inicio", "dashboard", "painel"]
+        keywords: ["home", "inicio", "dashboard", "painel", "resumo"]
     },
     {
-        id: "logistas",
-        title: "Logistas",
-        description: "Gerenciar logistas",
-        icon: <Users className="size-4" data-oid="hn:pao8" />,
+        id: "esteira-propostas",
+        title: "Esteira de Propostas",
+        description: "Gestão e acompanhamento de propostas",
+        icon: <ClipboardList className="size-4" />,
+        href: "/esteira-de-propostas",
+        group: "Propostas",
+        keywords: ["propostas", "pedidos", "esteira", "vendas"]
+    },
+    {
+        id: "simulador",
+        title: "Simulador de Financiamento",
+        description: "Realizar novas simulações",
+        icon: <FileText className="size-4" />,
+        href: "/simulacao/novo",
+        group: "Propostas",
+        keywords: ["simulacao", "calculo", "novo", "financiamento"]
+    },
+    {
+        id: "vendedores",
+        title: "Vendedores",
+        description: "Gestão de vendedores cadastrados",
+        icon: <UserCog className="size-4" />,
+        href: "/vendedores",
+        group: "Usuários",
+        keywords: ["vendedor", "equipe", "cadastro"]
+    },
+    {
+        id: "operadores",
+        title: "Operadores",
+        description: "Gestão de operadores do sistema",
+        icon: <ShieldCheck className="size-4" />,
+        href: "/operadores",
+        group: "Usuários",
+        keywords: ["operador", "suporte", "equipe"]
+    },
+    {
+        id: "gestores",
+        title: "Gestores",
+        description: "Gestão de gerentes e diretores",
+        icon: <BadgeCheck className="size-4" />,
+        href: "/gestores",
+        group: "Usuários",
+        keywords: ["gestor", "gerente", "diretoria"]
+    },
+    {
+        id: "lojas",
+        title: "Lojas e Logistas",
+        description: "Gerenciar unidades e parceiros",
+        icon: <Building2 className="size-4" />,
         href: "/logistas",
-        group: "Navegação",
-        keywords: ["usuarios", "vendedores", "parceiros", "colaboradores"]
+        group: "Lojas",
+        keywords: ["loja", "logista", "unidade", "parceiro"]
     },
     {
-        id: "veiculos",
-        title: "Gestão de Veículos",
-        description: "Gerenciar veículos",
-        icon: <Car className="size-4" data-oid="86wen32" />,
-        href: "/gestao-de-veiculos",
-        group: "Navegação",
-        keywords: ["carros", "frota", "automoveis"]
+        id: "cobrancas",
+        title: "Cobranças",
+        description: "Gestão financeira e faturamento",
+        icon: <Receipt className="size-4" />,
+        href: "/cobrancas",
+        group: "Financeiro",
+        keywords: ["cobranca", "fatura", "pagamento", "boleto"]
     },
     {
         id: "comissoes",
         title: "Comissões",
-        description: "Gerenciar comissões",
-        icon: <DollarSign className="size-4" data-oid="7241hdt" />,
+        description: "Relatórios de comissionamento",
+        icon: <DollarSign className="size-4" />,
         href: "/comissoes",
-        group: "Navegação",
-        keywords: ["pagamentos", "financeiro", "valores"]
+        group: "Financeiro",
+        keywords: ["comissao", "pagamento", "remuneracao"]
     },
     {
         id: "relatorios",
-        title: "Relatórios",
-        description: "Visualizar relatórios",
-        icon: <FileText className="size-4" data-oid="l8hjweg" />,
+        title: "Relatórios Gerais",
+        description: "Exportação de dados e relatórios",
+        icon: <BarChart3 className="size-4" />,
         href: "/relatorios",
-        group: "Navegação",
-        keywords: ["reports", "analise", "dados"]
+        group: "Dados",
+        keywords: ["relatorio", "exportar", "planilha", "pdf"]
     },
     {
-        id: "analytics",
-        title: "Análises",
-        description: "Métricas do sistema",
-        icon: <TrendingUp className="size-4" data-oid="l.w7ofv" />,
-        href: "/visao-geral",
-        group: "Análises",
-        keywords: ["metricas", "graficos", "estatisticas", "performance"]
+        id: "ia-chat",
+        title: "IA Chat",
+        description: "Assistente inteligente",
+        icon: <MessageSquare className="size-4" />,
+        href: "/ia-chat",
+        group: "Recursos",
+        keywords: ["chat", "ia", "ajuda", "assistente"]
     },
     {
-        id: "perfil",
-        title: "Meu Perfil",
-        description: "Editar perfil",
-        icon: <User className="size-4" data-oid="3o26_ck" />,
-        href: "/perfil",
-        group: "Configurações",
-        keywords: ["usuario", "conta", "dados pessoais"]
+        id: "documentos",
+        title: "Gestão de Documentos",
+        description: "Arquivos e documentação",
+        icon: <Files className="size-4" />,
+        href: "/gestao-documentos",
+        group: "Recursos",
+        keywords: ["documento", "arquivo", "upload", "doc"]
     },
     {
         id: "configuracoes",
         title: "Configurações",
-        description: "Ajustes do sistema",
-        icon: <Settings className="size-4" data-oid="72e9rnk" />,
+        description: "Ajustes e preferências do sistema",
+        icon: <Settings className="size-4" />,
         href: "/configuracoes",
-        group: "Configurações",
-        keywords: ["settings", "ajustes", "preferencias"]
-    }];
+        group: "Sistema",
+        keywords: ["configuracao", "ajuste", "perfil", "usuario"]
+    }
+];

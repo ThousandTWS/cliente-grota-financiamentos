@@ -5,6 +5,9 @@ import AppHeader from "@/presentation/layout/header/AppHeader";
 import AppSidebar from "@/presentation/layout/sidebar/AppSidebar";
 import Backdrop from "@/presentation/layout/sidebar/Backdrop";
 import React from "react";
+import { Layout } from "antd";
+
+const { Content, Footer } = Layout;
 
 
 export default function AdminLayout({
@@ -22,19 +25,22 @@ export default function AdminLayout({
 
   return (
     <UserProvider>
-      <div className="min-h-screen xl:flex">
+      <Layout style={{ minHeight: "100vh", background: "#f8fafc" }}>
         <AppSidebar />
         <Backdrop />
-        <div
-          className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
+        <Layout
+          className={`transition-all duration-300 ease-in-out ${mainContentMargin}`}
+          style={{ background: "transparent" }}
         >
           <AppHeader />
-
-          <div>
+          <Content style={{ minHeight: 280 }}>
             {children}
-          </div>
-        </div>
-      </div>
+          </Content>
+          <Footer style={{ textAlign: "center", padding: "24px 50px", color: "rgba(0, 0, 0, 0.45)" }}>
+            Grota Financiamentos ©{new Date().getFullYear()}
+          </Footer>
+        </Layout>
+      </Layout>
     </UserProvider>
   );
 }
