@@ -40,12 +40,10 @@ export default function Dashboard() {
           <QuickStats />
 
           <Row gutter={[24, 24]}>
-            <Col xs={24} xl={16}>
+            <Col xs={24} xl={24}>
               <FinancingChart />
             </Col>
-            <Col xs={24} xl={8}>
-              <StatusDistribution />
-            </Col>
+
           </Row>
 
           <Row gutter={[24, 24]}>

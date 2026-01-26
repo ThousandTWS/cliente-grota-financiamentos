@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AgCharts } from "ag-charts-react";
-import { AgChartOptions } from "ag-charts-community";
+import { Funnel } from "@ant-design/plots";
 import { Card, Typography, Spin, Empty, Alert, Button, Space, Row, Col, Statistic } from "antd";
-import { ReloadOutlined, FunnelPlotOutlined } from "@ant-design/icons";
+import { ReloadOutlined } from "@ant-design/icons";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 
@@ -18,7 +17,7 @@ type FunnelStage = {
 const STATUS_ORDER: ProposalStatus[] = ["SUBMITTED", "PENDING", "APPROVED", "REJECTED"];
 
 const DEFAULT_STAGES: FunnelStage[] = [
-  { stage: "Propostas Recebidas", count: 0 },
+  { stage: "Recebidas", count: 0 },
   { stage: "Em Análise", count: 0 },
   { stage: "Pré-Aprovadas", count: 0 },
   { stage: "Aprovadas", count: 0 },
@@ -94,48 +93,41 @@ export function ConversionFunnel() {
   const approvalRate = total ? Math.round((approved / total) * 100) : 0;
   const finalizationRate = total ? Math.round((finalized / total) * 100) : 0;
 
-  const options: any = {
+  const config = {
     data: stages,
-    series: [
+    xField: "stage",
+    yField: "count",
+    shapeField: 'pyramid',
+    label: [
       {
-        type: "bar",
-        xKey: "stage",
-        yKey: "count",
-        fill: "#134B73",
-        strokeWidth: 0,
-        label: {
-          enabled: true,
-          color: "#ffffff",
-          placement: "inside",
-          formatter: (params: any) => `${params.value}`,
-        },
-        tooltip: {
-          renderer: (params: any) => ({
-            content: `${params.datum.stage}: ${params.datum.count} (${total ? ((params.datum.count / total) * 100).toFixed(1) : 0}%)`,
-          }),
-        },
+        text: (d: any) => d.count,
+        position: 'inside',
+        fontSize: 16,
       },
-    ],
-    axes: [
       {
-        type: "category",
-        position: "left",
-        label: {
+        text: (d: any, i: number, data: any[]) => {
+          if (i && data[i - 1].count > 0) return "— " + ((d.count / data[i - 1].count) * 100).toFixed(2) + '%';
+          return '';
+        },
+        position: 'top-right',
+        textAlign: 'left',
+        textBaseline: 'middle',
+        dx: 10,
+        style: {
+          fill: '#aaa',
           fontSize: 12,
-          color: "#64748b",
-        },
-      },
-      {
-        type: "number",
-        position: "bottom",
-        label: {
-          enabled: false,
-        },
-        gridLine: {
-          enabled: false,
-        },
+        }
       },
     ],
+    tooltip: {
+      formatter: (datum: any) => {
+        return {
+          name: datum.stage,
+          value: `${datum.count} (${total ? ((datum.count / total) * 100).toFixed(1) : 0}%)`,
+        };
+      },
+    },
+    legend: false as const,
   };
 
   return (
@@ -200,7 +192,7 @@ export function ConversionFunnel() {
             <Empty description="Nenhum dado encontrado" />
           </div>
         ) : (
-          <AgCharts options={options} />
+          <Funnel {...config} />
         )}
       </div>
     </Card>

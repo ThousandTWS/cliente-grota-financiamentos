@@ -10,7 +10,6 @@ import { getRealtimeUrl } from "@/application/config/realtime";
 import {
   Card,
   Typography,
-  List,
   Avatar,
   Tag,
   Space,
@@ -181,49 +180,54 @@ export function RecentActivity() {
       }
     >
       <div style={{ height: '430px', overflowY: 'auto', paddingRight: '8px' }}>
-        <List
-          itemLayout="horizontal"
-          dataSource={displayedActivities}
-          renderItem={(item) => (
-            <List.Item
-              extra={
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  <ClockCircleOutlined style={{ marginRight: '4px' }} />
-                  {formatTimeDistance(item.timestamp, now)}
-                </Text>
-              }
-            >
-              <List.Item.Meta
-                avatar={
-                  <Badge dot color={typeConfig[item.status]?.color || 'orange'} offset={[-2, 32]}>
-                    <Avatar 
-                      icon={<UserOutlined />} 
-                      style={{ backgroundColor: '#134B73' }}
-                    >
-                      {item.sellerInitials}
-                    </Avatar>
-                  </Badge>
-                }
-                title={
-                  <Space size={4}>
-                    <Text strong>{item.sellerName}</Text>
-                    <Text type="secondary">{item.action}</Text>
-                  </Space>
-                }
-                description={
-                  <Space orientation="vertical" size={0} style={{ width: '100%' }}>
-                    <Tag color={typeConfig[item.status]?.color || 'orange'} style={{ fontSize: '10px', lineHeight: '16px' }}>
-                      {typeConfig[item.status]?.label || 'Evento'}
-                    </Tag>
-                    <Text type="secondary" ellipsis style={{ fontSize: '11px', maxWidth: '200px' }}>
-                      {item.target}
-                    </Text>
-                  </Space>
-                }
-              />
-            </List.Item>
-          )}
-        />
+        <div className="ant-list ant-list-horizontal">
+          <div className="ant-spin-nested-loading">
+            <div className="ant-spin-container">
+              {displayedActivities.map((item) => (
+                <div key={item.id} className="ant-list-item">
+                  <div className="ant-list-item-meta">
+                    <div className="ant-list-item-meta-avatar">
+                      <Badge dot color={typeConfig[item.status]?.color || 'orange'} offset={[-2, 32]}>
+                        <Avatar 
+                          icon={<UserOutlined />} 
+                          style={{ backgroundColor: '#134B73' }}
+                        >
+                          {item.sellerInitials}
+                        </Avatar>
+                      </Badge>
+                    </div>
+                    <div className="ant-list-item-meta-content">
+                      <h4 className="ant-list-item-meta-title">
+                        <Space size={4}>
+                          <Text strong>{item.sellerName}</Text>
+                          <Text type="secondary">{item.action}</Text>
+                        </Space>
+                      </h4>
+                      <div className="ant-list-item-meta-description">
+                        <Space orientation="vertical" size={0} style={{ width: '100%' }}>
+                          <Tag color={typeConfig[item.status]?.color || 'orange'} style={{ fontSize: '10px', lineHeight: '16px' }}>
+                            {typeConfig[item.status]?.label || 'Evento'}
+                          </Tag>
+                          <Text type="secondary" ellipsis style={{ fontSize: '11px', maxWidth: '200px' }}>
+                            {item.target}
+                          </Text>
+                        </Space>
+                      </div>
+                    </div>
+                  </div>
+                  <ul className="ant-list-item-action" style={{ marginLeft: 48 }}>
+                    <li>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        <ClockCircleOutlined style={{ marginRight: '4px' }} />
+                        {formatTimeDistance(item.timestamp, now)}
+                      </Text>
+                    </li>
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </Card>
   );

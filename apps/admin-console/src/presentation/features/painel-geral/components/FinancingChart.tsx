@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { AgCharts } from "ag-charts-react";
-import { AgChartOptions } from "ag-charts-community";
+import { Column } from "@ant-design/plots";
 import { Card, Typography, Spin, Empty, Alert, Tag, Space } from "antd";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal } from "@/application/core/@types/Proposals/Proposal";
@@ -43,133 +42,64 @@ export function FinancingChart() {
 
   const chartData = useMemo(() => {
     const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-    const data = months.map((month) => ({
-      month,
-      approved: 0,
-      pending: 0,
-      total: 0,
-    }));
+    const result: any[] = [];
 
-    proposals.forEach((proposal) => {
-      const date = new Date(proposal.createdAt);
-      if (Number.isNaN(date.getTime())) return;
+    months.forEach((month, index) => {
+      let approvedValue = 0;
+      let pendingValue = 0;
 
-      const monthIndex = date.getMonth();
-      const value = proposal.financedValue ?? 0;
+      proposals.forEach((proposal) => {
+        const date = new Date(proposal.createdAt);
+        if (Number.isNaN(date.getTime())) return;
 
-      if (proposal.status === "APPROVED") {
-        data[monthIndex].approved += value;
-      } else if (proposal.status === "PENDING" || proposal.status === "SUBMITTED") {
-        data[monthIndex].pending += value;
-      }
-      data[monthIndex].total += value;
+        if (date.getMonth() === index) {
+          const value = proposal.financedValue ?? 0;
+          if (proposal.status === "APPROVED") {
+            approvedValue += value;
+          } else if (proposal.status === "PENDING" || proposal.status === "SUBMITTED") {
+            pendingValue += value;
+          }
+        }
+      });
+
+      result.push({
+        month,
+        value: approvedValue,
+        type: "Aprovados",
+      });
+      result.push({
+        month,
+        value: pendingValue,
+        type: "Pendentes",
+      });
     });
 
-    return data;
+    return result;
   }, [proposals]);
 
   const hasData = useMemo(() => proposals.length > 0, [proposals]);
 
-  const options: any = {
+  const config = {
     data: chartData,
-    theme: {
-      palette: {
-        fills: ["#10B981", "#F59E0B", "#3B82F6"],
-        strokes: ["#059669", "#D97706", "#2563EB"],
-      },
-      overrides: {
-        bar: {
-          series: {
-            highlightStyle: {
-              series: {
-                dimOpacity: 0.3,
-              },
-            },
-          },
-        },
-      },
+    xField: "month",
+    yField: "value",
+    colorField: "type",
+    group: {
+      padding: 0,
     },
-    title: {
-      enabled: false,
+    color: ["#10B981", "#F59E0B"],
+
+    tooltip: {
+      items: [
+        (datum: any) => ({
+          name: datum.type,
+          value: `R$ ${datum.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+        }),
+      ],
     },
-    series: [
-      {
-        type: "bar",
-        xKey: "month",
-        yKey: "approved",
-        yName: "Aprovados",
-        stacked: true,
-        tooltip: {
-          renderer: (params: any) => {
-            return {
-              content: `R$ ${params.yValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-            };
-          }
-        }
-      },
-      {
-        type: "bar",
-        xKey: "month",
-        yKey: "pending",
-        yName: "Pendentes",
-        stacked: true,
-        tooltip: {
-          renderer: (params: any) => {
-            return {
-              content: `R$ ${params.yValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-            };
-          }
-        }
-      },
-      {
-        type: "line",
-        xKey: "month",
-        yKey: "total",
-        yName: "Total",
-        strokeWidth: 3,
-        marker: {
-          enabled: true,
-          size: 6,
-        },
-        tooltip: {
-          renderer: (params: any) => {
-            return {
-              content: `R$ ${params.yValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-            };
-          }
-        }
-      },
-    ],
-    axes: [
-      {
-        type: "category",
-        position: "bottom",
-        label: {
-          fontSize: 12,
-          color: "#64748b",
-        },
-      },
-      {
-        type: "number",
-        position: "left",
-        label: {
-          formatter: (params: any) => `R$ ${(params.value / 1000).toFixed(0)}k`,
-          fontSize: 12,
-          color: "#64748b",
-        },
-        title: {
-          text: "Volume (R$)",
-          fontSize: 14,
-        },
-      },
-    ],
-    legend: {
-      position: "bottom",
-      item: {
-        label: {
-          fontSize: 12,
-          color: "#475569",
-        },
+    axis: {
+      y: {
+        labelFormatter: (v: any) => `R$ ${(v / 1000).toFixed(0)}k`,
       },
     },
   };
@@ -190,7 +120,7 @@ export function FinancingChart() {
         </Space>
       }
     >
-      <div style={{ height: "350px", width: "100%" }}>
+      <div style={{ height: "360px", width: "100%" }}>
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Spin tip="Carregando financiamentos...">
@@ -200,7 +130,7 @@ export function FinancingChart() {
         ) : error ? (
           <Alert message={error} type="error" showIcon />
         ) : hasData ? (
-          <AgCharts options={options} />
+          <Column {...config} />
         ) : (
           <div className="flex h-full items-center justify-center">
             <Empty description="Nenhum dado encontrado" />

@@ -12,7 +12,7 @@ import {
   SyncOutlined,
   CloseCircleOutlined
 } from "@ant-design/icons";
-import { Card, Row, Col, Statistic, Typography, Space, List, Tag, Spin, Empty } from "antd";
+import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin, Empty } from "antd";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
@@ -229,19 +229,30 @@ export function QuickStats() {
             size="small"
           >
             {topSellers.length > 0 ? (
-                <List
-                    itemLayout="horizontal"
-                    dataSource={topSellers}
-                    renderItem={(item, index) => (
-                        <List.Item extra={<Text strong>{currency(item.total)}</Text>}>
-                            <List.Item.Meta
-                                avatar={<Tag color={index === 0 ? "gold" : "default"}>{index + 1}º</Tag>}
-                                title={item.name}
-                                description={`${item.count} propostas`}
-                            />
-                        </List.Item>
-                    )}
-                />
+              <div className="ant-list ant-list-horizontal">
+                <div className="ant-spin-nested-loading">
+                  <div className="ant-spin-container">
+                    {topSellers.map((item, index) => (
+                      <div key={item.id} className="ant-list-item">
+                        <div className="ant-list-item-meta">
+                          <div className="ant-list-item-meta-avatar">
+                            <Tag color={index === 0 ? "gold" : "default"}>{index + 1}º</Tag>
+                          </div>
+                          <div className="ant-list-item-meta-content">
+                            <h4 className="ant-list-item-meta-title">{item.name}</h4>
+                            <div className="ant-list-item-meta-description">{item.count} propostas</div>
+                          </div>
+                        </div>
+                        <ul className="ant-list-item-action">
+                          <li>
+                            <Text strong>{currency(item.total)}</Text>
+                          </li>
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />}
           </Card>
         </Col>
@@ -252,19 +263,30 @@ export function QuickStats() {
             size="small"
           >
             {topDealers.length > 0 ? (
-                <List
-                    itemLayout="horizontal"
-                    dataSource={topDealers}
-                    renderItem={(item, index) => (
-                        <List.Item extra={<Text strong>{currency(item.total)}</Text>}>
-                            <List.Item.Meta
-                                avatar={<Tag color={index === 0 ? "gold" : "default"}>{index + 1}º</Tag>}
-                                title={item.name}
-                                description={`${item.count} propostas`}
-                            />
-                        </List.Item>
-                    )}
-                />
+              <div className="ant-list ant-list-horizontal">
+                <div className="ant-spin-nested-loading">
+                  <div className="ant-spin-container">
+                    {topDealers.map((item, index) => (
+                      <div key={item.id} className="ant-list-item">
+                        <div className="ant-list-item-meta">
+                          <div className="ant-list-item-meta-avatar">
+                            <Tag color={index === 0 ? "gold" : "default"}>{index + 1}º</Tag>
+                          </div>
+                          <div className="ant-list-item-meta-content">
+                            <h4 className="ant-list-item-meta-title">{item.name}</h4>
+                            <div className="ant-list-item-meta-description">{item.count} propostas</div>
+                          </div>
+                        </div>
+                        <ul className="ant-list-item-action">
+                          <li>
+                            <Text strong>{currency(item.total)}</Text>
+                          </li>
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />}
           </Card>
         </Col>
@@ -275,18 +297,31 @@ export function QuickStats() {
             size="small"
           >
             {lastProposals.length > 0 ? (
-                <List
-                    itemLayout="horizontal"
-                    dataSource={lastProposals}
-                    renderItem={(item) => (
-                        <List.Item extra={<Tag color={statusTags[item.status].color}>{statusTags[item.status].label}</Tag>}>
-                            <List.Item.Meta
-                                title={<Text ellipsis style={{ width: 120 }}>{item.customerName}</Text>}
-                                description={new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                            />
-                        </List.Item>
-                    )}
-                />
+              <div className="ant-list ant-list-horizontal">
+                <div className="ant-spin-nested-loading">
+                  <div className="ant-spin-container">
+                    {lastProposals.map((item) => (
+                      <div key={item.id} className="ant-list-item">
+                        <div className="ant-list-item-meta">
+                          <div className="ant-list-item-meta-content">
+                            <h4 className="ant-list-item-meta-title">
+                              <Text ellipsis style={{ width: 120 }}>{item.customerName}</Text>
+                            </h4>
+                            <div className="ant-list-item-meta-description">
+                              {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                            </div>
+                          </div>
+                        </div>
+                        <ul className="ant-list-item-action">
+                          <li>
+                            <Tag color={statusTags[item.status].color}>{statusTags[item.status].label}</Tag>
+                          </li>
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />}
           </Card>
         </Col>

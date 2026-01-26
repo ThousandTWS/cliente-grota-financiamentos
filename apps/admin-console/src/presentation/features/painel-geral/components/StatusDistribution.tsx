@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AgCharts } from "ag-charts-react";
-import { AgChartOptions } from "ag-charts-community";
+import { Bar } from "@ant-design/plots";
 import { Card, Typography, Spin, Empty, Alert, Button, Space } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
@@ -63,47 +62,71 @@ export function StatusDistribution() {
       totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;
     });
 
-    return Object.entries(totals).map(([status, count]) => ({
-      status: STATUS_LABELS[status as ProposalStatus],
-      count,
-      statusKey: status as ProposalStatus,
-    }));
+    // Ordenar os dados para que os maiores valores apareçam no topo ou em uma ordem lógica de pipeline
+    const order: ProposalStatus[] = ["SUBMITTED", "PENDING", "APPROVED", "PAID", "REJECTED"];
+
+    return order
+      .filter(status => totals[status] >= 0) // Incluindo zeros para manter o gráfico estável se preferir, ou filtrando como antes
+      .map((status) => ({
+        type: STATUS_LABELS[status],
+        value: totals[status],
+        statusKey: status,
+      }))
+      .filter(item => item.value > 0); // Remove categorias vazias para manter o gráfico focado
   }, [proposals]);
 
   const total = useMemo(() => proposals.length, [proposals]);
 
-  const options: any = {
+  const config = {
     data: chartData,
-    series: [
-      {
-        type: "donut",
-        angleKey: "count",
-        calloutLabelKey: "status",
-        sectorLabelKey: "count",
-        innerRadiusRatio: 0.7,
-        calloutLabel: {
-          enabled: true,
-        },
-        sectorLabel: {
-          enabled: true,
-          formatter: (params: any) => `${params.datum.count}`,
-        },
-        tooltip: {
-          renderer: (params: any) => ({
-            content: `${params.datum.status}: ${params.datum.count} propostas (${((params.datum.count / total) * 100).toFixed(1)}%)`,
-          }),
-        },
-        fills: Object.keys(STATUS_COLORS).map(key => STATUS_COLORS[key as ProposalStatus]),
-        strokes: ["#ffffff"],
-        strokeWidth: 2,
+    xField: "type",
+    yField: "value",
+    colorField: "type",
+    sort: {
+      reverse: true,
+    },
+    label: {
+      text: (d: any) => `${d.value} (${((d.value / total) * 100).toFixed(0)}%)`,
+      position: "right",
+      dx: 5,
+      style: {
+        fontSize: 12,
+        fontWeight: 500,
+        fill: "#64748b",
       },
-    ],
-    title: {
-      enabled: false,
     },
-    legend: {
-      position: "bottom",
+    color: ({ type }: any) => {
+      const statusEntry = Object.entries(STATUS_LABELS).find(([_, label]) => label === type);
+      return statusEntry ? STATUS_COLORS[statusEntry[0] as ProposalStatus] : "#ccc";
     },
+    legend: false as const,
+    tooltip: {
+      showContent: true,
+      showMarkers: false,
+      formatter: (datum: any) => {
+        const percentage = ((datum.value / total) * 100).toFixed(1);
+        return { name: datum.type, value: `${datum.value} propostas (${percentage}%)` };
+      },
+    },
+    axis: {
+      x: {
+        labelSpacing: 4,
+        style: {
+          labelFontSize: 12,
+          labelFill: "#64748b",
+        }
+      },
+      y: {
+        grid: true,
+        gridLineDash: [4, 4],
+      }
+    },
+    style: {
+      radiusTopLeft: 4,
+      radiusTopRight: 4,
+      radiusBottomLeft: 4,
+      radiusBottomRight: 4,
+    }
   };
 
   return (
@@ -140,7 +163,7 @@ export function StatusDistribution() {
             <Empty description="Nenhuma proposta encontrada" />
           </div>
         ) : (
-          <AgCharts options={options} />
+          <Bar {...config} />
         )}
       </div>
     </Card>
