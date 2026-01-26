@@ -200,9 +200,6 @@ function BoxCalculator() {
                   <option value="60" data-oid="mt0i1ug">
                     60 meses
                   </option>
-                  <option value="72" data-oid=":58dy0v">
-                    72 meses
-                  </option>
                 </select>
               </div>
             </div>

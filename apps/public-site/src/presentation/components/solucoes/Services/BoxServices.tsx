@@ -63,7 +63,7 @@ function BoxServices() {
             Condições Flexíveis
           </h3>
           <p className="text-gray-600 text-base leading-relaxed" data-oid="desc-credit">
-            Parcelas acessíveis e prazos de até 72 meses. Escolha o plano ideal
+            Parcelas acessíveis e prazos de até 60 meses. Escolha o plano ideal
             e conquiste seu carro com tranquilidade.
           </p>
         </div>

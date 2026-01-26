@@ -521,7 +521,7 @@ export default function Step1VehicleOperation({
             </div>
 
             <div className="space-y-2">
-              <Label>Placa (opcional)</Label>
+              <Label>Placa</Label>
               <Input
                 value={formData.vehicle.plate}
                 onChange={(e) =>
@@ -573,7 +573,7 @@ export default function Step1VehicleOperation({
                 <SelectValue />
               </SelectTrigger>
                 <SelectContent side="bottom">
-                  {["12", "24", "36", "48", "60", "72"].map((term) => (
+                  {["12", "24", "36", "48", "60"].map((term) => (
                     <SelectItem key={term} value={term}>
                       {term} meses
                     </SelectItem>

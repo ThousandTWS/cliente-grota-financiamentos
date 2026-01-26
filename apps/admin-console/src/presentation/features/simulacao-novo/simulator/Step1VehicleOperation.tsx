@@ -800,7 +800,7 @@ export default function Step1VehicleOperation({
                 onChange={(value) =>
                   updateFormData("financial", { termMonths: Number(value) })
                 }
-                options={["12", "24", "36", "48", "60", "72"].map((term) => ({
+                options={["12", "24", "36", "48", "60"].map((term) => ({
                   value: term,
                   label: `${term} meses`,
                 }))}

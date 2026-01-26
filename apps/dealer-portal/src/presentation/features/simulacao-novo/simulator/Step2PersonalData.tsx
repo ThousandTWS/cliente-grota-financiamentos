@@ -539,14 +539,11 @@ export default function Step2PersonalData({
   prevStep,
 }: Step2PersonalDataProps) {
   const [searchingDoc, setSearchingDoc] = useState(false);
-  const [searchingCep, setSearchingCep] = useState(false);
   const [cpfStatus, setCpfStatus] = useState<string | null>(null);
   const [cpfLookupCompleted, setCpfLookupCompleted] = useState(false);
   const [cpfPhoneDigits, setCpfPhoneDigits] = useState("");
   const [cnpjStatus, setCnpjStatus] = useState<string | null>(null);
   const [cnpjLookupCompleted, setCnpjLookupCompleted] = useState(false);
-  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
-  const [phoneVerified, setPhoneVerified] = useState<boolean | null>(null);
 
   const isPf = formData.personType === "PF";
   const docStatus = isPf ? cpfStatus : cnpjStatus;
@@ -579,7 +576,7 @@ export default function Step2PersonalData({
       : phoneVerified === null
       ? "Telefone nao informado"
       : phoneVerified
-        ? "Telefone verificado"
+        ? ""
         : "Telefone nao verificado";
   const phoneVerificationTone = phoneFraudAlert
     ? "recusada"
