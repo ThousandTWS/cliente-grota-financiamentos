@@ -411,7 +411,7 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
               <RefreshCcw className="mr-2 h-4 w-4" />
               Atualizar
             </Button>
-            <Button onClick={handleCreate} data-oid="addDealer" className="w-full sm:w-auto">
+            <Button onClick={handleCreate} data-oid="addDealer" className="w-full sm:w-auto" type="primary">
               <Plus className="mr-2 h-4 w-4" />
               Novo logista
             </Button>

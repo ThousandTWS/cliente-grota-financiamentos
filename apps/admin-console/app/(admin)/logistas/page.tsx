@@ -4,14 +4,14 @@ import { Card, Typography } from "antd";
 export default function LogistasPage() {
     return (
         <div className="py-6 space-y-6" data-oid="z7k-xqo">
-            <div className="flex flex-col gap-2 py-3 px-3" data-oid="elop5yj">
+            <div className="flex flex-col gap-2 py-5 px-7" data-oid="elop5yj">
                 <h1 className="text-3xl font-bold tracking-tight" data-oid=":n:ayd-">
                     Gerencie os logistas cadastrados no sistema
                 </h1>
             </div>
 
             <Card
-                className="w-full"
+                className="w-full "
                 title="Lista de Logistas"
                 data-oid="m7kc9vb"
             >

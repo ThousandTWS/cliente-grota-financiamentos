@@ -28,6 +28,7 @@ export function LogistaActions({ logista, onOpenActions }: LogistaActionsProps) 
       onClick={() => onOpenActions(logista)}
       className="h-8"
       title="Acoes do lojista"
+      type="primary"
     >
       Acoes
     </Button>
