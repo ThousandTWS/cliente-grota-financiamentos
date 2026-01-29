@@ -84,7 +84,7 @@ export const navItems: NavItem[] = [
   icon: <Receipt />,
   subItems: [
     {
-      name: "Criar Cobrança",
+      name: "Contratos",
       path: "/cobrancas",
       pro: false,
       icon: <PlusCircle size={16} />
