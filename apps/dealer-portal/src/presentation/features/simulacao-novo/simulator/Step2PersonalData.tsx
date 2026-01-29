@@ -887,28 +887,17 @@ export default function Step2PersonalData({
                 payload?.user?.celular,
             );
 
-          const resolvedEmail =
-            contactEmail.email || emailValue || payload?.user?.email || "";
-          const resolvedPhoneDigits =
-            contactPhone.phoneDigits || phoneDigits || fallbackPhoneDigits;
-
           updateFormData("personal", {
             name: formatName(razaoSocial || ""),
             companyName: formatName(razaoSocial || ""),
             shareholderName: formatName(cnpjData?.socios?.[0]?.nome_socio || ""),
-            email: resolvedEmail || formData.personal.email,
-            phone: resolvedPhoneDigits ? maskPhone(resolvedPhoneDigits) : formData.personal.phone,
           });
           setCnpjStatus(statusValue || null);
           setCnpjLookupCompleted(true);
-          setEmailVerified(contactEmail.verified ?? (resolvedEmail ? true : null));
-          setPhoneVerified(contactPhone.verified ?? (resolvedPhoneDigits ? true : null));
           toast.success("Dados da empresa carregados!");
         } else {
           setCnpjStatus(null);
           setCnpjLookupCompleted(false);
-          setEmailVerified(null);
-          setPhoneVerified(null);
         }
       }
     } catch (error) {
@@ -918,8 +907,6 @@ export default function Step2PersonalData({
       setCpfPhoneDigits("");
       setCnpjStatus(null);
       setCnpjLookupCompleted(false);
-      setEmailVerified(null);
-      setPhoneVerified(null);
     } finally {
       setSearchingDoc(false);
     }
@@ -990,15 +977,6 @@ export default function Step2PersonalData({
       if (!isValidBrazilPhone(digits)) {
         toast.error("Fraude ou informacao ilegal.");
         return false;
-      }
-
-      if (cpfPhoneDigits) {
-        const normalizedInput = normalizePhoneDigits(personal.phone);
-        const normalizedCpfPhone = normalizePhoneDigits(cpfPhoneDigits);
-        if (normalizedInput !== normalizedCpfPhone) {
-          toast.error("Telefone nao corresponde ao CPF informado.");
-          return false;
-        }
       }
     }
 

@@ -587,7 +587,7 @@ public class BillingService {
             BillingInstallment installment = new BillingInstallment();
             installment.setContract(contract);
             installment.setNumber(i + 1);
-            installment.setDueDate(firstDueDate.plusDays(30L * i));
+            installment.setDueDate(firstDueDate.plusMonths(i));
             installment.setAmount(dto.installmentValue());
             installment.setPaid(false);
             generated.add(installment);
@@ -606,7 +606,7 @@ public class BillingService {
             BillingInstallment installment = new BillingInstallment();
             installment.setContract(contract);
             installment.setNumber(i + 1);
-            installment.setDueDate(firstDueDate.plusDays(30L * i));
+            installment.setDueDate(firstDueDate.plusMonths(i));
             installment.setAmount(installmentValue);
             installment.setPaid(false);
             generated.add(installment);
