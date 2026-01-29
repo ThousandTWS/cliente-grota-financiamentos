@@ -2,8 +2,6 @@ Este repositório é um **starter Turborepo** adaptado para o projeto **Grota Fi
 
 > Estrutura pensada para desenvolvimento rápido, deploy independente de cada app e compartilhamento de componentes e tipos.
 
-### Aplicações e pacotes
-
 - `public-site` — site institucional e páginas públicas (Next.js)
 - `dealer-portal` — painel do lojista com BFF para autenticação/rotas (`/app/api/auth/*`)
 - `admin-console` — CRM interno + BFF seguindo o mesmo padrão de sessão e permissões
