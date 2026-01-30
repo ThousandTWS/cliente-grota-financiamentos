@@ -135,7 +135,7 @@ export default function SimuladorAdminPage() {
             <h1 className="text-3xl md:text-4xl font-bold">Simulador de Financiamento</h1>
           </div>
           <p className="text-blue-100 text-lg">
-            Simule seu financiamento de veiculo de forma rapida e segura
+            Simule seu financiamento de veículo de forma rápida e segura
           </p>
         </div>
       </div>
@@ -143,8 +143,7 @@ export default function SimuladorAdminPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <StepIndicator currentStep={currentStep} />
-
-          <div className="mt-8">{renderStep()}</div>
+          <div className="mt-8 ">{renderStep()}</div>
         </div>
       </div>
 

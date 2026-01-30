@@ -190,7 +190,7 @@ export function ProposalsTable({
       {cards.map((proposal) => (
         <Card
           key={proposal.id}
-          className={`bg-gradient-to-br from-white via-slate-50 to-white shadow-sm ${recentIds[proposal.id] ? "proposal-flash ring-2 ring-amber-300/70 border border-amber-200/80" : ""}`}
+          className={`!mt-4 bg-gradient-to-br from-white via-slate-50 to-white shadow-sm ${recentIds[proposal.id] ? "proposal-flash ring-2 ring-amber-300/70 border border-amber-200/80" : ""}`}
         >
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
@@ -224,8 +224,9 @@ export function ProposalsTable({
                     </Text>
                   ) : null}
                 </div>
+
               </div>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-3" /*Valores Financiados e Status*/>
                 <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm">
                   <Text className="text-xs text-muted-foreground">Valor financiado</Text>
                   <p className="font-semibold text-emerald-600">{formatCurrency(proposal.financedValue)}</p>
@@ -241,7 +242,7 @@ export function ProposalsTable({
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3" /* Botão de Histórico */>
               <Select
                 value={proposal.status}
                 onChange={(value) => onStatusChange(proposal, value as ProposalStatus)}
@@ -252,12 +253,17 @@ export function ProposalsTable({
                   label: proposalStatusLabels[status],
                 }))}
               />
-              <Button
-                onClick={() => handleOpenMessage(proposal)}
-                icon={<StickyNote className="size-4" />}
-              >
-                Mensagem da analise
-              </Button>
+
+              <div className="flex flex-col mt-3" /*Botão Analise*/>
+                <Button
+                    onClick={() => handleOpenMessage(proposal)}
+                    icon={<StickyNote className="size-4" />}
+                    type="primary"
+
+                >
+                  Mensagem da análise
+                </Button>
+              </div>
               <div className="flex flex-col gap-2">
                 <Button
                   onClick={() =>

@@ -110,33 +110,36 @@ export function QueueFilters({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-          <Button
-            icon={<RefreshCw className="size-4" />}
-            onClick={onRefresh}
-            disabled={isRefreshing}
-          >
-            Atualizar
-          </Button>
-          {onExport ? (
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end  sm:justify-center max-sm:flex-row  ">
+
             <Button
-              type="text"
-              icon={<Download className="size-4" />}
-              onClick={onExport}
+                className="max-sm:grow-1"
+                icon={<RefreshCw className="size-4" />}
+                onClick={onRefresh}
+                disabled={isRefreshing}
             >
-              Exportar CSV
+              Atualizar
             </Button>
-          ) : null}
+
+            {onExport ? (
+                <Button
+                    type="primary"
+                    className="!bg-green-500  hover:!bg-green-400 active:!bg-green-600 sm:grow-2 shink-1 max-sm:grow-2"
+                    icon={<Download className="size-4" />}
+                    onClick={onExport}
+                >
+                  Exportar CSV
+                </Button>
+            ) : null}
+
           {onCreate ? (
-            <Button type="primary" icon={<Plus className="size-4" />} onClick={onCreate}>
+            <Button
+                type="primary" icon={<Plus className="size-4" />} onClick={onCreate}
+                className="grow-4"
+            >
               Nova ficha
             </Button>
           ) : null}
-          <Button
-            icon={<Filter className="size-4" />}
-            onClick={handleReset}
-            aria-label="Limpar filtros"
-          />
         </div>
       </div>
     </div>

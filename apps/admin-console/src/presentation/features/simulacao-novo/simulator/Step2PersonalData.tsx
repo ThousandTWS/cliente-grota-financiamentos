@@ -1008,7 +1008,7 @@ export default function Step2PersonalData({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col gap-4">
       <Card
         title={
           <div className="flex items-center gap-2">
@@ -1202,7 +1202,7 @@ export default function Step2PersonalData({
                 />
               </div>
 
-              <div className="flex items-center space-x-3 p-4 border border-[#134B73] rounded-lg">
+              <div className="flex items-center  gap-2 space-x-3 p-4 border border-[#134B73] rounded-lg">
                 <Switch
                   checked={formData.personal.hasCnh}
                   onChange={(checked) => updateFormData("personal", { hasCnh: checked })}

@@ -743,9 +743,9 @@ export default function EsteiraDePropostasFeature() {
       <Alert
         type="info"
         showIcon
-        className="rounded-2xl border-slate-200 bg-white/70 "
-        title="Conteudo disponivel"
-        description="Utilize o botao Exportar CSV para compartilhar a lista filtrada com sua equipe, ou abra o historico para revisar o processo completo do cliente."
+        className="rounded-2xl border-slate-200 bg-white/70 max-sm:!hidden"
+        title="Conteúdo disponível"
+        description="Utilize o botão Exportar CSV para compartilhar a lista filtrada com sua equipe, ou abra o histórico para revisar o processo completo do cliente."
       />
       </div>
 

@@ -233,7 +233,7 @@ export default function ConfiguracoesAdminPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-2">
         <Card className="lg:col-span-2 border border-slate-200/70 shadow-theme-lg">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-[#134B73]">
@@ -282,7 +282,7 @@ export default function ConfiguracoesAdminPage() {
                 </div>
               </div>
             )}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 ">
               <Button
                 className="sm:w-auto w-full bg-[#134B73] hover:bg-[#0f3c5a]"
                 onClick={handleSaveProfile}
@@ -368,7 +368,7 @@ export default function ConfiguracoesAdminPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-2 mb-4">
         <Card className="border border-slate-200/70 shadow-theme-lg">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-[#134B73]">

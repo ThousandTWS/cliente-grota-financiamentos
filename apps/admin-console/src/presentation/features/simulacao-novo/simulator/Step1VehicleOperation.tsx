@@ -346,12 +346,12 @@ export default function Step1VehicleOperation({
   }, [onSellerChange]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col gap-3">
       <Card
         title={
           <div className="flex items-center gap-2">
             <Car className="w-5 h-5 text-[#134B73]" />
-            <span className="text-lg font-semibold text-[#134B73]">Tipo de Operacao</span>
+            <span className="text-lg font-semibold text-[#134B73]">Tipo de Operação</span>
           </div>
         }
       >
@@ -413,7 +413,7 @@ export default function Step1VehicleOperation({
             </div>
 
             <div className="space-y-2">
-              <Typography.Text>Tipo de Operacao</Typography.Text>
+              <Typography.Text>Tipo de Operação</Typography.Text>
               <Select
                 value={formData.operationType ?? undefined}
                 onChange={(value) =>
@@ -429,7 +429,7 @@ export default function Step1VehicleOperation({
             </div>
 
             <div className="space-y-2">
-              <Typography.Text>Categoria do Veiculo</Typography.Text>
+              <Typography.Text>Categoria do Veículo</Typography.Text>
               <Select
                 value={formData.vehicleCategory ?? undefined}
                 onChange={(value) => {
@@ -644,14 +644,14 @@ export default function Step1VehicleOperation({
         </div>
       </Modal>
 
-      <Card title={<span className="text-lg font-semibold text-[#134B73]">Dados do Veiculo</span>}>
+      <Card title={<span className="text-lg font-semibold text-[#134B73]">Dados do Veículo</span>}>
         <div className="space-y-4">
           <div className="flex items-center space-x-3 p-4 border rounded-lg">
             <Switch
               checked={formData.vehicle.isZeroKm}
               onChange={(checked) => updateFormData("vehicle", { isZeroKm: checked })}
             />
-            <Typography.Text className="text-base font-medium">Veiculo 0 KM</Typography.Text>
+            <Typography.Text className="text-base font-medium ml-2">Veículo 0 KM</Typography.Text>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -813,9 +813,9 @@ export default function Step1VehicleOperation({
         </div>
       </Card>
 
-      <div className="flex justify-end mt-5">
+      <div className="flex justify-end mt-5 max-sm:justify-around">
         <Button onClick={handleNext} type="primary" size="large">
-          Proximo: Dados Pessoais
+          Próximo: Dados Pessoais
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>

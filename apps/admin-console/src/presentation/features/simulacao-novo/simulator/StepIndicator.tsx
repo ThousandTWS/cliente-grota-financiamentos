@@ -3,10 +3,10 @@
 import { Steps } from "antd";
 
 const steps = [
-  { title: "Operacao e veiculo" },
+  { title: "Operação e veículo" },
   { title: "Dados pessoais" },
   { title: "Dados profissionais" },
-  { title: "Revisao e confirmacao" },
+  { title: "Revisão e confirmção" },
 ];
 
 type StepIndicatorProps = {

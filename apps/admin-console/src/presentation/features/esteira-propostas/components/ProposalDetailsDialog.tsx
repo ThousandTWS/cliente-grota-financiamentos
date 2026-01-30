@@ -74,7 +74,7 @@ export function ProposalDetailsDialog({
                 </Text>
               </div>
               <div className="text-sm text-slate-700">
-                <p>Responsavel: {sellerName ?? (proposal.sellerId ? `Responsavel #${proposal.sellerId}` : "Nao informado")}</p>
+                <p>Responsável: {sellerName ?? (proposal.sellerId ? `Responsavel #${proposal.sellerId}` : "Nao informado")}</p>
               </div>
             </div>
           </section>

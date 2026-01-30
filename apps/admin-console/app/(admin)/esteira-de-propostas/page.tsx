@@ -10,13 +10,13 @@ export default function EsteiraDePropostasPage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <div className="space-y-2 text-white">
           <Typography.Text className="text-xs uppercase tracking-wide !text-white/70">
-            Operacoes Grota
+            Operações Grota
           </Typography.Text>
           <Typography.Title level={1} className="!m-0 text-3xl font-bold tracking-tight !text-white">
             Esteira de Propostas
           </Typography.Title>
           <Typography.Paragraph className="!m-0 !text-white/80">
-            Acompanhe suas fichas, atualize filtros e avance cada etapa do processo de credito.
+            Acompanhe suas fichas, atualize filtros e avance cada etapa do processo de crédito.
           </Typography.Paragraph>
         </div>
 
