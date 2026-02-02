@@ -12,7 +12,7 @@ import {
   SyncOutlined,
   CloseCircleOutlined
 } from "@ant-design/icons";
-import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin, Empty, Flex, Avatar, List, Badge } from "antd";
+import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin, Empty, Flex, Avatar, List, Badge, Modal } from "antd";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
@@ -65,6 +65,9 @@ export function QuickStats() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sellersModalOpen, setSellersModalOpen] = useState(false);
+  const [dealersModalOpen, setDealersModalOpen] = useState(false);
+  const [proposalsModalOpen, setProposalsModalOpen] = useState(false);
   const { user } = useUser();
 
   useEffect(() => {
@@ -120,7 +123,7 @@ export function QuickStats() {
     });
   }, [proposals]);
 
-  const topSellers = useMemo(() => {
+  const topSellersAll = useMemo(() => {
     const totals = proposals.reduce<Record<number, { count: number; total: number }>>((acc, p) => {
       if (!p.sellerId) return acc;
       acc[p.sellerId] = acc[p.sellerId] || { count: 0, total: 0 };
@@ -135,11 +138,12 @@ export function QuickStats() {
         name: sellers.find(s => s.id === Number(id))?.fullName ?? `Vendedor #${id}`,
         ...data
       }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 3);
+      .sort((a, b) => b.total - a.total);
   }, [proposals, sellers]);
 
-  const topDealers = useMemo(() => {
+  const topSellersDisplay = useMemo(() => topSellersAll.slice(0, 3), [topSellersAll]);
+
+  const topDealersAll = useMemo(() => {
     const totals = proposals.reduce<Record<number, { count: number; total: number }>>((acc, p) => {
       if (!p.dealerId) return acc;
       acc[p.dealerId] = acc[p.dealerId] || { count: 0, total: 0 };
@@ -157,15 +161,17 @@ export function QuickStats() {
           ...data
         };
       })
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 3);
+      .sort((a, b) => b.total - a.total);
   }, [proposals, dealers]);
 
-  const lastProposals = useMemo(() => {
+  const topDealersDisplay = useMemo(() => topDealersAll.slice(0, 3), [topDealersAll]);
+
+  const allProposalsSorted = useMemo(() => {
     return [...proposals]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [proposals]);
+
+  const lastProposals = useMemo(() => allProposalsSorted.slice(0, 5), [allProposalsSorted]);
 
   const statusTags: Record<ProposalStatus, { color: string; label: string }> = {
     SUBMITTED: { color: 'blue', label: 'Recebida' },
@@ -238,30 +244,39 @@ export function QuickStats() {
             size="small"
             styles={{ header: { borderBottom: '1px solid #f0f0f0', padding: '12px 16px' } }}
           >
-            {topSellers.length > 0 ? (
-              <List
-                itemLayout="horizontal"
-                dataSource={topSellers}
-                renderItem={(item, index) => (
-                  <List.Item
-                    extra={<Text strong type="success">{currency(item.total)}</Text>}
-                  >
-                    <List.Item.Meta
-                      avatar={
-                        <Avatar
-                          style={{
-                            backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
-                          }}
-                        >
-                          {index + 1}º
-                        </Avatar>
-                      }
-                      title={<Text ellipsis style={{ maxWidth: 140 }}>{item.name}</Text>}
-                      description={`${item.count} propostas`}
-                    />
-                  </List.Item>
+            {topSellersDisplay.length > 0 ? (
+              <>
+                <List
+                  itemLayout="horizontal"
+                  dataSource={topSellersDisplay}
+                  renderItem={(item, index) => (
+                    <List.Item
+                      extra={<Text strong type="success">{currency(item.total)}</Text>}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <Avatar
+                            style={{
+                              backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
+                            }}
+                          >
+                            {index + 1}º
+                          </Avatar>
+                        }
+                        title={<Text ellipsis style={{ maxWidth: 140 }}>{item.name}</Text>}
+                        description={`${item.count} propostas`}
+                      />
+                    </List.Item>
+                  )}
+                />
+                {topSellersAll.length > 3 && (
+                  <div style={{ textAlign: 'center', marginTop: 8 }}>
+                    <Typography.Link onClick={() => setSellersModalOpen(true)}>
+                      Ver mais ({topSellersAll.length - 3} restantes)
+                    </Typography.Link>
+                  </div>
                 )}
-              />
+              </>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhum vendedor encontrado" />
             )}
@@ -284,30 +299,39 @@ export function QuickStats() {
             size="small"
             styles={{ header: { borderBottom: '1px solid #f0f0f0', padding: '12px 16px' } }}
           >
-            {topDealers.length > 0 ? (
-              <List
-                itemLayout="horizontal"
-                dataSource={topDealers}
-                renderItem={(item, index) => (
-                  <List.Item
-                    extra={<Text strong type="success">{currency(item.total)}</Text>}
-                  >
-                    <List.Item.Meta
-                      avatar={
-                        <Avatar
-                          style={{
-                            backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
-                          }}
-                        >
-                          {index + 1}º
-                        </Avatar>
-                      }
-                      title={<Text ellipsis style={{ maxWidth: 140 }}>{item.name}</Text>}
-                      description={`${item.count} propostas`}
-                    />
-                  </List.Item>
+            {topDealersDisplay.length > 0 ? (
+              <>
+                <List
+                  itemLayout="horizontal"
+                  dataSource={topDealersDisplay}
+                  renderItem={(item, index) => (
+                    <List.Item
+                      extra={<Text strong type="success">{currency(item.total)}</Text>}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <Avatar
+                            style={{
+                              backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
+                            }}
+                          >
+                            {index + 1}º
+                          </Avatar>
+                        }
+                        title={<Text ellipsis style={{ maxWidth: 140 }}>{item.name}</Text>}
+                        description={`${item.count} propostas`}
+                      />
+                    </List.Item>
+                  )}
+                />
+                {topDealersAll.length > 3 && (
+                  <div style={{ textAlign: 'center', marginTop: 8 }}>
+                    <Typography.Link onClick={() => setDealersModalOpen(true)}>
+                      Ver mais ({topDealersAll.length - 3} restantes)
+                    </Typography.Link>
+                  </div>
                 )}
-              />
+              </>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma loja encontrada" />
             )}
@@ -331,40 +355,177 @@ export function QuickStats() {
             styles={{ header: { borderBottom: '1px solid #f0f0f0', padding: '12px 16px' } }}
           >
             {lastProposals.length > 0 ? (
-              <List
-                itemLayout="horizontal"
-                dataSource={lastProposals}
-                renderItem={(item) => (
-                  <List.Item
-                    extra={
-                      <Tag color={statusTags[item.status].color}>
-                        {statusTags[item.status].label}
-                      </Tag>
-                    }
-                  >
-                    <List.Item.Meta
-                      avatar={
-                        <Badge 
-                          status={
-                            item.status === 'APPROVED' ? 'success' : 
-                            item.status === 'REJECTED' ? 'error' : 
-                            item.status === 'PAID' ? 'processing' : 
-                            'warning'
-                          } 
-                        />
+              <>
+                <List
+                  itemLayout="horizontal"
+                  dataSource={lastProposals}
+                  renderItem={(item) => (
+                    <List.Item
+                      extra={
+                        <Tag color={statusTags[item.status].color}>
+                          {statusTags[item.status].label}
+                        </Tag>
                       }
-                      title={<Text ellipsis style={{ maxWidth: 120 }}>{item.customerName}</Text>}
-                      description={new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                    />
-                  </List.Item>
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <Badge 
+                            status={
+                              item.status === 'APPROVED' ? 'success' : 
+                              item.status === 'REJECTED' ? 'error' : 
+                              item.status === 'PAID' ? 'processing' : 
+                              'warning'
+                            } 
+                          />
+                        }
+                        title={<Text ellipsis style={{ maxWidth: 120 }}>{item.customerName}</Text>}
+                        description={new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                      />
+                    </List.Item>
+                  )}
+                />
+                {allProposalsSorted.length > 5 && (
+                  <div style={{ textAlign: 'center', marginTop: 8 }}>
+                    <Typography.Link onClick={() => setProposalsModalOpen(true)}>
+                      Ver mais ({allProposalsSorted.length - 5} restantes)
+                    </Typography.Link>
+                  </div>
                 )}
-              />
+              </>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma proposta encontrada" />
             )}
           </Card>
         </Col>
       </Row>
+
+      {/* Modal - Todos os Vendedores */}
+      <Modal
+        title={
+          <Flex align="center" gap={8}>
+            <Avatar style={{ backgroundColor: '#fa8c16' }} icon={<UserOutlined />} />
+            <Text strong>Ranking de Vendedores</Text>
+          </Flex>
+        }
+        open={sellersModalOpen}
+        onCancel={() => setSellersModalOpen(false)}
+        footer={null}
+        width={600}
+      >
+        <List
+          itemLayout="horizontal"
+          dataSource={topSellersAll}
+          renderItem={(item, index) => (
+            <List.Item
+              extra={<Text strong type="success">{currency(item.total)}</Text>}
+            >
+              <List.Item.Meta
+                avatar={
+                  <Avatar
+                    style={{
+                      backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : index === 2 ? '#d48806' : '#bfbfbf',
+                    }}
+                  >
+                    {index + 1}º
+                  </Avatar>
+                }
+                title={item.name}
+                description={`${item.count} propostas`}
+              />
+            </List.Item>
+          )}
+        />
+      </Modal>
+
+      {/* Modal - Todas as Lojas */}
+      <Modal
+        title={
+          <Flex align="center" gap={8}>
+            <Avatar style={{ backgroundColor: '#1677ff' }} icon={<ShopOutlined />} />
+            <Text strong>Ranking de Lojas</Text>
+          </Flex>
+        }
+        open={dealersModalOpen}
+        onCancel={() => setDealersModalOpen(false)}
+        footer={null}
+        width={600}
+      >
+        <List
+          itemLayout="horizontal"
+          dataSource={topDealersAll}
+          renderItem={(item, index) => (
+            <List.Item
+              extra={<Text strong type="success">{currency(item.total)}</Text>}
+            >
+              <List.Item.Meta
+                avatar={
+                  <Avatar
+                    style={{
+                      backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : index === 2 ? '#d48806' : '#bfbfbf',
+                    }}
+                  >
+                    {index + 1}º
+                  </Avatar>
+                }
+                title={item.name}
+                description={`${item.count} propostas`}
+              />
+            </List.Item>
+          )}
+        />
+      </Modal>
+
+      {/* Modal - Todas as Propostas */}
+      <Modal
+        title={
+          <Flex align="center" gap={8}>
+            <Avatar style={{ backgroundColor: '#52c41a' }} icon={<FileTextOutlined />} />
+            <Text strong>Todas as Propostas</Text>
+          </Flex>
+        }
+        open={proposalsModalOpen}
+        onCancel={() => setProposalsModalOpen(false)}
+        footer={null}
+        width={700}
+      >
+        <List
+          itemLayout="horizontal"
+          dataSource={allProposalsSorted}
+          pagination={{
+            pageSize: 10,
+            size: 'small',
+          }}
+          renderItem={(item) => (
+            <List.Item
+              extra={
+                <Tag color={statusTags[item.status].color}>
+                  {statusTags[item.status].label}
+                </Tag>
+              }
+            >
+              <List.Item.Meta
+                avatar={
+                  <Badge 
+                    status={
+                      item.status === 'APPROVED' ? 'success' : 
+                      item.status === 'REJECTED' ? 'error' : 
+                      item.status === 'PAID' ? 'processing' : 
+                      'warning'
+                    } 
+                  />
+                }
+                title={item.customerName}
+                description={
+                  <Space>
+                    <Text type="secondary">{new Date(item.createdAt).toLocaleDateString("pt-BR")}</Text>
+                    {item.financedValue && <Text type="secondary">• {currency(item.financedValue)}</Text>}
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </Modal>
     </div>
   );
 }
