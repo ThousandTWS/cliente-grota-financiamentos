@@ -224,105 +224,178 @@ export function QuickStats() {
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={8}>
           <Card 
-            title={<Space><UserOutlined /> Top 3 Vendedores</Space>} 
             className="shadow-sm border-slate-200 h-full"
-            size="small"
+            styles={{ body: { padding: 0 } }}
           >
-            {topSellers.length > 0 ? (
-              <div className="ant-list ant-list-horizontal">
-                <div className="ant-spin-nested-loading">
-                  <div className="ant-spin-container">
-                    {topSellers.map((item, index) => (
-                      <div key={item.id} className="ant-list-item">
-                        <div className="ant-list-item-meta">
-                          <div className="ant-list-item-meta-avatar">
-                            <Tag color={index === 0 ? "gold" : "default"}>{index + 1}º</Tag>
-                          </div>
-                          <div className="ant-list-item-meta-content">
-                            <h4 className="ant-list-item-meta-title">{item.name}</h4>
-                            <div className="ant-list-item-meta-description">{item.count} propostas</div>
-                          </div>
-                        </div>
-                        <ul className="ant-list-item-action">
-                          <li>
-                            <Text strong>{currency(item.total)}</Text>
-                          </li>
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
+            <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50">
+              <Space>
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white">
+                  <UserOutlined />
                 </div>
-              </div>
-            ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+                <div>
+                  <Text strong className="text-slate-700">Top 3 Vendedores</Text>
+                  <div className="text-xs text-slate-500">Ranking por volume</div>
+                </div>
+              </Space>
+            </div>
+            <div className="p-4">
+              {topSellers.length > 0 ? (
+                <div className="space-y-3">
+                  {topSellers.map((item, index) => {
+                    const medalColors = [
+                      { bg: 'bg-gradient-to-r from-amber-400 to-yellow-500', text: 'text-amber-900', border: 'border-amber-200' },
+                      { bg: 'bg-gradient-to-r from-slate-300 to-gray-400', text: 'text-slate-700', border: 'border-slate-200' },
+                      { bg: 'bg-gradient-to-r from-orange-400 to-amber-600', text: 'text-orange-900', border: 'border-orange-200' },
+                    ];
+                    const medal = medalColors[index] || medalColors[2];
+                    return (
+                      <div 
+                        key={item.id} 
+                        className={`flex items-center gap-3 p-3 rounded-xl border ${medal.border} bg-gradient-to-r from-white to-slate-50 hover:shadow-md transition-all duration-200`}
+                      >
+                        <div className={`w-10 h-10 rounded-full ${medal.bg} flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
+                          {index + 1}º
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Text strong className="block truncate text-slate-800">{item.name}</Text>
+                          <Text className="text-xs text-slate-500">{item.count} propostas</Text>
+                        </div>
+                        <div className="text-right">
+                          <Text strong className="text-emerald-600 text-sm">{currency(item.total)}</Text>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
+                    <UserOutlined className="text-2xl text-slate-400" />
+                  </div>
+                  <Text type="secondary">Nenhum vendedor encontrado</Text>
+                </div>
+              )}
+            </div>
           </Card>
         </Col>
+
         <Col xs={24} lg={8}>
           <Card 
-            title={<Space><ShopOutlined /> Top 3 Lojas</Space>} 
             className="shadow-sm border-slate-200 h-full"
-            size="small"
+            styles={{ body: { padding: 0 } }}
           >
-            {topDealers.length > 0 ? (
-              <div className="ant-list ant-list-horizontal">
-                <div className="ant-spin-nested-loading">
-                  <div className="ant-spin-container">
-                    {topDealers.map((item, index) => (
-                      <div key={item.id} className="ant-list-item">
-                        <div className="ant-list-item-meta">
-                          <div className="ant-list-item-meta-avatar">
-                            <Tag color={index === 0 ? "gold" : "default"}>{index + 1}º</Tag>
-                          </div>
-                          <div className="ant-list-item-meta-content">
-                            <h4 className="ant-list-item-meta-title">{item.name}</h4>
-                            <div className="ant-list-item-meta-description">{item.count} propostas</div>
-                          </div>
-                        </div>
-                        <ul className="ant-list-item-action">
-                          <li>
-                            <Text strong>{currency(item.total)}</Text>
-                          </li>
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
+            <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <Space>
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
+                  <ShopOutlined />
                 </div>
-              </div>
-            ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+                <div>
+                  <Text strong className="text-slate-700">Top 3 Lojas</Text>
+                  <div className="text-xs text-slate-500">Ranking por volume</div>
+                </div>
+              </Space>
+            </div>
+            <div className="p-4">
+              {topDealers.length > 0 ? (
+                <div className="space-y-3">
+                  {topDealers.map((item, index) => {
+                    const medalColors = [
+                      { bg: 'bg-gradient-to-r from-amber-400 to-yellow-500', text: 'text-amber-900', border: 'border-amber-200' },
+                      { bg: 'bg-gradient-to-r from-slate-300 to-gray-400', text: 'text-slate-700', border: 'border-slate-200' },
+                      { bg: 'bg-gradient-to-r from-orange-400 to-amber-600', text: 'text-orange-900', border: 'border-orange-200' },
+                    ];
+                    const medal = medalColors[index] || medalColors[2];
+                    return (
+                      <div 
+                        key={item.id} 
+                        className={`flex items-center gap-3 p-3 rounded-xl border ${medal.border} bg-gradient-to-r from-white to-slate-50 hover:shadow-md transition-all duration-200`}
+                      >
+                        <div className={`w-10 h-10 rounded-full ${medal.bg} flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
+                          {index + 1}º
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Text strong className="block truncate text-slate-800">{item.name}</Text>
+                          <Text className="text-xs text-slate-500">{item.count} propostas</Text>
+                        </div>
+                        <div className="text-right">
+                          <Text strong className="text-emerald-600 text-sm">{currency(item.total)}</Text>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
+                    <ShopOutlined className="text-2xl text-slate-400" />
+                  </div>
+                  <Text type="secondary">Nenhuma loja encontrada</Text>
+                </div>
+              )}
+            </div>
           </Card>
         </Col>
+
         <Col xs={24} lg={8}>
           <Card 
-            title={<Space><FileTextOutlined /> Últimas 5 Propostas</Space>} 
             className="shadow-sm border-slate-200 h-full"
-            size="small"
+            styles={{ body: { padding: 0 } }}
           >
-            {lastProposals.length > 0 ? (
-              <div className="ant-list ant-list-horizontal">
-                <div className="ant-spin-nested-loading">
-                  <div className="ant-spin-container">
-                    {lastProposals.map((item) => (
-                      <div key={item.id} className="ant-list-item">
-                        <div className="ant-list-item-meta">
-                          <div className="ant-list-item-meta-content">
-                            <h4 className="ant-list-item-meta-title">
-                              <Text ellipsis style={{ width: 120 }}>{item.customerName}</Text>
-                            </h4>
-                            <div className="ant-list-item-meta-description">
-                              {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                            </div>
-                          </div>
-                        </div>
-                        <ul className="ant-list-item-action">
-                          <li>
-                            <Tag color={statusTags[item.status].color}>{statusTags[item.status].label}</Tag>
-                          </li>
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
+            <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+              <Space>
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white">
+                  <FileTextOutlined />
                 </div>
-              </div>
-            ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+                <div>
+                  <Text strong className="text-slate-700">Últimas 5 Propostas</Text>
+                  <div className="text-xs text-slate-500">Atividade recente</div>
+                </div>
+              </Space>
+            </div>
+            <div className="p-4">
+              {lastProposals.length > 0 ? (
+                <div className="space-y-2">
+                  {lastProposals.map((item) => {
+                    const statusStyles: Record<ProposalStatus, { bg: string; dot: string }> = {
+                      SUBMITTED: { bg: 'bg-blue-50', dot: 'bg-blue-500' },
+                      PENDING: { bg: 'bg-amber-50', dot: 'bg-amber-500' },
+                      APPROVED: { bg: 'bg-emerald-50', dot: 'bg-emerald-500' },
+                      REJECTED: { bg: 'bg-red-50', dot: 'bg-red-500' },
+                      PAID: { bg: 'bg-cyan-50', dot: 'bg-cyan-500' },
+                    };
+                    const style = statusStyles[item.status] || statusStyles.PENDING;
+                    return (
+                      <div 
+                        key={item.id} 
+                        className={`flex items-center gap-3 p-3 rounded-lg ${style.bg} hover:shadow-sm transition-all duration-200`}
+                      >
+                        <div className={`w-2 h-2 rounded-full ${style.dot} flex-shrink-0`} />
+                        <div className="flex-1 min-w-0">
+                          <Text strong className="block truncate text-slate-800 text-sm">{item.customerName}</Text>
+                          <Text className="text-xs text-slate-500">
+                            {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                          </Text>
+                        </div>
+                        <Tag 
+                          color={statusTags[item.status].color} 
+                          className="m-0 text-xs"
+                          style={{ borderRadius: '12px' }}
+                        >
+                          {statusTags[item.status].label}
+                        </Tag>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
+                    <FileTextOutlined className="text-2xl text-slate-400" />
+                  </div>
+                  <Text type="secondary">Nenhuma proposta encontrada</Text>
+                </div>
+              )}
+            </div>
           </Card>
         </Col>
       </Row>
