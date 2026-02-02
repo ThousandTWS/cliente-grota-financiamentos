@@ -21,6 +21,8 @@ import org.example.server.modules.seller.repository.SellerRepository;
 import org.example.server.modules.proposal.factory.ProposalEventFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.example.server.modules.notification.service.NotificationService;
+import org.example.server.modules.notification.dto.NotificationRequestDTO;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +40,7 @@ public class ProposalService {
     private final ObjectMapper objectMapper;
     private final ProposalEventFactory proposalEventFactory;
     private final BillingService billingService;
+    private final NotificationService notificationService;
 
     private static final String REALTIME_CHANNEL = "proposals-bridge";
     private static final String REALTIME_SENDER = "api-service";
@@ -50,7 +53,8 @@ public class ProposalService {
             RealtimeBridgeClient realtimeBridgeClient,
             ObjectMapper objectMapper,
             ProposalEventFactory proposalEventFactory,
-            BillingService billingService) {
+            BillingService billingService,
+            NotificationService notificationService) {
         this.proposalRepository = proposalRepository;
         this.dealerRepository = dealerRepository;
         this.sellerRepository = sellerRepository;
@@ -59,6 +63,7 @@ public class ProposalService {
         this.objectMapper = objectMapper;
         this.proposalEventFactory = proposalEventFactory;
         this.billingService = billingService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -77,6 +82,16 @@ public class ProposalService {
                 payload);
         publishRealtime("PROPOSAL_CREATED", Map.of("proposal", toResponse(saved)));
         publishRealtime("PROPOSAL_EVENT_APPENDED", Map.of("proposalId", saved.getId()));
+
+        // Notificar admin sobre nova proposta
+        String valorFormatado = saved.getFinancedValue() != null
+                ? String.format("R$ %.2f", saved.getFinancedValue())
+                : "N/A";
+        notifyAdmin(
+                "Nova proposta recebida",
+                "Cliente: " + saved.getCustomerName() + " - Valor: " + valorFormatado,
+                saved.getId());
+
         return toResponse(saved);
     }
 
@@ -168,6 +183,10 @@ public class ProposalService {
         if (previousStatus != ProposalStatus.PAID && saved.getStatus() == ProposalStatus.PAID) {
             billingService.createFromPaidProposal(saved);
         }
+
+        // Disparar notificações de mudança de status
+        dispatchStatusNotifications(saved, previousStatus);
+
         return toResponse(saved);
     }
 
@@ -327,6 +346,72 @@ public class ProposalService {
             return objectMapper.writeValueAsString(map);
         } catch (JsonProcessingException e) {
             return map.toString();
+        }
+    }
+
+    // ===================== MÉTODOS DE NOTIFICAÇÃO =====================
+
+    private void dispatchStatusNotifications(Proposal proposal, ProposalStatus previousStatus) {
+        if (proposal.getStatus() == previousStatus) {
+            return; // Status não mudou
+        }
+
+        String statusLabel = switch (proposal.getStatus()) {
+            case SUBMITTED -> "recebida";
+            case PENDING -> "em análise";
+            case APPROVED -> "aprovada";
+            case REJECTED -> "reprovada";
+            case PAID -> "paga";
+        };
+
+        String title = "Proposta " + statusLabel;
+        String desc = "Proposta #" + proposal.getId() + " - " + proposal.getCustomerName();
+
+        // Sempre notificar Admin
+        notifyAdmin(title, desc, proposal.getId());
+
+        // Notificar Seller se existir
+        if (proposal.getSeller() != null) {
+            notifySeller(proposal.getSeller().getId(), title, desc, proposal.getId());
+        }
+
+        // Notificar Dealer se existir
+        if (proposal.getDealer() != null) {
+            notifyDealer(proposal.getDealer().getId(), title, desc, proposal.getId());
+        }
+    }
+
+    private void notifyAdmin(String title, String description, Long proposalId) {
+        notificationService.create(new NotificationRequestDTO(
+                title,
+                description,
+                "SISTEMA",
+                "ADMIN",
+                null,
+                "/propostas/" + proposalId));
+    }
+
+    private void notifySeller(Long sellerId, String title, String description, Long proposalId) {
+        if (sellerId != null) {
+            notificationService.create(new NotificationRequestDTO(
+                    title,
+                    description,
+                    "SISTEMA",
+                    "SELLER",
+                    sellerId,
+                    "/propostas/" + proposalId));
+        }
+    }
+
+    private void notifyDealer(Long dealerId, String title, String description, Long proposalId) {
+        if (dealerId != null) {
+            notificationService.create(new NotificationRequestDTO(
+                    title,
+                    description,
+                    "SISTEMA",
+                    "DEALER",
+                    dealerId,
+                    "/propostas/" + proposalId));
         }
     }
 }
