@@ -12,7 +12,7 @@ import {
   SyncOutlined,
   CloseCircleOutlined
 } from "@ant-design/icons";
-import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin, Empty } from "antd";
+import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin, Empty, Flex, Avatar, List, Badge } from "antd";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
@@ -224,178 +224,144 @@ export function QuickStats() {
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={8}>
           <Card 
-            className="shadow-sm border-slate-200 h-full"
-            styles={{ body: { padding: 0 } }}
-          >
-            <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50">
-              <Space>
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white">
-                  <UserOutlined />
-                </div>
+            title={
+              <Flex align="center" gap={8}>
+                <Avatar style={{ backgroundColor: '#fa8c16' }} icon={<UserOutlined />} />
                 <div>
-                  <Text strong className="text-slate-700">Top 3 Vendedores</Text>
-                  <div className="text-xs text-slate-500">Ranking por volume</div>
+                  <Text strong>Top 3 Vendedores</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>Ranking por volume</Text>
                 </div>
-              </Space>
-            </div>
-            <div className="p-4">
-              {topSellers.length > 0 ? (
-                <div className="space-y-3">
-                  {topSellers.map((item, index) => {
-                    const medalColors = [
-                      { bg: 'bg-gradient-to-r from-amber-400 to-yellow-500', text: 'text-amber-900', border: 'border-amber-200' },
-                      { bg: 'bg-gradient-to-r from-slate-300 to-gray-400', text: 'text-slate-700', border: 'border-slate-200' },
-                      { bg: 'bg-gradient-to-r from-orange-400 to-amber-600', text: 'text-orange-900', border: 'border-orange-200' },
-                    ];
-                    const medal = medalColors[index] || medalColors[2];
-                    return (
-                      <div 
-                        key={item.id} 
-                        className={`flex items-center gap-3 p-3 rounded-xl border ${medal.border} bg-gradient-to-r from-white to-slate-50 hover:shadow-md transition-all duration-200`}
-                      >
-                        <div className={`w-10 h-10 rounded-full ${medal.bg} flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
-                          {index + 1}º
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <Text strong className="block truncate text-slate-800">{item.name}</Text>
-                          <Text className="text-xs text-slate-500">{item.count} propostas</Text>
-                        </div>
-                        <div className="text-right">
-                          <Text strong className="text-emerald-600 text-sm">{currency(item.total)}</Text>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-8 text-center">
-                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
-                    <UserOutlined className="text-2xl text-slate-400" />
-                  </div>
-                  <Text type="secondary">Nenhum vendedor encontrado</Text>
-                </div>
-              )}
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={8}>
-          <Card 
+              </Flex>
+            }
             className="shadow-sm border-slate-200 h-full"
-            styles={{ body: { padding: 0 } }}
+            size="small"
+            styles={{ header: { borderBottom: '1px solid #f0f0f0', padding: '12px 16px' } }}
           >
-            <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <Space>
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
-                  <ShopOutlined />
-                </div>
-                <div>
-                  <Text strong className="text-slate-700">Top 3 Lojas</Text>
-                  <div className="text-xs text-slate-500">Ranking por volume</div>
-                </div>
-              </Space>
-            </div>
-            <div className="p-4">
-              {topDealers.length > 0 ? (
-                <div className="space-y-3">
-                  {topDealers.map((item, index) => {
-                    const medalColors = [
-                      { bg: 'bg-gradient-to-r from-amber-400 to-yellow-500', text: 'text-amber-900', border: 'border-amber-200' },
-                      { bg: 'bg-gradient-to-r from-slate-300 to-gray-400', text: 'text-slate-700', border: 'border-slate-200' },
-                      { bg: 'bg-gradient-to-r from-orange-400 to-amber-600', text: 'text-orange-900', border: 'border-orange-200' },
-                    ];
-                    const medal = medalColors[index] || medalColors[2];
-                    return (
-                      <div 
-                        key={item.id} 
-                        className={`flex items-center gap-3 p-3 rounded-xl border ${medal.border} bg-gradient-to-r from-white to-slate-50 hover:shadow-md transition-all duration-200`}
-                      >
-                        <div className={`w-10 h-10 rounded-full ${medal.bg} flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
-                          {index + 1}º
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <Text strong className="block truncate text-slate-800">{item.name}</Text>
-                          <Text className="text-xs text-slate-500">{item.count} propostas</Text>
-                        </div>
-                        <div className="text-right">
-                          <Text strong className="text-emerald-600 text-sm">{currency(item.total)}</Text>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-8 text-center">
-                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
-                    <ShopOutlined className="text-2xl text-slate-400" />
-                  </div>
-                  <Text type="secondary">Nenhuma loja encontrada</Text>
-                </div>
-              )}
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={8}>
-          <Card 
-            className="shadow-sm border-slate-200 h-full"
-            styles={{ body: { padding: 0 } }}
-          >
-            <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50">
-              <Space>
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white">
-                  <FileTextOutlined />
-                </div>
-                <div>
-                  <Text strong className="text-slate-700">Últimas 5 Propostas</Text>
-                  <div className="text-xs text-slate-500">Atividade recente</div>
-                </div>
-              </Space>
-            </div>
-            <div className="p-4">
-              {lastProposals.length > 0 ? (
-                <div className="space-y-2">
-                  {lastProposals.map((item) => {
-                    const statusStyles: Record<ProposalStatus, { bg: string; dot: string }> = {
-                      SUBMITTED: { bg: 'bg-blue-50', dot: 'bg-blue-500' },
-                      PENDING: { bg: 'bg-amber-50', dot: 'bg-amber-500' },
-                      APPROVED: { bg: 'bg-emerald-50', dot: 'bg-emerald-500' },
-                      REJECTED: { bg: 'bg-red-50', dot: 'bg-red-500' },
-                      PAID: { bg: 'bg-cyan-50', dot: 'bg-cyan-500' },
-                    };
-                    const style = statusStyles[item.status] || statusStyles.PENDING;
-                    return (
-                      <div 
-                        key={item.id} 
-                        className={`flex items-center gap-3 p-3 rounded-lg ${style.bg} hover:shadow-sm transition-all duration-200`}
-                      >
-                        <div className={`w-2 h-2 rounded-full ${style.dot} flex-shrink-0`} />
-                        <div className="flex-1 min-w-0">
-                          <Text strong className="block truncate text-slate-800 text-sm">{item.customerName}</Text>
-                          <Text className="text-xs text-slate-500">
-                            {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                          </Text>
-                        </div>
-                        <Tag 
-                          color={statusTags[item.status].color} 
-                          className="m-0 text-xs"
-                          style={{ borderRadius: '12px' }}
+            {topSellers.length > 0 ? (
+              <List
+                itemLayout="horizontal"
+                dataSource={topSellers}
+                renderItem={(item, index) => (
+                  <List.Item
+                    extra={<Text strong type="success">{currency(item.total)}</Text>}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar
+                          style={{
+                            backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
+                          }}
                         >
-                          {statusTags[item.status].label}
-                        </Tag>
-                      </div>
-                    );
-                  })}
+                          {index + 1}º
+                        </Avatar>
+                      }
+                      title={<Text ellipsis style={{ maxWidth: 140 }}>{item.name}</Text>}
+                      description={`${item.count} propostas`}
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhum vendedor encontrado" />
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={8}>
+          <Card 
+            title={
+              <Flex align="center" gap={8}>
+                <Avatar style={{ backgroundColor: '#1677ff' }} icon={<ShopOutlined />} />
+                <div>
+                  <Text strong>Top 3 Lojas</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>Ranking por volume</Text>
                 </div>
-              ) : (
-                <div className="py-8 text-center">
-                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
-                    <FileTextOutlined className="text-2xl text-slate-400" />
-                  </div>
-                  <Text type="secondary">Nenhuma proposta encontrada</Text>
+              </Flex>
+            }
+            className="shadow-sm border-slate-200 h-full"
+            size="small"
+            styles={{ header: { borderBottom: '1px solid #f0f0f0', padding: '12px 16px' } }}
+          >
+            {topDealers.length > 0 ? (
+              <List
+                itemLayout="horizontal"
+                dataSource={topDealers}
+                renderItem={(item, index) => (
+                  <List.Item
+                    extra={<Text strong type="success">{currency(item.total)}</Text>}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar
+                          style={{
+                            backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
+                          }}
+                        >
+                          {index + 1}º
+                        </Avatar>
+                      }
+                      title={<Text ellipsis style={{ maxWidth: 140 }}>{item.name}</Text>}
+                      description={`${item.count} propostas`}
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma loja encontrada" />
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={8}>
+          <Card 
+            title={
+              <Flex align="center" gap={8}>
+                <Avatar style={{ backgroundColor: '#52c41a' }} icon={<FileTextOutlined />} />
+                <div>
+                  <Text strong>Últimas 5 Propostas</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>Atividade recente</Text>
                 </div>
-              )}
-            </div>
+              </Flex>
+            }
+            className="shadow-sm border-slate-200 h-full"
+            size="small"
+            styles={{ header: { borderBottom: '1px solid #f0f0f0', padding: '12px 16px' } }}
+          >
+            {lastProposals.length > 0 ? (
+              <List
+                itemLayout="horizontal"
+                dataSource={lastProposals}
+                renderItem={(item) => (
+                  <List.Item
+                    extra={
+                      <Tag color={statusTags[item.status].color}>
+                        {statusTags[item.status].label}
+                      </Tag>
+                    }
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Badge 
+                          status={
+                            item.status === 'APPROVED' ? 'success' : 
+                            item.status === 'REJECTED' ? 'error' : 
+                            item.status === 'PAID' ? 'processing' : 
+                            'warning'
+                          } 
+                        />
+                      }
+                      title={<Text ellipsis style={{ maxWidth: 120 }}>{item.customerName}</Text>}
+                      description={new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma proposta encontrada" />
+            )}
           </Card>
         </Col>
       </Row>
