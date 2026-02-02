@@ -25,6 +25,7 @@ import type {
 import {
   deleteBillingContract,
   fetchBillingContracts,
+  syncAllContractsStatus,
   updateBillingContract,
   updateBillingContractNumber,
 } from "@/application/services/Billing/billingService";
@@ -90,6 +91,7 @@ export default function CobrancasPage() {
   const [editingContractNumber, setEditingContractNumber] = useState<number | null>(null);
   const [editingContractNumberValue, setEditingContractNumberValue] = useState<string>("");
   const [isUpdatingContractNumber, setIsUpdatingContractNumber] = useState(false);
+  const [isSyncingStatus, setIsSyncingStatus] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadContracts = useCallback(async () => {
@@ -451,8 +453,27 @@ export default function CobrancasPage() {
                 <Button
                   type="default"
                   icon={<ReloadOutlined />}
-                  onClick={loadContracts}
-                  loading={isLoading}
+                  onClick={async () => {
+                    setIsSyncingStatus(true);
+                    try {
+                      const result = await syncAllContractsStatus();
+                      if (result.updatedCount > 0) {
+                        message.success(`${result.updatedCount} contrato(s) atualizado(s)`);
+                      } else {
+                        message.info("Nenhum contrato precisou de atualização");
+                      }
+                      await loadContracts();
+                    } catch (err) {
+                      message.error(
+                        err instanceof Error
+                          ? err.message
+                          : "Não foi possível sincronizar os status."
+                      );
+                    } finally {
+                      setIsSyncingStatus(false);
+                    }
+                  }}
+                  loading={isLoading || isSyncingStatus}
                   size="small"
                 >
                   Atualizar

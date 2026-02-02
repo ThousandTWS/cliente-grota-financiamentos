@@ -521,6 +521,21 @@ public class BillingService {
     }
 
     @Transactional
+    public int syncAllContractsStatus() {
+        List<BillingContract> contracts = contractRepository.findAll();
+        int updatedCount = 0;
+        for (BillingContract contract : contracts) {
+            BillingStatus oldStatus = contract.getStatus();
+            syncContractStatus(contract);
+            if (contract.getStatus() != oldStatus) {
+                contractRepository.save(contract);
+                updatedCount++;
+            }
+        }
+        return updatedCount;
+    }
+
+    @Transactional
     public BillingOccurrenceDTO addOccurrenceById(Long id, BillingOccurrenceRequestDTO dto) {
         BillingContract contract = contractRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("Contrato nao encontrado"));

@@ -22,8 +22,7 @@ public class BillingController {
 
     @PostMapping("/contracts")
     public ResponseEntity<BillingContractDetailsDTO> createContract(
-            @Valid @RequestBody BillingContractCreateDTO dto
-    ) {
+            @Valid @RequestBody BillingContractCreateDTO dto) {
         return ResponseEntity.ok(billingService.createContract(dto));
     }
 
@@ -32,16 +31,13 @@ public class BillingController {
             @RequestParam(name = "name", required = false) String name,
             @RequestParam(name = "document", required = false) String document,
             @RequestParam(name = "contractNumber", required = false) String contractNumber,
-            @RequestParam(name = "status", required = false) BillingStatus status
-    ) {
+            @RequestParam(name = "status", required = false) BillingStatus status) {
         return ResponseEntity.ok(
                 billingService.listContracts(
                         Optional.ofNullable(name),
                         Optional.ofNullable(document),
                         Optional.ofNullable(contractNumber),
-                        Optional.ofNullable(status)
-                )
-        );
+                        Optional.ofNullable(status)));
     }
 
     @GetMapping("/contracts/{id}")
@@ -52,8 +48,7 @@ public class BillingController {
     @PatchMapping("/contracts/{id}")
     public ResponseEntity<BillingContractDetailsDTO> updateContract(
             @PathVariable Long id,
-            @Valid @RequestBody BillingContractUpdateDTO dto
-    ) {
+            @Valid @RequestBody BillingContractUpdateDTO dto) {
         return ResponseEntity.ok(billingService.updateContractById(id, dto));
     }
 
@@ -67,48 +62,46 @@ public class BillingController {
     public ResponseEntity<BillingInstallmentDTO> updateInstallmentDueDate(
             @PathVariable Long id,
             @PathVariable Integer installmentNumber,
-            @Valid @RequestBody BillingInstallmentDueDateUpdateDTO dto
-    ) {
+            @Valid @RequestBody BillingInstallmentDueDateUpdateDTO dto) {
         return ResponseEntity.ok(
-                billingService.updateInstallmentDueDateById(id, installmentNumber, dto)
-        );
+                billingService.updateInstallmentDueDateById(id, installmentNumber, dto));
     }
 
     @PatchMapping("/contracts/{id}/installments/{installmentNumber}")
     public ResponseEntity<BillingInstallmentDTO> updateInstallment(
             @PathVariable Long id,
             @PathVariable Integer installmentNumber,
-            @Valid @RequestBody BillingInstallmentUpdateDTO dto
-    ) {
+            @Valid @RequestBody BillingInstallmentUpdateDTO dto) {
         return ResponseEntity.ok(
-                billingService.updateInstallmentById(id, installmentNumber, dto)
-        );
+                billingService.updateInstallmentById(id, installmentNumber, dto));
     }
 
     @PatchMapping("/contracts/{id}/contract-number")
     public ResponseEntity<BillingContractDetailsDTO> updateContractNumber(
             @PathVariable Long id,
-            @Valid @RequestBody BillingContractNumberUpdateDTO dto
-    ) {
+            @Valid @RequestBody BillingContractNumberUpdateDTO dto) {
         return ResponseEntity.ok(billingService.updateContractNumberById(id, dto));
     }
 
     @PatchMapping("/contracts/{id}/vehicle")
     public ResponseEntity<BillingContractDetailsDTO> updateVehicle(
             @PathVariable Long id,
-            @Valid @RequestBody BillingVehicleUpdateDTO dto
-    ) {
+            @Valid @RequestBody BillingVehicleUpdateDTO dto) {
         return ResponseEntity.ok(billingService.updateVehicleById(id, dto));
     }
 
     @PostMapping("/contracts/{id}/occurrences")
     public ResponseEntity<BillingOccurrenceDTO> createOccurrence(
             @PathVariable Long id,
-            @Valid @RequestBody BillingOccurrenceRequestDTO dto
-    ) {
+            @Valid @RequestBody BillingOccurrenceRequestDTO dto) {
         return ResponseEntity.ok(billingService.addOccurrenceById(id, dto));
     }
+
+    @PostMapping("/contracts/sync-status")
+    public ResponseEntity<java.util.Map<String, Object>> syncAllContractsStatus() {
+        int updatedCount = billingService.syncAllContractsStatus();
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Status dos contratos sincronizados com sucesso",
+                "updatedCount", updatedCount));
+    }
 }
-
-
-

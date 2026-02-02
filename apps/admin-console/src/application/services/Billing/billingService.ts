@@ -184,3 +184,10 @@ export const deleteBillingContract = async (
     { method: "DELETE" },
   );
 };
+
+export const syncAllContractsStatus = async (): Promise<{ message: string; updatedCount: number }> => {
+  return request<{ message: string; updatedCount: number }>(
+    `${BILLING_ENDPOINT}/sync-status`,
+    { method: "POST" },
+  );
+};
