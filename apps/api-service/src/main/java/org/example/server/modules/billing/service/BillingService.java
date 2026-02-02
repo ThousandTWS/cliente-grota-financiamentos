@@ -481,6 +481,7 @@ public class BillingService {
 
         List<BillingInstallment> updatedInstallments = installmentRepository.findByContractOrderByNumberAsc(contract);
         syncContractStatusWithInstallments(contract, updatedInstallments);
+        contractRepository.save(contract);
 
         return toInstallment(saved);
     }
