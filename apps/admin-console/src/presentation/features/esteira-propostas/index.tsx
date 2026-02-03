@@ -64,6 +64,11 @@ const statusConfig: Record<
     bulletColor: "bg-teal-500",
     barColor: "bg-teal-500",
   },
+  CONTRACT_ISSUED: {
+    label: "Contrato Emitido",
+    bulletColor: "bg-violet-500",
+    barColor: "bg-violet-500",
+  },
 };
 
 const statusOptions: { value: ProposalStatus | "ALL"; label: string }[] = [
@@ -555,7 +560,7 @@ export default function EsteiraDePropostasFeature() {
     } catch (error) {
       console.error("[Admin Esteira] export", error);
       toast({
-        title: "Nao foi possivel exportar",
+        title: "Não foi possível exportar",
         description: error instanceof Error ? error.message : "Tente novamente.",
         variant: "destructive",
       });
@@ -576,14 +581,17 @@ export default function EsteiraDePropostasFeature() {
    * sem validações ou bloqueios.
    * Ajusta o filtro automaticamente para "ALL" se o novo status não corresponder ao filtro atual,
    * garantindo que a proposta continue visível na tela.
-   * Quando o status muda para PAID, abre um modal para inserir o número do contrato.
+   * Quando o status muda para PAID ou CONTRACT_ISSUED, abre um modal para inserir o número do contrato.
    */
   const handleStatusUpdate = async (
     proposal: Proposal,
     nextStatus: ProposalStatus,
   ) => {
-    // Se o status está mudando para PAID, abre modal para inserir número do contrato
-    if (nextStatus === "PAID" && proposal.status !== "PAID") {
+    // Se o status está mudando para PAID ou CONTRACT_ISSUED, abre modal para inserir número do contrato
+    const needsContractData = nextStatus === "PAID" || nextStatus === "CONTRACT_ISSUED";
+    const isAlreadyInTargetStatus = proposal.status === nextStatus;
+
+    if (needsContractData && !isAlreadyInTargetStatus) {
       setContractNumberModal({
         open: true,
         proposal,
@@ -650,7 +658,7 @@ export default function EsteiraDePropostasFeature() {
       });
       toast({
         title: "Status atualizado",
-        description: `${proposal.customerName} agora esta ${statusOptions.find((item) => item.value === nextStatus)?.label}.`,
+        description: `${proposal.customerName} agora está ${statusOptions.find((item) => item.value === nextStatus)?.label}.`,
       });
     } catch (error) {
       console.error("[Admin Esteira] Falha ao atualizar status", error);
@@ -737,7 +745,7 @@ export default function EsteiraDePropostasFeature() {
       }));
       toast({
         title: "Mensagem salva",
-        description: `Atualizamos as observacoes da proposta de ${proposal.customerName}.`,
+        description: `Atualizamos as observações da proposta de ${proposal.customerName}.`,
       });
       return true;
     } catch (error) {
@@ -761,7 +769,7 @@ export default function EsteiraDePropostasFeature() {
       await deleteProposal(proposal.id);
       setProposals((current) => current.filter((item) => item.id !== proposal.id));
       toast({
-        title: "Proposta excluida",
+        title: "Proposta excluída",
         description: `A proposta de ${proposal.customerName} foi removida.`,
         variant: "destructive",
       });
@@ -849,7 +857,7 @@ export default function EsteiraDePropostasFeature() {
       >
         <div className="space-y-4 py-4">
           <p>
-            A proposta de <strong>{contractNumberModal.proposal?.customerName}</strong> será marcada como paga.
+            A proposta de <strong>{contractNumberModal.proposal?.customerName}</strong> será marcada como {contractNumberModal.nextStatus === "PAID" ? "paga" : "contrato emitido"}.
             Preencha os dados do contrato abaixo.
           </p>
           

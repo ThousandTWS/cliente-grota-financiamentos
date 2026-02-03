@@ -34,6 +34,7 @@ const proposalStatusLabels: Record<ProposalStatus, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
   PAID: "Paga",
+  CONTRACT_ISSUED: "Contrato Emitido",
 };
 
 const statusOptions: ProposalStatus[] = [
@@ -42,6 +43,7 @@ const statusOptions: ProposalStatus[] = [
   "APPROVED",
   "REJECTED",
   "PAID",
+  "CONTRACT_ISSUED",
 ];
 
 const formatCurrency = (value: number) =>
