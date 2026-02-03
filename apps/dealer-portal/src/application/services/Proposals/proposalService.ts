@@ -12,7 +12,7 @@ const PROPOSALS_ENDPOINT = "/api/proposals";
 const DIRECT_ENDPOINT = "/proposals";
 
 const statusSchema = z.enum(
-  ["SUBMITTED", "PENDING", "APPROVED", "REJECTED", "PAID"] satisfies ProposalStatus[],
+  ["SUBMITTED", "PENDING", "APPROVED", "REJECTED", "PAID", "CONTRACT_ISSUED"] satisfies ProposalStatus[],
 );
 
 const ProposalSchema = z.object({

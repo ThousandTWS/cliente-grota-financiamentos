@@ -56,6 +56,11 @@ const statusConfig: Record<
     bulletColor: "bg-teal-500",
     barColor: "bg-teal-500",
   },
+  CONTRACT_ISSUED: {
+    label: "Contrato Emitido",
+    bulletColor: "bg-violet-500",
+    barColor: "bg-violet-500",
+  },
 };
 
 const statusOptions: { value: ProposalStatus | "ALL"; label: string }[] = [

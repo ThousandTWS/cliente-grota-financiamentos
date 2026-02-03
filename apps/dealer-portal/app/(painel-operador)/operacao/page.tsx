@@ -43,6 +43,7 @@ const statusLabel: Record<ProposalStatus, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
   PAID: "Paga",
+  CONTRACT_ISSUED: "Contrato Emitido",
 };
 
 const statusTagColor: Record<ProposalStatus, string> = {
@@ -51,6 +52,7 @@ const statusTagColor: Record<ProposalStatus, string> = {
   APPROVED: "green",
   REJECTED: "red",
   PAID: "cyan",
+  CONTRACT_ISSUED: "purple",
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -218,6 +220,7 @@ function PainelOperadorContent() {
       APPROVED: 0,
       REJECTED: 0,
       PAID: 0,
+      CONTRACT_ISSUED: 0,
     };
     filteredProposals.forEach((proposal) => {
       totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;

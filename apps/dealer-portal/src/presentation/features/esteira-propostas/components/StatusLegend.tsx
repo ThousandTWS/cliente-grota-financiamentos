@@ -10,6 +10,7 @@ const statusColors: Record<ProposalStatus, string> = {
   APPROVED: "#10B981",
   REJECTED: "#EF4444",
   PAID: "#14B8A6",
+  CONTRACT_ISSUED: "#8B5CF6",
 };
 
 type StatusLegendProps = {

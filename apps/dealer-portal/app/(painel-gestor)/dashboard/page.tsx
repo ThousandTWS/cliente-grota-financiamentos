@@ -21,6 +21,7 @@ const statusConfig: Record<
   APPROVED: { label: "Aprovadas", color: "#10B981" },
   REJECTED: { label: "Recusadas", color: "#EF4444" },
   PAID: { label: "Pagas", color: "#14B8A6" },
+  CONTRACT_ISSUED: { label: "Contrato Emitido", color: "#8B5CF6" },
 };
 
 type SellerItem = {
@@ -69,6 +70,7 @@ export default function GestorDashboardPage() {
       APPROVED: 0,
       REJECTED: 0,
       PAID: 0,
+      CONTRACT_ISSUED: 0,
     };
     proposals.forEach((proposal) => {
       totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;

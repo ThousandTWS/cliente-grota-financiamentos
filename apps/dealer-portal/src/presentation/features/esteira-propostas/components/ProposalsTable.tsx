@@ -20,6 +20,7 @@ const statusLabels: Record<ProposalStatus, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
   PAID: "Paga",
+  CONTRACT_ISSUED: "Contrato Emitido",
 };
 
 const formatCurrency = (value: number) =>
