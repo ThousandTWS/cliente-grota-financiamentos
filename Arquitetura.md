@@ -48,8 +48,6 @@ Este repositório é um **starter Turborepo** adaptado para o projeto **Grota Fi
 
 > Nunca faça o login diretamente contra o endpoint da API; use sempre o BFF do painel correspondente para que o cookie esteja no domínio certo.
 
-## Estrutura de pastas sugerida
-
 ```
 / (root)
 ├─ apps/
