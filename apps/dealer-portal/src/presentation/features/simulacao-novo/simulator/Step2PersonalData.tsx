@@ -544,6 +544,8 @@ export default function Step2PersonalData({
   const [cpfPhoneDigits, setCpfPhoneDigits] = useState("");
   const [cnpjStatus, setCnpjStatus] = useState<string | null>(null);
   const [cnpjLookupCompleted, setCnpjLookupCompleted] = useState(false);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [phoneVerified, setPhoneVerified] = useState<boolean | null>(null);
 
   const isPf = formData.personType === "PF";
   const docStatus = isPf ? cpfStatus : cnpjStatus;
@@ -920,7 +922,7 @@ export default function Step2PersonalData({
     if (digits.length !== 8) return;
 
     try {
-      setSearchingCep(true);
+      setSearchingDoc(true);
       const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
       const data = await res.json();
       if (!data?.erro) {
@@ -935,7 +937,7 @@ export default function Step2PersonalData({
     } catch (error) {
       console.error("Erro ao buscar CEP:", error);
     } finally {
-      setSearchingCep(false);
+      setSearchingDoc(false);
     }
   };
 
@@ -1233,7 +1235,7 @@ export default function Step2PersonalData({
                   maxLength={9}
                   className={blueInputClass}
                 />
-                {searchingCep && (
+                {searchingDoc && (
                   <Loader2 className="absolute right-3 top-3 w-4 h-4 animate-spin text-[#134B73]" />
                 )}
               </div>
