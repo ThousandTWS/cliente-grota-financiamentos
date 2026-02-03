@@ -39,16 +39,21 @@ export function getAdminSessionSecret(): string {
     process.env.NEXT_PUBLIC_AUTH_SESSION_SECRET;
 
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
+    // No ambiente de build do CI/Vercel/Next, NODE_ENV costuma ser production
+    // mas não temos as secrets reais disponíveis para as páginas estáticas
+    // ou simplesmente para a fase de coleta de metadados.
+    const isBuildTime = process.env.NEXT_PHASE === "phase-production-build";
+
+    if (process.env.NODE_ENV === "production" && !isBuildTime) {
       throw new Error(
-        "ADMIN_SESSION_SECRET (ou AUTH_SESSION_SECRET) nÇœo foi definido.",
+        "ADMIN_SESSION_SECRET (ou AUTH_SESSION_SECRET) não foi definido.",
       );
     }
 
     console.warn(
-      "[admin][auth] ADMIN_SESSION_SECRET ausente. Usando fallback inseguro para desenvolvimento.",
+      `[admin][auth] ADMIN_SESSION_SECRET ausente ${isBuildTime ? "(Build Time)" : ""}. Usando fallback para prosseguir.`,
     );
-    return "admin-session-dev-secret";
+    return "admin-session-dev-secret-fallback";
   }
 
   return secret;

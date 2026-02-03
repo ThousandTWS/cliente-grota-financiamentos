@@ -179,6 +179,7 @@ export function QuickStats() {
     APPROVED: { color: 'green', label: 'Aprovada' },
     REJECTED: { color: 'red', label: 'Reprovada' },
     PAID: { color: 'cyan', label: 'Paga' },
+    CONTRACT_ISSUED: { color: 'purple', label: 'Contrato Emitido' },
   };
 
   if (isLoading) return (
@@ -374,6 +375,7 @@ export function QuickStats() {
                               item.status === 'APPROVED' ? 'success' : 
                               item.status === 'REJECTED' ? 'error' : 
                               item.status === 'PAID' ? 'processing' : 
+                              item.status === 'CONTRACT_ISSUED' ? 'processing' :
                               'warning'
                             } 
                           />
@@ -510,6 +512,7 @@ export function QuickStats() {
                       item.status === 'APPROVED' ? 'success' : 
                       item.status === 'REJECTED' ? 'error' : 
                       item.status === 'PAID' ? 'processing' : 
+                      item.status === 'CONTRACT_ISSUED' ? 'processing' :
                       'warning'
                     } 
                   />

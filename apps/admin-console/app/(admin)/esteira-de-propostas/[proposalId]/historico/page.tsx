@@ -482,7 +482,10 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   const handleStatusChange = useCallback(
     (value: ProposalStatus) => {
       if (!proposal) return;
-      if (value === "PAID" && proposal.status !== "PAID") {
+      const needsContractData = value === "PAID" || value === "CONTRACT_ISSUED";
+      const isAlreadyInTargetStatus = proposal.status === value;
+
+      if (needsContractData && !isAlreadyInTargetStatus) {
         setContractNumberModal({
           open: true,
           nextStatus: value,
@@ -840,7 +843,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
       >
         <div className="space-y-4 py-4">
           <p>
-            A proposta será marcada como paga. Preencha os dados do contrato abaixo.
+            A proposta será marcada como {contractNumberModal.nextStatus === "PAID" ? "paga" : "contrato emitido"}. Preencha os dados do contrato abaixo.
           </p>
           
           <Row gutter={[16, 16]}>
