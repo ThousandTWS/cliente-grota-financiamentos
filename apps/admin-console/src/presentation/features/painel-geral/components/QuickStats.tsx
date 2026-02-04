@@ -46,6 +46,12 @@ const PANELS: { key: ProposalStatus; title: string; color: string; icon: React.R
     color: "#EF4444",
     icon: <CloseCircleOutlined />
   },
+  {
+    key: "ANALYZING",
+    title: "Em análise",
+    color: "#F59E0B",
+    icon: <ClockCircleOutlined />
+  },
 
 ];
 

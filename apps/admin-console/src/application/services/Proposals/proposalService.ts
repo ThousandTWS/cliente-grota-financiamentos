@@ -126,10 +126,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
     // Tratamento especial para erros de autenticação/autorização
     if (response.status === 401) {
       message = "Sessão expirada. Por favor, faça login novamente.";
-      // Redirecionar para a página de login (raiz)
-      if (typeof window !== "undefined") {
-        window.location.href = "/";
-      }
     } else if (response.status === 403) {
       message = "Você não tem permissão para realizar esta ação.";
     }
