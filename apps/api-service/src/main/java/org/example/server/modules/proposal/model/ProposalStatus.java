@@ -6,7 +6,8 @@ public enum ProposalStatus {
     APPROVED,
     REJECTED,
     PAID,
-    CONTRACT_ISSUED
+    CONTRACT_ISSUED,
+    ANALYZING
 }
 
 

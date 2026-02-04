@@ -16,6 +16,7 @@ const statusConfig = {
   recusada: { label: "Recusada", color: "red" },
   paga: { label: "Paga", color: "cyan" },
   contrato_emitido: { label: "Contrato Emitido", color: "purple" },
+  em_analise: { label: "Em Análise", color: "indigo" },
 };
 
 type StatusKey = keyof typeof statusConfig;
@@ -51,6 +52,15 @@ const normalizeStatus = (status?: string | null): StatusKey => {
     normalized === "contract_issued"
   ) {
     return "contrato_emitido";
+  }
+  
+  if (
+    normalized === "em_analise" ||
+    normalized === "em analise" ||
+    normalized === "analyzing" ||
+    normalized === "em análise"
+  ) {
+    return "em_analise";
   }
 
   return "pendente";

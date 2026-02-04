@@ -69,6 +69,11 @@ const statusConfig: Record<
     bulletColor: "bg-violet-500",
     barColor: "bg-violet-500",
   },
+  ANALYZING: {
+    label: "Em Análise",
+    bulletColor: "bg-indigo-400",
+    barColor: "bg-indigo-400",
+  },
 };
 
 const statusOptions: { value: ProposalStatus | "ALL"; label: string }[] = [
