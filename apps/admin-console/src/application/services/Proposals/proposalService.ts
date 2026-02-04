@@ -219,9 +219,6 @@ export const deleteProposal = async (proposalId: number): Promise<void> => {
   // Tratamento especial para erros de autenticação/autorização
   if (response.status === 401) {
     message = "Sessão expirada. Por favor, faça login novamente.";
-    if (typeof window !== "undefined") {
-      window.location.href = "/";
-    }
   } else if (response.status === 403) {
     message = "Você não tem permissão para excluir esta proposta.";
   } else if (response.status === 404) {

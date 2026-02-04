@@ -581,17 +581,17 @@ export default function EsteiraDePropostasFeature() {
 
   /**
    * Atualiza o status da proposta.
-   * Permite mudanças livres entre qualquer status (Enviada, Pendente, Aprovada, Recusada, Paga)
+   * Permite mudanças livres entre qualquer status (Enviada, Pendente, Aprovada, Recusada, Paga, Contrato Emitido, Em Análise)
    * sem validações ou bloqueios.
    * Ajusta o filtro automaticamente para "ALL" se o novo status não corresponder ao filtro atual,
    * garantindo que a proposta continue visível na tela.
-   * Quando o status muda para PAID, abre um modal para inserir o número do contrato.
+   * Quando o status muda para PAID, abre um modal para inserir os dados do contrato.
    */
   const handleStatusUpdate = async (
     proposal: Proposal,
     nextStatus: ProposalStatus,
   ) => {
-    // Se o status está mudando para PAID, abre modal para inserir número do contrato
+    // Apenas o status PAID (Paga) exige dados do contrato
     const needsContractData = nextStatus === "PAID";
     const isAlreadyInTargetStatus = proposal.status === nextStatus;
 
