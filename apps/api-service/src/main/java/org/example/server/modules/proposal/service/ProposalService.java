@@ -363,6 +363,7 @@ public class ProposalService {
             case REJECTED -> "reprovada";
             case PAID -> "paga";
             case CONTRACT_ISSUED -> "contrato emitido";
+            case ANALYZING -> "em análise operacional";
         };
 
         String title = "Proposta " + statusLabel;

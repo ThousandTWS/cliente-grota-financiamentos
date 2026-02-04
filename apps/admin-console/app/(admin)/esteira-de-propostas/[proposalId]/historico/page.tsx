@@ -56,8 +56,8 @@ const statusOptions: ProposalStatus[] = [
   "PENDING",
   "APPROVED",
   "REJECTED",
-  "PAID",
   "CONTRACT_ISSUED",
+  "ANALYZING",
 ];
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
