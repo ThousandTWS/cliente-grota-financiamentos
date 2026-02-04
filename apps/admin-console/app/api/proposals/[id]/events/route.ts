@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getAdminApiBaseUrl,
 } from "@/application/server/auth/config";
-import { getAdminSession, refreshAdminSession, unauthorizedResponse } from "../../../../_lib/session";
+import { getAdminSession, refreshAdminSession, unauthorizedResponse } from "../../../_lib/session";
 
 const API_BASE_URL = getAdminApiBaseUrl();
 
