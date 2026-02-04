@@ -10,6 +10,7 @@ const statusColors: Record<ProposalStatus, string> = {
   APPROVED: "#10b981",
   REJECTED: "#ef4444",
   PAID: "#14b8a6",
+  ANALYZING: "#0ea5e9",
   CONTRACT_ISSUED: "#8b5cf6",
 };
 
