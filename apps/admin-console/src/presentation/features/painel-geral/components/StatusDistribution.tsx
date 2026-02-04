@@ -15,7 +15,10 @@ const STATUS_LABELS: Record<ProposalStatus, string> = {
   APPROVED: "Aprovadas",
   REJECTED: "Rejeitadas",
   PAID: "Pagas",
+  ANALYZING: "Em análise",
   CONTRACT_ISSUED: "Contrato Emitido",
+
+
 };
 
 const STATUS_COLORS: Record<ProposalStatus, string> = {
@@ -25,6 +28,7 @@ const STATUS_COLORS: Record<ProposalStatus, string> = {
   REJECTED: "#EF4444",
   PAID: "#14B8A6",
   CONTRACT_ISSUED: "#8B5CF6",
+  ANALYZING: "#F59E0B",
 };
 
 export function StatusDistribution() {
@@ -60,6 +64,7 @@ export function StatusDistribution() {
       REJECTED: 0,
       PAID: 0,
       CONTRACT_ISSUED: 0,
+      ANALYZING: 0,
     };
     proposals.forEach((proposal) => {
       totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;
