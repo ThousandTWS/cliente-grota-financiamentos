@@ -48,6 +48,7 @@ const statusLabel: Record<ProposalStatus, string> = {
   REJECTED: "Recusada",
   PAID: "Paga",
   CONTRACT_ISSUED: "Contrato Emitido",
+  ANALYZING: "Em análise",
 };
 
 const statusOptions: ProposalStatus[] = [
