@@ -72,7 +72,7 @@ export async function decryptSession(
 
 export function isSessionNearExpiry(
   session: SessionPayload,
-  skewMs = 60_000,
+  skewMs = 300_000, // 5 minutos para renovar antes de expirar
 ): boolean {
   const expiresAt = new Date(session.expiresAt).getTime();
   return Number.isFinite(expiresAt) && expiresAt - Date.now() <= skewMs;

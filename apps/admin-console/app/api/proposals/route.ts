@@ -1,27 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession } from "../../../../../packages/auth";
 import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_SESSION_SCOPE,
   getAdminApiBaseUrl,
-  getAdminSessionSecret,
 } from "@/application/server/auth/config";
+import { getAdminSession, refreshAdminSession, unauthorizedResponse } from "../_lib/session";
+import type { SessionPayload } from "../../../../../packages/auth";
 
 const API_BASE_URL = getAdminApiBaseUrl();
-const SESSION_SECRET = getAdminSessionSecret();
 
-async function resolveSession() {
-  const cookieStore = await cookies();
-  const encoded = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  const session = await decryptSession(encoded, SESSION_SECRET);
-  if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
-    return null;
-  }
-  return session;
-}
-
-function buildActorHeader(session: Awaited<ReturnType<typeof resolveSession>> | null) {
+function buildActorHeader(session: SessionPayload | null) {
   if (!session) return null;
   const role = session.role?.trim() || "ADMIN";
   const subject =
@@ -31,56 +17,115 @@ function buildActorHeader(session: Awaited<ReturnType<typeof resolveSession>> | 
   return `${role.toUpperCase()} - ${subject}`;
 }
 
-function unauthorized() {
-  return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-}
-
-async function proxyRequest<T>(
-  session: Awaited<ReturnType<typeof resolveSession>>,
+async function proxyRequestWithRetry<T>(
+  session: SessionPayload,
   input: RequestInfo | URL,
   init?: RequestInit,
-): Promise<NextResponse<T>> {
-  const upstreamResponse = await fetch(input, {
+): Promise<{ response: NextResponse<T>; refreshedSession: SessionPayload | null }> {
+  // Primeira tentativa
+  let upstreamResponse = await fetch(input, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
-      Authorization: `Bearer ${session!.accessToken}`,
+      Authorization: `Bearer ${session.accessToken}`,
     },
     cache: "no-store",
   });
+
+  // Se recebeu 401, tenta renovar o token e retry
+  if (upstreamResponse.status === 401) {
+    console.log("[Admin API Proposals] Token expirado, tentando renovar...");
+    
+    const refreshedSession = await refreshAdminSession(session);
+    
+    if (refreshedSession && refreshedSession.accessToken) {
+      console.log("[Admin API Proposals] Token renovado com sucesso, retentando requisição...");
+      
+      upstreamResponse = await fetch(input, {
+        ...init,
+        headers: {
+          ...(init?.headers ?? {}),
+          Authorization: `Bearer ${refreshedSession.accessToken}`,
+        },
+        cache: "no-store",
+      });
+
+      const payload = await upstreamResponse.json().catch(() => null);
+
+      if (!upstreamResponse.ok) {
+        const message =
+          (payload as { message?: string; error?: string })?.message ??
+          (payload as { error?: string })?.error ??
+          "Falha ao processar a requisição.";
+        return {
+          response: NextResponse.json(
+            { error: message } as unknown as T,
+            { status: upstreamResponse.status },
+          ),
+          refreshedSession,
+        };
+      }
+
+      return {
+        response: NextResponse.json(payload ?? ({} as T), {
+          status: upstreamResponse.status,
+        }),
+        refreshedSession,
+      };
+    } else {
+      console.log("[Admin API Proposals] Não foi possível renovar o token.");
+      return {
+        response: NextResponse.json(
+          { error: "Sessão expirada. Por favor, faça login novamente." } as unknown as T,
+          { status: 401 },
+        ),
+        refreshedSession: null,
+      };
+    }
+  }
 
   const payload = await upstreamResponse.json().catch(() => null);
 
   if (!upstreamResponse.ok) {
     const message =
-      (payload as { message?: string })?.message ?? "Falha ao processar a requisição.";
-    return NextResponse.json(
-      { error: message } as unknown as T,
-      { status: upstreamResponse.status },
-    );
+      (payload as { message?: string; error?: string })?.message ??
+      (payload as { error?: string })?.error ??
+      "Falha ao processar a requisição.";
+    return {
+      response: NextResponse.json(
+        { error: message } as unknown as T,
+        { status: upstreamResponse.status },
+      ),
+      refreshedSession: null,
+    };
   }
 
-  return NextResponse.json(payload ?? ({} as T), {
-    status: upstreamResponse.status,
-  });
+  return {
+    response: NextResponse.json(payload ?? ({} as T), {
+      status: upstreamResponse.status,
+    }),
+    refreshedSession: null,
+  };
 }
 
 export async function GET(request: NextRequest) {
-  const session = await resolveSession();
+  const session = await getAdminSession();
   if (!session) {
-    return unauthorized();
+    return unauthorizedResponse();
   }
 
   const url = new URL(request.url);
   const query = url.searchParams.toString();
   const target = `${API_BASE_URL}/proposals${query ? `?${query}` : ""}`;
-  return proxyRequest(session, target);
+  
+  const { response } = await proxyRequestWithRetry(session, target);
+  return response;
 }
 
 export async function POST(request: NextRequest) {
-  const session = await resolveSession();
+  const session = await getAdminSession();
   if (!session) {
-    return unauthorized();
+    return unauthorizedResponse();
   }
 
   const actorHeader = buildActorHeader(session);
@@ -95,7 +140,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return proxyRequest(session, `${API_BASE_URL}/proposals`, {
+  const { response } = await proxyRequestWithRetry(session, `${API_BASE_URL}/proposals`, {
     method: "POST",
     headers: {
       ...(actorHeader ? { "X-Actor": actorHeader } : {}),
@@ -103,12 +148,14 @@ export async function POST(request: NextRequest) {
     },
     body: JSON.stringify(body),
   });
+  
+  return response;
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await resolveSession();
+  let session = await getAdminSession();
   if (!session) {
-    return unauthorized();
+    return unauthorizedResponse();
   }
 
   const id = request.nextUrl.searchParams.get("id");
@@ -119,13 +166,40 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  const upstreamResponse = await fetch(`${API_BASE_URL}/proposals/${id}`, {
+  // Primeira tentativa
+  let upstreamResponse = await fetch(`${API_BASE_URL}/proposals/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${session.accessToken}`,
     },
     cache: "no-store",
   });
+
+  // Se recebeu 401, tenta renovar o token e retry
+  if (upstreamResponse.status === 401) {
+    console.log("[Admin API Proposals DELETE] Token expirado, tentando renovar...");
+    
+    const refreshedSession = await refreshAdminSession(session);
+    
+    if (refreshedSession && refreshedSession.accessToken) {
+      console.log("[Admin API Proposals DELETE] Token renovado com sucesso, retentando requisição...");
+      session = refreshedSession;
+      
+      upstreamResponse = await fetch(`${API_BASE_URL}/proposals/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        cache: "no-store",
+      });
+    } else {
+      console.log("[Admin API Proposals DELETE] Não foi possível renovar o token.");
+      return NextResponse.json(
+        { error: "Sessão expirada. Por favor, faça login novamente." },
+        { status: 401 },
+      );
+    }
+  }
 
   if (upstreamResponse.status === 204) {
     return new Response(null, { status: 204 });

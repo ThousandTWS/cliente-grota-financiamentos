@@ -1,14 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminApiBaseUrl } from "@/application/server/auth/config";
-import { getAdminSession, unauthorizedResponse } from "../../../_lib/session";
+import { getAdminSession, refreshAdminSession, unauthorizedResponse } from "../../../_lib/session";
 
 const API_BASE_URL = getAdminApiBaseUrl();
+
+async function makeUpstreamRequest(accessToken: string, id: string, body: unknown) {
+  return fetch(
+    `${API_BASE_URL}/proposals/${id}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    },
+  );
+}
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await getAdminSession();
+  let session = await getAdminSession();
   if (!session) {
     return unauthorizedResponse();
   }
@@ -32,18 +47,27 @@ export async function PATCH(
     );
   }
 
-  const upstreamResponse = await fetch(
-    `${API_BASE_URL}/proposals/${id}/status`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    },
-  );
+  // Primeira tentativa
+  let upstreamResponse = await makeUpstreamRequest(session.accessToken, id, body);
+
+  // Se recebeu 401, tenta renovar o token e retry
+  if (upstreamResponse.status === 401) {
+    console.log("[Admin API] Token expirado, tentando renovar...");
+    
+    const refreshedSession = await refreshAdminSession(session);
+    
+    if (refreshedSession && refreshedSession.accessToken) {
+      console.log("[Admin API] Token renovado com sucesso, retentando requisição...");
+      session = refreshedSession;
+      upstreamResponse = await makeUpstreamRequest(session.accessToken, id, body);
+    } else {
+      console.log("[Admin API] Não foi possível renovar o token.");
+      return NextResponse.json(
+        { error: "Sessão expirada. Por favor, faça login novamente." },
+        { status: 401 },
+      );
+    }
+  }
 
   let payload: unknown = null;
   try {
