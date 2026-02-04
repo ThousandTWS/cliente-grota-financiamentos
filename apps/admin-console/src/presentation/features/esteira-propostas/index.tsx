@@ -581,14 +581,14 @@ export default function EsteiraDePropostasFeature() {
    * sem validações ou bloqueios.
    * Ajusta o filtro automaticamente para "ALL" se o novo status não corresponder ao filtro atual,
    * garantindo que a proposta continue visível na tela.
-   * Quando o status muda para PAID ou CONTRACT_ISSUED, abre um modal para inserir o número do contrato.
+   * Quando o status muda para PAID, abre um modal para inserir o número do contrato.
    */
   const handleStatusUpdate = async (
     proposal: Proposal,
     nextStatus: ProposalStatus,
   ) => {
-    // Se o status está mudando para PAID ou CONTRACT_ISSUED, abre modal para inserir número do contrato
-    const needsContractData = nextStatus === "PAID" || nextStatus === "CONTRACT_ISSUED";
+    // Se o status está mudando para PAID, abre modal para inserir número do contrato
+    const needsContractData = nextStatus === "PAID";
     const isAlreadyInTargetStatus = proposal.status === nextStatus;
 
     if (needsContractData && !isAlreadyInTargetStatus) {
