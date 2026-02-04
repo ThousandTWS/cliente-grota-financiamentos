@@ -133,7 +133,6 @@ export default function EsteiraDePropostasFeature() {
   const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
   const [dealerIndex, setDealerIndex] = useState<Record<number, { name: string; enterprise?: string }>>({});
   const [sellerIndex, setSellerIndex] = useState<Record<number, string>>({});
-  // Índice de operadores por dealerId - permite encontrar o operador responsável pela loja
   const [operatorByDealerIndex, setOperatorByDealerIndex] = useState<Record<number, string>>({});
   const [recentIds, setRecentIds] = useState<Record<number, boolean>>({});
   const [unconfirmedIds, setUnconfirmedIds] = useState<Record<number, boolean>>({});

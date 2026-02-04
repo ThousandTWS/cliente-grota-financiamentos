@@ -57,7 +57,6 @@ async function resolveSeller(
     }
   }
 
-  // Retorna null para sellerId - isso é permitido (operadores sem cadastro de vendedor)
   return { sellerId: null, dealerId: null };
 }
 
