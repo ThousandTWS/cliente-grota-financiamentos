@@ -28,6 +28,7 @@ const statusLabel: Record<ProposalStatus, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
   PAID: "Paga",
+  ANALYZING: "Em análise",
   CONTRACT_ISSUED: "Contrato Emitido",
 };
 
