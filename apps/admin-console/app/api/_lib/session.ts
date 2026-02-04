@@ -28,19 +28,30 @@ const SESSION_SECRET = getAdminSessionSecret();
 export type AdminSession = Awaited<ReturnType<typeof decryptSession>>;
 
 async function refreshTokens(session: SessionPayload): Promise<AuthTokens | null> {
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-    method: "POST",
-    headers: {
-      Cookie: `refresh_token=${session.refreshToken}`,
-    },
-    cache: "no-store",
-  });
+  console.log("[Admin Session] Tentando refresh de token...");
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        Cookie: `refresh_token=${session.refreshToken}`,
+      },
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "N/A");
+      console.error(`[Admin Session] Refresh falhou - Status: ${response.status}, Body: ${errorText}`);
+      return null;
+    }
+
+    const tokens = (await response.json()) as AuthTokens;
+    console.log("[Admin Session] Refresh token bem sucedido!");
+    return tokens;
+  } catch (error) {
+    console.error("[Admin Session] Erro no refresh:", error);
     return null;
   }
-
-  return (await response.json()) as AuthTokens;
 }
 
 async function setAdminSessionCookie(
