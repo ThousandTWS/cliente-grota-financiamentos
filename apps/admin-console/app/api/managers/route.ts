@@ -1,52 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession } from "../../../../../packages/auth";
+import { getAdminApiBaseUrl } from "@/application/server/auth/config";
 import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_SESSION_SCOPE,
-  getAdminApiBaseUrl,
-  getAdminSessionSecret,
-} from "@/application/server/auth/config";
+  getAdminSession,
+  refreshAdminSession,
+  unauthorizedResponse,
+} from "../_lib/session";
 
 const API_BASE_URL = getAdminApiBaseUrl();
-const SESSION_SECRET = getAdminSessionSecret();
-
-async function resolveSession() {
-  const cookieStore = await cookies();
-  const encodedSession = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  const session = await decryptSession(encodedSession, SESSION_SECRET);
-  if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
-    return null;
-  }
-  return session;
-}
-
-function unauthorized() {
-  return NextResponse.json({ error: "Usuário não autenticado." }, { status: 401 });
-}
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await resolveSession();
+    let session = await getAdminSession();
     if (!session) {
-      return unauthorized();
+      return unauthorizedResponse();
     }
 
     const dealerId = request.nextUrl.searchParams.get("dealerId");
     const searchParams = dealerId ? `?dealerId=${dealerId}` : "";
 
-    const upstreamResponse = await fetch(`${API_BASE_URL}/managers${searchParams}`, {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      cache: "no-store",
-    });
+    const performFetch = (accessToken: string) =>
+      fetch(`${API_BASE_URL}/managers${searchParams}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      });
+
+    let upstreamResponse = await performFetch(session.accessToken);
+    if (upstreamResponse.status === 401) {
+      const refreshed = await refreshAdminSession(session);
+      if (refreshed) {
+        session = refreshed;
+        upstreamResponse = await performFetch(session.accessToken);
+      }
+    }
 
     const payload = await upstreamResponse.json().catch(() => null);
 
     if (!upstreamResponse.ok) {
       const message =
-        (payload as { message?: string })?.message ??
+        (payload as { message?: string; error?: string })?.message ??
         "Falha ao carregar gestores.";
       return NextResponse.json({ error: message }, {
         status: upstreamResponse.status,
@@ -65,9 +58,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await resolveSession();
+    let session = await getAdminSession();
     if (!session) {
-      return unauthorized();
+      return unauthorizedResponse();
     }
 
     let body;
@@ -80,15 +73,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const upstreamResponse = await fetch(`${API_BASE_URL}/managers`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    });
+    const payloadBody = JSON.stringify(body ?? {});
+    const performFetch = (accessToken: string) =>
+      fetch(`${API_BASE_URL}/managers`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: payloadBody,
+        cache: "no-store",
+      });
+
+    let upstreamResponse = await performFetch(session.accessToken);
+    if (upstreamResponse.status === 401) {
+      const refreshed = await refreshAdminSession(session);
+      if (refreshed) {
+        session = refreshed;
+        upstreamResponse = await performFetch(session.accessToken);
+      }
+    }
 
     const payload = await upstreamResponse.json().catch(() => null);
 
@@ -134,9 +138,9 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await resolveSession();
+    let session = await getAdminSession();
     if (!session) {
-      return unauthorized();
+      return unauthorizedResponse();
     }
 
     let body;
@@ -158,13 +162,23 @@ export async function PATCH(request: NextRequest) {
     }
 
     const dealerQuery = dealerId === null || dealerId === undefined ? "" : `?dealerId=${dealerId}`;
-    const upstreamResponse = await fetch(`${API_BASE_URL}/managers/${managerId}/dealer${dealerQuery}`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      cache: "no-store",
-    });
+    const performFetch = (accessToken: string) =>
+      fetch(`${API_BASE_URL}/managers/${managerId}/dealer${dealerQuery}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      });
+
+    let upstreamResponse = await performFetch(session.accessToken);
+    if (upstreamResponse.status === 401) {
+      const refreshed = await refreshAdminSession(session);
+      if (refreshed) {
+        session = refreshed;
+        upstreamResponse = await performFetch(session.accessToken);
+      }
+    }
 
     const payload = await upstreamResponse.json().catch(() => null);
 
@@ -192,9 +206,9 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await resolveSession();
+    let session = await getAdminSession();
     if (!session) {
-      return unauthorized();
+      return unauthorizedResponse();
     }
 
     const id = request.nextUrl.searchParams.get("id");
@@ -205,13 +219,23 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const upstreamResponse = await fetch(`${API_BASE_URL}/managers/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      cache: "no-store",
-    });
+    const performDelete = (accessToken: string) =>
+      fetch(`${API_BASE_URL}/managers/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      });
+
+    let upstreamResponse = await performDelete(session.accessToken);
+    if (upstreamResponse.status === 401) {
+      const refreshed = await refreshAdminSession(session);
+      if (refreshed) {
+        session = refreshed;
+        upstreamResponse = await performDelete(session.accessToken);
+      }
+    }
 
     if (upstreamResponse.status === 204) {
       return NextResponse.json({}, { status: 204 });
