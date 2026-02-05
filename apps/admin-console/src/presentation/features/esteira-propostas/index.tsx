@@ -49,22 +49,38 @@ const statusConfig: Record<
     bulletColor: "bg-amber-400",
     barColor: "bg-amber-400",
   },
+  ANALYSIS: {
+    label: "Em análise",
+    bulletColor: "bg-indigo-400",
+    barColor: "bg-indigo-400",
+  },
   APPROVED: {
     label: "Aprovadas",
     bulletColor: "bg-emerald-500",
     barColor: "bg-emerald-500",
   },
-  REJECTED: {
-    label: "Recusadas",
-    bulletColor: "bg-red-500",
-    barColor: "bg-red-500",
+  CONTRACT_ISSUED: {
+    label: "Contrato emitido",
+    bulletColor: "bg-blue-600",
+    barColor: "bg-blue-600",
   },
   PAID: {
     label: "Pagas",
     bulletColor: "bg-teal-500",
     barColor: "bg-teal-500",
   },
+  REJECTED: {
+    label: "Recusadas",
+    bulletColor: "bg-red-500",
+    barColor: "bg-red-500",
+  },
+  WITHDRAWN: {
+    label: "Desistido",
+    bulletColor: "bg-gray-400",
+    barColor: "bg-gray-400",
+  },
 };
+
 
 const statusOptions: { value: ProposalStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "(todos)" },
