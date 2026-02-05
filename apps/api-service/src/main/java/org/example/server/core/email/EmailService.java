@@ -1,8 +1,6 @@
 package org.example.server.core.email;
 
-import org.example.server.core.email.EmailException;
 import org.example.server.modules.document.model.Document;
-import org.example.server.core.email.EmailMessageFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
