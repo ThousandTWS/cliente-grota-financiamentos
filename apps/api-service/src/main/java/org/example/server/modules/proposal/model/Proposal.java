@@ -2,7 +2,6 @@ package org.example.server.modules.proposal.model;
 
 import jakarta.persistence.*;
 import org.example.server.modules.dealer.model.Dealer;
-import org.example.server.modules.proposal.model.ProposalStatus;
 import org.example.server.modules.seller.model.Seller;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;

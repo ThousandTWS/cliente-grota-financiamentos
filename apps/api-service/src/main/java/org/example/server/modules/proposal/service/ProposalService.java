@@ -358,12 +358,13 @@ public class ProposalService {
 
         String statusLabel = switch (proposal.getStatus()) {
             case SUBMITTED -> "recebida";
-            case PENDING -> "em análise";
+            case PENDING -> "pendente";
+            case ANALYSIS -> "em análise";
             case APPROVED -> "aprovada";
-            case REJECTED -> "reprovada";
-            case PAID -> "paga";
             case CONTRACT_ISSUED -> "contrato emitido";
-            case ANALYZING -> "em análise operacional";
+            case PAID -> "paga";
+            case REJECTED -> "reprovada";
+            case WITHDRAWN -> "desistida";
         };
 
         String title = "Proposta " + statusLabel;
