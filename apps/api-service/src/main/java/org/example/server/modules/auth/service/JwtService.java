@@ -39,7 +39,17 @@ public class JwtService {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            System.err.println("[JWT] Token EXPIRADO para usuario: " + e.getClaims().getSubject());
+            throw e; // Re-throw para ser tratado no filter
+        } catch (io.jsonwebtoken.security.SignatureException e) {
+            System.err.println("[JWT] ASSINATURA INVALIDA - JWT_SECRET pode ter mudado! " + e.getMessage());
+            return null;
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            System.err.println("[JWT] Token MAL FORMADO: " + e.getMessage());
+            return null;
         } catch (JwtException | IllegalArgumentException e) {
+            System.err.println("[JWT] Erro ao parsear token: " + e.getClass().getSimpleName() + " - " + e.getMessage());
             return null;
         }
     }
@@ -93,16 +103,19 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
 
         Claims claims = parseToken(token);
-        if (claims == null) return false;
+        if (claims == null)
+            return false;
 
         String username = claims.getSubject();
         if (username == null || !username.equals(userDetails.getUsername())) {
             return false;
         }
 
-        if (isTokenExpired(claims)) return false;
+        if (isTokenExpired(claims))
+            return false;
 
-        if (wasIssuedInFuture(claims)) return false;
+        if (wasIssuedInFuture(claims))
+            return false;
 
         return true;
     }
@@ -117,6 +130,3 @@ public class JwtService {
         return iat != null && iat.after(new Date());
     }
 }
-
-
-
