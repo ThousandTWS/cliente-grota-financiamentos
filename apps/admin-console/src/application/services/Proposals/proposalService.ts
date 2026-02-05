@@ -10,7 +10,7 @@ import {
 const PROPOSALS_ENDPOINT = "/api/proposals";
 
 const statusSchema = z.enum(
-  ["SUBMITTED", "PENDING", "APPROVED", "REJECTED", "PAID"] satisfies ProposalStatus[],
+  ["SUBMITTED", "PENDING", "ANALYSIS", "APPROVED", "CONTRACT_ISSUED", "PAID", "REJECTED", "WITHDRAWN"] satisfies ProposalStatus[],
 );
 
 const ProposalSchema = z.object({

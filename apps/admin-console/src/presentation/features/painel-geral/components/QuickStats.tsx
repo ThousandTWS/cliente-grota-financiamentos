@@ -175,10 +175,13 @@ export function QuickStats() {
 
   const statusTags: Record<ProposalStatus, { color: string; label: string }> = {
     SUBMITTED: { color: 'blue', label: 'Recebida' },
-    PENDING: { color: 'orange', label: 'Em análise' },
+    PENDING: { color: 'orange', label: 'Pendente' },
+    ANALYSIS: { color: 'purple', label: 'Em análise' },
     APPROVED: { color: 'green', label: 'Aprovada' },
-    REJECTED: { color: 'red', label: 'Reprovada' },
+    CONTRACT_ISSUED: { color: 'geekblue', label: 'Contrato emitido' },
     PAID: { color: 'cyan', label: 'Paga' },
+    REJECTED: { color: 'red', label: 'Reprovada' },
+    WITHDRAWN: { color: 'default', label: 'Desistido' },
   };
 
   if (isLoading) return (

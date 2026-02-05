@@ -25,9 +25,12 @@ type ProposalTimelineSheetProps = {
 const statusLabel: Record<ProposalStatus, string> = {
   SUBMITTED: "Enviada",
   PENDING: "Pendente",
+  ANALYSIS: "Em análise",
   APPROVED: "Aprovada",
-  REJECTED: "Recusada",
+  CONTRACT_ISSUED: "Contrato emitido",
   PAID: "Paga",
+  REJECTED: "Recusada",
+  WITHDRAWN: "Desistido",
 };
 
 const formatCurrency = (value: number | null | undefined) =>
