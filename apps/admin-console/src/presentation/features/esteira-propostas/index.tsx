@@ -64,16 +64,6 @@ const statusConfig: Record<
     bulletColor: "bg-teal-500",
     barColor: "bg-teal-500",
   },
-  CONTRACT_ISSUED: {
-    label: "Contrato Emitido",
-    bulletColor: "bg-violet-500",
-    barColor: "bg-violet-500",
-  },
-  ANALYZING: {
-    label: "Em Análise",
-    bulletColor: "bg-indigo-400",
-    barColor: "bg-indigo-400",
-  },
 };
 
 const statusOptions: { value: ProposalStatus | "ALL"; label: string }[] = [
@@ -581,7 +571,7 @@ export default function EsteiraDePropostasFeature() {
 
   /**
    * Atualiza o status da proposta.
-   * Permite mudanças livres entre qualquer status (Enviada, Pendente, Aprovada, Recusada, Paga, Contrato Emitido, Em Análise)
+   * Permite mudanças livres entre qualquer status (Enviada, Pendente, Aprovada, Recusada, Paga)
    * sem validações ou bloqueios.
    * Ajusta o filtro automaticamente para "ALL" se o novo status não corresponder ao filtro atual,
    * garantindo que a proposta continue visível na tela.

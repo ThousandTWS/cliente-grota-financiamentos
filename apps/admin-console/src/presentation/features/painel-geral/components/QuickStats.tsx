@@ -46,13 +46,6 @@ const PANELS: { key: ProposalStatus; title: string; color: string; icon: React.R
     color: "#EF4444",
     icon: <CloseCircleOutlined />
   },
-  {
-    key: "ANALYZING",
-    title: "Em análise",
-    color: "#F59E0B",
-    icon: <ClockCircleOutlined />
-  },
-
 ];
 
 const currency = (value: number) =>
@@ -186,8 +179,6 @@ export function QuickStats() {
     APPROVED: { color: 'green', label: 'Aprovada' },
     REJECTED: { color: 'red', label: 'Reprovada' },
     PAID: { color: 'cyan', label: 'Paga' },
-    ANALYZING: { color: 'red', label: 'Em análise' },
-    CONTRACT_ISSUED: { color: 'purple', label: 'Contrato Emitido' },
   };
 
   if (isLoading) return (
@@ -383,7 +374,6 @@ export function QuickStats() {
                               item.status === 'APPROVED' ? 'success' : 
                               item.status === 'REJECTED' ? 'error' : 
                               item.status === 'PAID' ? 'processing' : 
-                              item.status === 'CONTRACT_ISSUED' ? 'processing' :
                               'warning'
                             } 
                           />
@@ -520,7 +510,6 @@ export function QuickStats() {
                       item.status === 'APPROVED' ? 'success' : 
                       item.status === 'REJECTED' ? 'error' : 
                       item.status === 'PAID' ? 'processing' : 
-                      item.status === 'CONTRACT_ISSUED' ? 'processing' :
                       'warning'
                     } 
                   />

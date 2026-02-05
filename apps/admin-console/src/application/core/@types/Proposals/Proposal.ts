@@ -3,9 +3,7 @@ export type ProposalStatus =
   | "PENDING"
   | "APPROVED"
   | "REJECTED"
-  | "PAID"
-  | "CONTRACT_ISSUED"
-  | "ANALYZING";
+  | "PAID";
 
 export interface Proposal {
   id: number;

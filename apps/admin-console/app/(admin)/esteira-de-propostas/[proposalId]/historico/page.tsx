@@ -47,8 +47,6 @@ const statusLabel: Record<ProposalStatus, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
   PAID: "Paga",
-  CONTRACT_ISSUED: "Contrato Emitido",
-  ANALYZING: "Em análise",
 };
 
 const statusOptions: ProposalStatus[] = [
@@ -56,8 +54,7 @@ const statusOptions: ProposalStatus[] = [
   "PENDING",
   "APPROVED",
   "REJECTED",
-  "CONTRACT_ISSUED",
-  "ANALYZING",
+  "PAID",
 ];
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
@@ -483,7 +480,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   const handleStatusChange = useCallback(
     (value: ProposalStatus) => {
       if (!proposal) return;
-      const needsContractData = value === "PAID" || value === "CONTRACT_ISSUED";
+      const needsContractData = value === "PAID";
       const isAlreadyInTargetStatus = proposal.status === value;
 
       if (needsContractData && !isAlreadyInTargetStatus) {
