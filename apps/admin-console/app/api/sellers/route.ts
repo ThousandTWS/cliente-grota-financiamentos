@@ -1,28 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession } from "../../../../../packages/auth";
-import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_SESSION_SCOPE,
-  getAdminApiBaseUrl,
-  getAdminSessionSecret,
-} from "@/application/server/auth/config";
+import { type SessionPayload } from "../../../../../packages/auth";
+import { getAdminApiBaseUrl } from "@/application/server/auth/config";
+import { getAdminSession, refreshAdminSession } from "../_lib/session";
 
 const API_BASE_URL = getAdminApiBaseUrl();
-const SESSION_SECRET = getAdminSessionSecret();
 
 async function resolveSession() {
-  const cookieStore = await cookies();
-  const encodedSession = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  const session = await decryptSession(encodedSession, SESSION_SECRET);
-  if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
-    return null;
-  }
-  return session;
+  return getAdminSession();
 }
 
 function unauthorized() {
   return NextResponse.json({ error: "Usuário não autenticado." }, { status: 401 });
+}
+
+async function makeAuthenticatedRequest(
+  session: SessionPayload,
+  url: string,
+  options: RequestInit = {}
+): Promise<{ response: Response; session: SessionPayload }> {
+  const headers = {
+    ...options.headers,
+    Authorization: `Bearer ${session.accessToken}`,
+  };
+  
+  let response = await fetch(url, { ...options, headers, cache: "no-store" });
+  
+  // Se recebeu 401, tenta renovar o token e retry
+  if (response.status === 401) {
+    console.log("[Admin Sellers] Token expirado, tentando renovar...");
+    const refreshedSession = await refreshAdminSession(session);
+    
+    if (refreshedSession && refreshedSession.accessToken) {
+      console.log("[Admin Sellers] Token renovado com sucesso, retentando requisição...");
+      const newHeaders = {
+        ...options.headers,
+        Authorization: `Bearer ${refreshedSession.accessToken}`,
+      };
+      response = await fetch(url, { ...options, headers: newHeaders, cache: "no-store" });
+      return { response, session: refreshedSession };
+    }
+  }
+  
+  return { response, session };
 }
 
 export async function GET(request: NextRequest) {
@@ -35,12 +54,11 @@ export async function GET(request: NextRequest) {
     const dealerId = request.nextUrl.searchParams.get("dealerId");
     const searchParams = dealerId ? `?dealerId=${dealerId}` : "";
 
-    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers${searchParams}`, {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      cache: "no-store",
-    });
+    const { response: upstreamResponse } = await makeAuthenticatedRequest(
+      session,
+      `${API_BASE_URL}/sellers${searchParams}`,
+      { method: "GET" }
+    );
 
     const payload = await upstreamResponse.json().catch(() => null);
 
@@ -133,15 +151,15 @@ export async function POST(request: NextRequest) {
     console.log("[admin][sellers] POST request payload:", JSON.stringify(sanitizedBody, null, 2));
     console.log("[admin][sellers] POST request URL:", `${API_BASE_URL}/sellers`);
 
-    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify(sanitizedBody),
-      cache: "no-store",
-    });
+    const { response: upstreamResponse } = await makeAuthenticatedRequest(
+      session,
+      `${API_BASE_URL}/sellers`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sanitizedBody),
+      }
+    );
 
     const payload = await upstreamResponse.json().catch(() => null);
 
@@ -212,13 +230,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     const dealerQuery = dealerId === null || dealerId === undefined ? "" : `?dealerId=${dealerId}`;
-    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers/${sellerId}/dealer${dealerQuery}`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      cache: "no-store",
-    });
+    const { response: upstreamResponse } = await makeAuthenticatedRequest(
+      session,
+      `${API_BASE_URL}/sellers/${sellerId}/dealer${dealerQuery}`,
+      { method: "PATCH" }
+    );
 
     const payload = await upstreamResponse.json().catch(() => null);
 
@@ -259,13 +275,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      cache: "no-store",
-    });
+    const { response: upstreamResponse } = await makeAuthenticatedRequest(
+      session,
+      `${API_BASE_URL}/sellers/${id}`,
+      { method: "DELETE" }
+    );
 
     if (upstreamResponse.status === 204) {
       return NextResponse.json({}, { status: 204 });
