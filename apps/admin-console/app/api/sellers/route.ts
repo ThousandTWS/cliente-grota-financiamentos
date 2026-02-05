@@ -18,6 +18,14 @@ async function makeAuthenticatedRequest(
   url: string,
   options: RequestInit = {}
 ): Promise<{ response: Response; session: SessionPayload }> {
+  // Log token preview para debug
+  const tokenPreview = session.accessToken 
+    ? `${session.accessToken.substring(0, 20)}...${session.accessToken.substring(session.accessToken.length - 10)}`
+    : 'NO TOKEN';
+  console.log(`[Admin Sellers] Request to: ${url}`);
+  console.log(`[Admin Sellers] Token preview: ${tokenPreview}`);
+  console.log(`[Admin Sellers] Session expiresAt: ${session.expiresAt}`);
+  
   const headers = {
     ...options.headers,
     Authorization: `Bearer ${session.accessToken}`,
@@ -25,9 +33,11 @@ async function makeAuthenticatedRequest(
   
   let response = await fetch(url, { ...options, headers, cache: "no-store" });
   
+  console.log(`[Admin Sellers] Response status: ${response.status}`);
+  
   // Se recebeu 401, tenta renovar o token e retry
   if (response.status === 401) {
-    console.log("[Admin Sellers] Token expirado, tentando renovar...");
+    console.log("[Admin Sellers] Recebeu 401, tentando renovar token...");
     const refreshedSession = await refreshAdminSession(session);
     
     if (refreshedSession && refreshedSession.accessToken) {
@@ -37,7 +47,10 @@ async function makeAuthenticatedRequest(
         Authorization: `Bearer ${refreshedSession.accessToken}`,
       };
       response = await fetch(url, { ...options, headers: newHeaders, cache: "no-store" });
+      console.log(`[Admin Sellers] Retry response status: ${response.status}`);
       return { response, session: refreshedSession };
+    } else {
+      console.error("[Admin Sellers] FALHA ao renovar token - refreshedSession:", refreshedSession ? 'exists but no accessToken' : 'null');
     }
   }
   
