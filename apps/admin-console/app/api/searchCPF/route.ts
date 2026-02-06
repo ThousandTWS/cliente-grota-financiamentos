@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     const token = "f18f0ee055a64900def2e053a48fb6f1";
-    const pacote = "5"; // ID do pacote exemplo, ajustável conforme necessidade
+    const pacote = "2"; // ID do pacote exemplo, ajustável conforme necessidade
     const url = `https://api.cpfcnpj.com.br/${token}/${pacote}/${cpf}`;
 
     const response = await axios.get(url, {
