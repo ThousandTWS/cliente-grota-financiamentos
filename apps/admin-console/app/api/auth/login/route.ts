@@ -109,6 +109,10 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
 
+    console.log("[Admin Login] Cookie de sessão definido com sucesso");
+    console.log(`[Admin Login] Cookie config: secure=${ADMIN_COOKIE_SECURE}, sameSite=${ADMIN_COOKIE_SAME_SITE}, maxAge=${ADMIN_SESSION_MAX_AGE}`);
+    console.log(`[Admin Login] Session userId: ${user.id}, role: ${user.role}, scope: ${sessionPayload.scope}`);
+
     return NextResponse.json({ user });
   } catch (error) {
     console.error("[admin][auth] erro de login", error);

@@ -108,8 +108,25 @@ export async function refreshAdminSession(
 export async function getAdminSession(): Promise<AdminSession | null> {
   const cookieStore = await cookies();
   const encoded = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  
+  console.log(`[Admin Session] Cookie '${ADMIN_SESSION_COOKIE}' present: ${!!encoded}`);
+  if (!encoded) {
+    console.log("[Admin Session] Nenhum cookie de sessão encontrado");
+    return null;
+  }
+
   const session = await decryptSession(encoded, SESSION_SECRET);
+  
+  console.log(`[Admin Session] Session decrypted: ${!!session}`);
+  if (session) {
+    console.log(`[Admin Session] Session scope: '${session.scope}', expected: '${ADMIN_SESSION_SCOPE}'`);
+    console.log(`[Admin Session] Session userId: ${session.userId}, email: ${session.email}`);
+  } else {
+    console.log("[Admin Session] FALHA ao decriptar sessão - possível mudança de SECRET");
+  }
+
   if (!session || session.scope !== ADMIN_SESSION_SCOPE) {
+    console.log("[Admin Session] Sessão inválida ou scope incorreto - limpando cookie");
     await clearAdminSessionCookie(cookieStore);
     return null;
   }

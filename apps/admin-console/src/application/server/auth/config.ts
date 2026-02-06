@@ -21,12 +21,16 @@ const COOKIE_SECURE =
 
 export const ADMIN_SESSION_COOKIE = "grota.admin.session";
 export const ADMIN_SESSION_SCOPE: SessionScope = "admin";
-// DuraÇõÇœo do cookie de sessÇœo (em segundos). Aumentado para 30 dias.
+// Duração do cookie de sessão (em segundos). Aumentado para 30 dias.
 export const ADMIN_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 export const ADMIN_COOKIE_SECURE = COOKIE_SECURE;
 export const ADMIN_COOKIE_SAME_SITE = COOKIE_SECURE
   ? ("none" as const)
   : ("lax" as const);
+
+// Log de configuração para debug (executado na inicialização do módulo)
+console.log(`[Admin Config] Environment: production=${IS_PRODUCTION}, localhost=${IS_LOCALHOST}`);
+console.log(`[Admin Config] Cookie: secure=${ADMIN_COOKIE_SECURE}, sameSite=${ADMIN_COOKIE_SAME_SITE}`);
 
 export function getAdminApiBaseUrl(): string {
   return DEFAULT_API_BASE_URL;
