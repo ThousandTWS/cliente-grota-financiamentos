@@ -23,7 +23,7 @@ import { fetchAddressByCep } from "@/application/services/cep/cepService";
 import { StatusBadge } from "@/presentation/features/logista/components/status-badge";
 import { formatName } from "@/lib/formatters";
 import { convertBRtoISO } from "@/application/core/utils/formatters";
-import { maskCEP, maskCPF, maskPhone } from "@/lib/masks";
+import { convertBRtoISO } from "@/application/core/utils/formatters";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
@@ -403,8 +403,7 @@ function OperadoresContent() {
                 <Input
                   {...field}
                   id="phone"
-                  placeholder="(11) 99999-0000"
-                  onChange={(event) => field.onChange(maskPhone(event.target.value))}
+                  onChange={(event) => field.onChange(event.target.value)}
                 />
               )}
             />
@@ -434,12 +433,10 @@ function OperadoresContent() {
                 <Input
                   {...field}
                   id="cpf"
-                  placeholder="000.000.000-00"
                   suffix={isCpfLoading ? <Spin size="small" /> : <span style={{ width: 16 }} />}
                   onChange={(event) => {
-                    const masked = maskCPF(event.target.value);
-                    field.onChange(masked);
-                    handleCpfLookup(masked);
+                    field.onChange(event.target.value);
+                    handleCpfLookup(event.target.value);
                   }}
                 />
               )}
@@ -494,8 +491,7 @@ function OperadoresContent() {
                   <Input
                     {...field}
                     id="zipCode"
-                    placeholder="00000-000"
-                    onChange={(event) => field.onChange(maskCEP(event.target.value))}
+                    onChange={(event) => field.onChange(event.target.value)}
                   />
                 )}
               />
