@@ -196,7 +196,7 @@ function GestoresContent() {
         address: {
           street: values.street,
           number: values.number,
-          complement: values.complement || null,
+          complement: values.complement || undefined,
           neighborhood: values.neighborhood,
           city: values.city,
           state: values.state,
