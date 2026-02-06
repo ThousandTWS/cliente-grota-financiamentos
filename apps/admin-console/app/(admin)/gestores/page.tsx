@@ -24,7 +24,6 @@ import { fetchAddressByCep } from "@/application/services/cep/cepService";
 import { StatusBadge } from "@/presentation/features/logista/components/status-badge";
 import { formatName } from "@/lib/formatters";
 import { convertBRtoISO } from "@/application/core/utils/formatters";
-import { convertBRtoISO } from "@/application/core/utils/formatters";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
