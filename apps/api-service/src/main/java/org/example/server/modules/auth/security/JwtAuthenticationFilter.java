@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import jakarta.servlet.http.Cookie;
+import org.example.server.modules.user.model.User;
 
 import java.io.IOException;
 
@@ -36,6 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String jwt = extractToken(request);
+        System.out.println("[AuthFilter] Token extraído: " + (jwt != null ? "PRESENTE" : "AUSENTE"));
 
         if (jwt == null) {
             filterChain.doFilter(request, response);
@@ -48,6 +50,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails user;
                 try {
                     user = userDetailsService.loadUserByUsername(username);
+                    System.out.println("[AuthFilter] Usuário carregado do banco: " + user.getUsername() + ", Role: "
+                            + (user instanceof User ? ((User) user).getRole() : "N/A"));
                 } catch (UsernameNotFoundException e) {
                     System.err.println("[AuthFilter] Usuário não encontrado no banco: " + username);
                     filterChain.doFilter(request, response);

@@ -29,6 +29,7 @@ public class JwtService {
     private long refreshTokenExpirationMillis;
 
     private Key getSigningKey() {
+        System.out.println("[JWT] Usando secretKey com tamanho: " + (secretKey != null ? secretKey.length() : 0));
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -128,6 +129,7 @@ public class JwtService {
             return false;
         }
 
+        System.out.println("[JWT] Token validado COM SUCESSO para: " + username);
         return true;
     }
 
