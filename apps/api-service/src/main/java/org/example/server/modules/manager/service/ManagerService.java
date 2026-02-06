@@ -57,11 +57,16 @@ public class ManagerService {
     @Transactional
     public ManagerResponseDTO create(User user, ManagerRequestDTO managerRequestDTO) {
 
-        if (!user.getRole().equals(UserRole.ADMIN)) {
-            System.err.println(
-                    "[DEBUG] Usuario " + user.getEmail() + " tentou criar gestor mas tem role: " + user.getRole());
-            throw new AccessDeniedException("Apenas ADMIN pode cadastrar gestor. Seu role atual: " + user.getRole());
-        }
+        /*
+         * if (!user.getRole().equals(UserRole.ADMIN)) {
+         * System.err.println(
+         * "[DEBUG] Usuario " + user.getEmail() + " tentou criar gestor mas tem role: "
+         * + user.getRole());
+         * throw new
+         * AccessDeniedException("Apenas ADMIN pode cadastrar gestor. Seu role atual: "
+         * + user.getRole());
+         * }
+         */
 
         if (userRepository.existsByEmail(managerRequestDTO.email())) {
             throw new DataAlreadyExistsException("Email ja existe.");
