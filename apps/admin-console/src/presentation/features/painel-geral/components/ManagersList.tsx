@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
   Card,
   Empty,
   Input,
+  Modal,
+  Form,
   Popconfirm,
   Spin,
   Table,
@@ -14,8 +16,8 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { deleteManager, getAllManagers, Manager } from "@/application/services/Manager/managerService";
-import { Inbox, RefreshCcw, Search, Trash2 } from "lucide-react";
+import { deleteManager, getAllManagers, Manager, updateManager, UpdateManagerPayload } from "@/application/services/Manager/managerService";
+import { Inbox, Pencil, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { StatusBadge } from "../../logista/components/status-badge";
 import { useToast } from "@/application/core/hooks/use-toast";
 
@@ -46,6 +48,10 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const pageSize = 8;
   const [visibleCount, setVisibleCount] = useState(pageSize);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingManager, setEditingManager] = useState<Manager | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [form] = Form.useForm();
 
   const fetchManagers = useCallback(
     async (showFullLoading = false) => {
@@ -148,6 +154,57 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
     }
   };
 
+  const handleEdit = (manager: Manager) => {
+    setEditingManager(manager);
+    form.setFieldsValue({
+      fullName: manager.fullName,
+      email: manager.email,
+      phone: manager.phone,
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingManager) return;
+    try {
+      const values = await form.validateFields();
+      setEditLoading(true);
+      const payload: UpdateManagerPayload = {
+        fullName: values.fullName,
+        email: values.email,
+        phone: values.phone,
+      };
+      await updateManager(editingManager.id, payload);
+      if (!mountedRef.current) return;
+      setManagers((prev) =>
+        prev.map((m) =>
+          m.id === editingManager.id
+            ? { ...m, fullName: payload.fullName, email: payload.email, phone: payload.phone }
+            : m
+        )
+      );
+      toast({
+        title: "Gestor atualizado",
+        description: "Os dados do gestor foram atualizados com sucesso.",
+      });
+      setEditModalOpen(false);
+      setEditingManager(null);
+      form.resetFields();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Não foi possível atualizar o gestor.";
+      toast({
+        title: "Erro ao atualizar gestor",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      if (mountedRef.current) {
+        setEditLoading(false);
+      }
+    }
+  };
+
   const activeManagers = useMemo(
     () => managers.filter((m) => isActive(m.status)),
     [managers],
@@ -221,29 +278,40 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
     },
     {
       key: "actions",
-      title: "Acoes",
+      title: "Ações",
       render: (_: unknown, manager: Manager) => (
-        <Tooltip title="Excluir">
-          <Popconfirm
-            title={`Deseja realmente excluir o gestor ${manager.fullName ?? `#${manager.id}`}?`}
-            okText="Excluir"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => handleDelete(manager.id, manager.fullName)}
-          >
+        <div className="flex items-center gap-1">
+          <Tooltip title="Editar">
             <Button
               type="text"
-              danger
-              loading={deletingId === manager.id}
-              icon={<Trash2 className="size-4" />}
-              aria-label="Excluir gestor"
+              icon={<Pencil className="size-4" />}
+              onClick={() => handleEdit(manager)}
+              aria-label="Editar gestor"
             />
-          </Popconfirm>
-        </Tooltip>
+          </Tooltip>
+          <Tooltip title="Excluir">
+            <Popconfirm
+              title={`Deseja realmente excluir o gestor ${manager.fullName ?? `#${manager.id}`}?`}
+              okText="Excluir"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => handleDelete(manager.id, manager.fullName)}
+            >
+              <Button
+                type="text"
+                danger
+                loading={deletingId === manager.id}
+                icon={<Trash2 className="size-4" />}
+                aria-label="Excluir gestor"
+              />
+            </Popconfirm>
+          </Tooltip>
+        </div>
       ),
     },
   ];
 
   return (
+    <>
     <Card className="w-full overflow-hidden border border-border/70 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-muted/40 px-6 py-4">
         <div className="space-y-1">
@@ -355,5 +423,48 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
         )}
       </div>
     </Card>
+
+    {/* Edit Modal */}
+    <Modal
+      title="Editar Gestor"
+      open={editModalOpen}
+      onOk={handleEditSubmit}
+      onCancel={() => {
+        setEditModalOpen(false);
+        setEditingManager(null);
+        form.resetFields();
+      }}
+      confirmLoading={editLoading}
+      okText="Salvar"
+      cancelText="Cancelar"
+    >
+      <Form form={form} layout="vertical" className="mt-4">
+        <Form.Item
+          name="fullName"
+          label="Nome Completo"
+          rules={[{ required: true, message: "Informe o nome completo" }]}
+        >
+          <Input placeholder="Nome completo" />
+        </Form.Item>
+        <Form.Item
+          name="email"
+          label="E-mail"
+          rules={[
+            { required: true, message: "Informe o e-mail" },
+            { type: "email", message: "E-mail inválido" },
+          ]}
+        >
+          <Input placeholder="E-mail" />
+        </Form.Item>
+        <Form.Item
+          name="phone"
+          label="Telefone"
+          rules={[{ required: true, message: "Informe o telefone" }]}
+        >
+          <Input placeholder="Telefone" />
+        </Form.Item>
+      </Form>
+    </Modal>
+    </>
   );
 }

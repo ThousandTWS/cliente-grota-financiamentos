@@ -19,6 +19,8 @@ import org.example.server.modules.operator.repository.OperatorRepository;
 import org.example.server.modules.auth.repository.RefreshTokenRepository;
 import org.example.server.modules.user.repository.UserRepository;
 import org.example.server.modules.operator.factory.OperatorUserFactory;
+import org.example.server.modules.notification.dto.NotificationRequestDTO;
+import org.example.server.modules.notification.service.NotificationService;
 import org.example.server.core.util.PasswordGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +41,7 @@ public class OperatorService {
     private final OperatorUserFactory operatorUserFactory;
     private final RefreshTokenRepository refreshTokenRepository;
     private final OperatorDealerLinkRepository operatorDealerLinkRepository;
+    private final NotificationService notificationService;
 
     public OperatorService(
             OperatorRepository operatorRepository,
@@ -49,7 +52,8 @@ public class OperatorService {
             DealerRepository dealerRepository,
             OperatorUserFactory operatorUserFactory,
             RefreshTokenRepository refreshTokenRepository,
-            OperatorDealerLinkRepository operatorDealerLinkRepository) {
+            OperatorDealerLinkRepository operatorDealerLinkRepository,
+            NotificationService notificationService) {
         this.operatorRepository = operatorRepository;
         this.userRepository = userRepository;
         this.operatorMapper = operatorMapper;
@@ -59,6 +63,7 @@ public class OperatorService {
         this.operatorUserFactory = operatorUserFactory;
         this.refreshTokenRepository = refreshTokenRepository;
         this.operatorDealerLinkRepository = operatorDealerLinkRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -74,6 +79,11 @@ public class OperatorService {
 
         if (operatorRepository.existsByPhone(operatorRequestDTO.phone())) {
             throw new DataAlreadyExistsException("Telefone ja existe.");
+        }
+
+        if (operatorRequestDTO.CPF() != null && !operatorRequestDTO.CPF().isBlank()
+                && operatorRepository.existsByCPF(operatorRequestDTO.CPF())) {
+            throw new DataAlreadyExistsException("CPF ja existe.");
         }
 
         List<Long> dealerIdsToLink = new ArrayList<>();
@@ -116,7 +126,7 @@ public class OperatorService {
         operator.setCanCreate(operatorRequestDTO.canCreate() != null ? operatorRequestDTO.canCreate() : true);
         operator.setCanUpdate(operatorRequestDTO.canUpdate() != null ? operatorRequestDTO.canUpdate() : true);
         operator.setCanDelete(operatorRequestDTO.canDelete() != null ? operatorRequestDTO.canDelete() : true);
-        operator.setDealer(primaryDealer); 
+        operator.setDealer(primaryDealer);
 
         newUser.setOperator(operator);
 
@@ -130,16 +140,23 @@ public class OperatorService {
 
         emailService.sendPasswordToEmail(operatorRequestDTO.email(), passwordToUse);
 
+        // Send notification to ADMIN about new operator
+        notificationService.create(new NotificationRequestDTO(
+                "Novo operador cadastrado",
+                "O operador " + operatorRequestDTO.fullName() + " foi cadastrado no sistema.",
+                "SYSTEM",
+                "ADMIN",
+                null,
+                "/operadores"));
+
         return operatorMapper.toDTO(savedOperator, generatedPassword);
     }
 
     public java.util.List<OperatorResponseDTO> findAll(Long dealerId) {
         java.util.List<Operator> operators;
         if (dealerId != null) {
-            java.util.List<Operator> linkedOperators =
-                    operatorDealerLinkRepository.findOperatorsByDealerId(dealerId);
-            java.util.List<Operator> legacyOperators =
-                    operatorRepository.findByDealerId(dealerId);
+            java.util.List<Operator> linkedOperators = operatorDealerLinkRepository.findOperatorsByDealerId(dealerId);
+            java.util.List<Operator> legacyOperators = operatorRepository.findByDealerId(dealerId);
             java.util.Map<Long, Operator> merged = new java.util.LinkedHashMap<>();
             for (Operator operator : linkedOperators) {
                 if (operator != null && operator.getId() != null) {
@@ -167,11 +184,22 @@ public class OperatorService {
                 .orElseThrow(() -> new RecordNotFoundException(id)));
     }
 
-    public OperatorResponseDTO update(Long id, OperatorRequestDTO operatorRequestDTO) {
+    public OperatorResponseDTO update(User requester, Long id, OperatorRequestDTO operatorRequestDTO) {
+        if (!requester.getRole().equals(UserRole.ADMIN)) {
+            throw new AccessDeniedException("Apenas ADMIN pode atualizar operador.");
+        }
+
         Operator operator = operatorRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException(id));
 
         User operatorUser = operator.getUser();
+
+        // Check email uniqueness if email is being changed
+        if (!operatorUser.getEmail().equalsIgnoreCase(operatorRequestDTO.email())
+                && userRepository.existsByEmail(operatorRequestDTO.email())) {
+            throw new DataAlreadyExistsException("Email ja esta em uso.");
+        }
+
         Dealer dealer = operator.getDealer();
         if (operatorRequestDTO.dealerId() != null) {
             dealer = dealerRepository.findById(operatorRequestDTO.dealerId())
@@ -254,5 +282,3 @@ public class OperatorService {
         operatorRepository.delete(operator);
     }
 }
-
-

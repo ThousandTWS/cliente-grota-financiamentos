@@ -100,3 +100,41 @@ export const deleteManager = async (managerId: number): Promise<void> => {
     method: "DELETE",
   });
 };
+
+export type UpdateManagerPayload = {
+  fullName: string;
+  email: string;
+  phone: string;
+  dealerId?: number | null;
+  CPF?: string;
+  birthData?: string;
+  address?: {
+    street?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+  };
+  canView?: boolean;
+  canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+};
+
+export const updateManager = async (
+  managerId: number,
+  payload: UpdateManagerPayload,
+): Promise<Manager> => {
+  return request<Manager>(`/api/managers/${managerId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const getManagerById = async (managerId: number): Promise<Manager> => {
+  return request<Manager>(`/api/managers/${managerId}`, {
+    method: "GET",
+  });
+};

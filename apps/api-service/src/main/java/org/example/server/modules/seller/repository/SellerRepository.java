@@ -8,11 +8,11 @@ import java.util.List;
 public interface SellerRepository extends JpaRepository<Seller, Long> {
     boolean existsByPhone(String phone);
 
+    boolean existsByCPF(String CPF);
+
     List<Seller> findByDealerId(Long dealerId);
 
     java.util.Optional<Seller> findByUserId(Long userId);
-    
+
     List<Seller> findByDealerIdIn(List<Long> dealerIds);
 }
-
-

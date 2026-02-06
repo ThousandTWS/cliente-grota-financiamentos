@@ -18,6 +18,8 @@ import org.example.server.modules.seller.repository.SellerRepository;
 import org.example.server.modules.user.repository.UserRepository;
 import org.example.server.core.email.EmailService;
 import org.example.server.modules.seller.factory.SellerUserFactory;
+import org.example.server.modules.notification.dto.NotificationRequestDTO;
+import org.example.server.modules.notification.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +36,7 @@ public class SellerService {
     private final ProposalRepository proposalRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final SellerUserFactory sellerUserFactory;
+    private final NotificationService notificationService;
 
     public SellerService(
             SellerRepository sellerRepository,
@@ -44,7 +47,8 @@ public class SellerService {
             DealerRepository dealerRepository,
             ProposalRepository proposalRepository,
             RefreshTokenRepository refreshTokenRepository,
-            SellerUserFactory sellerUserFactory) {
+            SellerUserFactory sellerUserFactory,
+            NotificationService notificationService) {
         this.sellerRepository = sellerRepository;
         this.userRepository = userRepository;
         this.sellerMapper = sellerMapper;
@@ -54,6 +58,7 @@ public class SellerService {
         this.proposalRepository = proposalRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.sellerUserFactory = sellerUserFactory;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -69,6 +74,11 @@ public class SellerService {
 
         if (sellerRepository.existsByPhone(sellerRequestDTO.phone())) {
             throw new DataAlreadyExistsException("Telefone ja existe.");
+        }
+
+        if (sellerRequestDTO.CPF() != null && !sellerRequestDTO.CPF().isBlank()
+                && sellerRepository.existsByCPF(sellerRequestDTO.CPF())) {
+            throw new DataAlreadyExistsException("CPF ja existe.");
         }
 
         Dealer dealer = null;
@@ -102,7 +112,18 @@ public class SellerService {
 
         emailService.sendPasswordToEmail(sellerRequestDTO.email(), sellerRequestDTO.password());
 
-        return sellerMapper.toDTO(sellerRepository.save(seller));
+        Seller savedSeller = sellerRepository.save(seller);
+
+        // Send notification to ADMIN about new seller
+        notificationService.create(new NotificationRequestDTO(
+                "Novo vendedor cadastrado",
+                "O vendedor " + sellerRequestDTO.fullName() + " foi cadastrado no sistema.",
+                "SYSTEM",
+                "ADMIN",
+                null,
+                "/vendedores"));
+
+        return sellerMapper.toDTO(savedSeller);
     }
 
     public java.util.List<SellerResponseDTO> findAll(Long dealerId) {
@@ -141,11 +162,22 @@ public class SellerService {
         return sellerMapper.toDTO(seller);
     }
 
-    public SellerResponseDTO update(Long id, SellerRequestDTO sellerRequestDTO) {
+    public SellerResponseDTO update(User requester, Long id, SellerRequestDTO sellerRequestDTO) {
+        if (!requester.getRole().equals(UserRole.ADMIN)) {
+            throw new AccessDeniedException("Apenas ADMIN pode atualizar vendedor.");
+        }
+
         Seller seller = sellerRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException(id));
 
         User user = seller.getUser();
+
+        // Check email uniqueness if email is being changed
+        if (!user.getEmail().equalsIgnoreCase(sellerRequestDTO.email())
+                && userRepository.existsByEmail(sellerRequestDTO.email())) {
+            throw new DataAlreadyExistsException("Email ja esta em uso.");
+        }
+
         Dealer dealer = seller.getDealer();
         if (sellerRequestDTO.dealerId() != null) {
             dealer = dealerRepository.findById(sellerRequestDTO.dealerId())
@@ -271,5 +303,3 @@ public class SellerService {
                 .toList();
     }
 }
-
-

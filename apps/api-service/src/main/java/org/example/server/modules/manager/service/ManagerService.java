@@ -43,8 +43,7 @@ public class ManagerService {
             EmailService emailService,
             DealerRepository dealerRepository,
             RefreshTokenRepository refreshTokenRepository,
-            ManagerUserFactory managerUserFactory
-    ) {
+            ManagerUserFactory managerUserFactory) {
         this.managerRepository = managerRepository;
         this.userRepository = userRepository;
         this.managerMapper = managerMapper;
@@ -70,6 +69,11 @@ public class ManagerService {
             throw new DataAlreadyExistsException("Telefone ja existe.");
         }
 
+        if (managerRequestDTO.CPF() != null && !managerRequestDTO.CPF().isBlank()
+                && managerRepository.existsByCPF(managerRequestDTO.CPF())) {
+            throw new DataAlreadyExistsException("CPF ja existe.");
+        }
+
         Dealer dealer = null;
         if (managerRequestDTO.dealerId() != null) {
             dealer = dealerRepository.findById(managerRequestDTO.dealerId())
@@ -79,8 +83,7 @@ public class ManagerService {
         User newUser = managerUserFactory.create(
                 managerRequestDTO.fullName(),
                 managerRequestDTO.email(),
-                managerRequestDTO.password()
-        );
+                managerRequestDTO.password());
 
         Manager manager = new Manager();
         manager.setPhone(managerRequestDTO.phone());
@@ -135,11 +138,22 @@ public class ManagerService {
         return managerMapper.toDTO(manager);
     }
 
-    public ManagerResponseDTO update(Long id, ManagerRequestDTO managerRequestDTO) {
+    public ManagerResponseDTO update(User requester, Long id, ManagerRequestDTO managerRequestDTO) {
+        if (!requester.getRole().equals(UserRole.ADMIN)) {
+            throw new AccessDeniedException("Apenas ADMIN pode atualizar gestor.");
+        }
+
         Manager manager = managerRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException(id));
 
         User managerUser = manager.getUser();
+
+        // Check email uniqueness if email is being changed
+        if (!managerUser.getEmail().equalsIgnoreCase(managerRequestDTO.email())
+                && userRepository.existsByEmail(managerRequestDTO.email())) {
+            throw new DataAlreadyExistsException("Email ja esta em uso.");
+        }
+
         Dealer dealer = manager.getDealer();
         if (managerRequestDTO.dealerId() != null) {
             dealer = dealerRepository.findById(managerRequestDTO.dealerId())
@@ -154,9 +168,12 @@ public class ManagerService {
         manager.setBirthData(managerRequestDTO.birthData());
         manager.setAddress(addressMapper.toEntity(managerRequestDTO.address()));
         manager.setCanView(managerRequestDTO.canView() != null ? managerRequestDTO.canView() : manager.getCanView());
-        manager.setCanCreate(managerRequestDTO.canCreate() != null ? managerRequestDTO.canCreate() : manager.getCanCreate());
-        manager.setCanUpdate(managerRequestDTO.canUpdate() != null ? managerRequestDTO.canUpdate() : manager.getCanUpdate());
-        manager.setCanDelete(managerRequestDTO.canDelete() != null ? managerRequestDTO.canDelete() : manager.getCanDelete());
+        manager.setCanCreate(
+                managerRequestDTO.canCreate() != null ? managerRequestDTO.canCreate() : manager.getCanCreate());
+        manager.setCanUpdate(
+                managerRequestDTO.canUpdate() != null ? managerRequestDTO.canUpdate() : manager.getCanUpdate());
+        manager.setCanDelete(
+                managerRequestDTO.canDelete() != null ? managerRequestDTO.canDelete() : manager.getCanDelete());
         manager.setDealer(dealer);
 
         userRepository.save(managerUser);
@@ -178,5 +195,3 @@ public class ManagerService {
         managerRepository.delete(manager);
     }
 }
-
-

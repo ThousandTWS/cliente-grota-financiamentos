@@ -100,9 +100,9 @@ public class SellerController {
                         @ApiResponse(responseCode = "400", description = "Dados inválidos"),
                         @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
         })
-        public ResponseEntity<SellerResponseDTO> update(@PathVariable Long id,
+        public ResponseEntity<SellerResponseDTO> update(@PathVariable Long id, @AuthenticationPrincipal User user,
                         @Valid @RequestBody SellerRequestDTO sellerRequestDTO) {
-                SellerResponseDTO selle = sellerService.update(id, sellerRequestDTO);
+                SellerResponseDTO selle = sellerService.update(user, id, sellerRequestDTO);
                 return ResponseEntity.ok().body(selle);
         }
 
@@ -133,5 +133,3 @@ public class SellerController {
                 return ResponseEntity.ok(sellers);
         }
 }
-
-
