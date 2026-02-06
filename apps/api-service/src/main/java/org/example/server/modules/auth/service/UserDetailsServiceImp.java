@@ -21,10 +21,9 @@ public class UserDetailsServiceImp implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByEmail(username)
+        // Busca case-insensitive para e-mail e empresa (dealer/lojista)
+        return userRepository.findByEmailIgnoreCase(username)
                 .or(() -> dealerRepository.findByEnterpriseIgnoreCase(username).map(Dealer::getUser))
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + username));
     }
 }
-
-

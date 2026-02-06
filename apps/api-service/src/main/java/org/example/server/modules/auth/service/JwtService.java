@@ -103,19 +103,30 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
 
         Claims claims = parseToken(token);
-        if (claims == null)
-            return false;
-
-        String username = claims.getSubject();
-        if (username == null || !username.equals(userDetails.getUsername())) {
+        if (claims == null) {
+            System.err.println("[JWT] Falha na validação: Claims nulos (talvez erro de assinatura)");
             return false;
         }
 
-        if (isTokenExpired(claims))
+        String username = claims.getSubject();
+        // Comparação case-insensitive para evitar erro 401 por diferença de
+        // maiúsculas/minúsculas
+        if (username == null || !username.equalsIgnoreCase(userDetails.getUsername())) {
+            System.err.println("[JWT] Mismatch de usuário: token=" + username + ", banco=" + userDetails.getUsername());
             return false;
+        }
 
-        if (wasIssuedInFuture(claims))
+        if (isTokenExpired(claims)) {
+            System.err.println("[JWT] Token expirado para: " + username);
             return false;
+        }
+
+        // Adicionada tolerância de 1 minuto para evitar problemas com relógios
+        // dessincronizados
+        if (wasIssuedInFuture(claims, 60000)) {
+            System.err.println("[JWT] Token emitido no futuro (clock skew) para: " + username);
+            return false;
+        }
 
         return true;
     }
@@ -125,8 +136,9 @@ public class JwtService {
         return expiration == null || expiration.before(new Date());
     }
 
-    private boolean wasIssuedInFuture(Claims claims) {
+    private boolean wasIssuedInFuture(Claims claims, long skewMillis) {
         Date iat = claims.getIssuedAt();
-        return iat != null && iat.after(new Date());
+        // Se a data de emissão for posterior a AGORA + tolerância, rejeita
+        return iat != null && iat.getTime() > (System.currentTimeMillis() + skewMillis);
     }
 }

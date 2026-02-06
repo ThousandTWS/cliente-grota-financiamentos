@@ -49,6 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 try {
                     user = userDetailsService.loadUserByUsername(username);
                 } catch (UsernameNotFoundException e) {
+                    System.err.println("[AuthFilter] Usuário não encontrado no banco: " + username);
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -60,12 +61,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             user.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    System.err.println("[AuthFilter] Token INVÁLIDO para usuário: " + username);
                 }
             }
         } catch (ExpiredJwtException ex) {
+            System.err.println("[AuthFilter] Token EXPIRADO detectado no filtro");
             request.setAttribute("exception", ex);
         } catch (JwtException ex) {
+            System.err.println("[AuthFilter] Erro de JWT detectado: " + ex.getMessage());
             request.setAttribute("exception", ex);
+        } catch (Exception ex) {
+            System.err.println("[AuthFilter] Erro inesperado na autenticação: " + ex.getMessage());
+            ex.printStackTrace();
         }
 
         filterChain.doFilter(request, response);
@@ -86,5 +94,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
-
-

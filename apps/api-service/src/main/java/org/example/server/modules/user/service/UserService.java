@@ -254,7 +254,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String identifier) {
-        return userRepository.findByEmail(identifier)
+        return userRepository.findByEmailIgnoreCase(identifier)
                 .or(() -> dealerRepository.findByEnterpriseIgnoreCase(identifier)
                         .map(dealer -> (User) dealer.getUser()))
                 .orElseThrow(
@@ -294,6 +294,3 @@ public class UserService {
     }
 
 }
-
-
-
