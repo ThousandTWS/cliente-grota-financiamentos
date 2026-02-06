@@ -188,7 +188,7 @@ function GestoresContent() {
       await createManager({
         dealerId,
         fullName: values.fullName,
-        email: values.email,
+        email: values.email.trim().toLowerCase(),
         phone: values.phone,
         password: values.password,
         CPF: values.cpf,
@@ -196,7 +196,7 @@ function GestoresContent() {
         address: {
           street: values.street,
           number: values.number,
-          complement: values.complement ?? "",
+          complement: values.complement || null,
           neighborhood: values.neighborhood,
           city: values.city,
           state: values.state,

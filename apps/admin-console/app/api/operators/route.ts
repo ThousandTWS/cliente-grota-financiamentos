@@ -73,7 +73,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const payloadBody = JSON.stringify(body ?? {});
+    // Validação e sanitização do payload
+    const sanitizedBody: any = {
+      fullName: String(body.fullName || "").trim(),
+      email: (body.email && String(body.email).trim() !== "" && body.email !== "null") ? String(body.email).trim().toLowerCase() : null,
+      phone: String(body.phone || "").replace(/\D/g, ""),
+      password: String(body.password || ""),
+      CPF: String(body.CPF || "").replace(/\D/g, ""),
+      birthData: String(body.birthData || ""),
+      address: {
+        street: String(body.address?.street || "").trim(),
+        number: String(body.address?.number || "").trim(),
+        complement: (body.address?.complement && String(body.address.complement).trim()) 
+          ? String(body.address.complement).trim() 
+          : null,
+        neighborhood: String(body.address?.neighborhood || "").trim(),
+        city: String(body.address?.city || "").trim(),
+        state: body.address?.state ? String(body.address.state).trim().toUpperCase() : null,
+        zipCode: String(body.address?.zipCode || "").replace(/\D/g, ""),
+      },
+      canView: body.canView !== undefined ? Boolean(body.canView) : true,
+      canCreate: body.canCreate !== undefined ? Boolean(body.canCreate) : true,
+      canUpdate: body.canUpdate !== undefined ? Boolean(body.canUpdate) : true,
+      canDelete: body.canDelete !== undefined ? Boolean(body.canDelete) : true,
+    };
+    
+    // Adiciona dealerId apenas se fornecido
+    if (body.dealerId !== null && body.dealerId !== undefined && body.dealerId !== "") {
+      sanitizedBody.dealerId = Number(body.dealerId);
+    } else {
+      sanitizedBody.dealerId = null;
+    }
+
+    // Adiciona dealerIds apenas se fornecido
+    if (Array.isArray(body.dealerIds)) {
+      sanitizedBody.dealerIds = body.dealerIds.map((id: any) => Number(id));
+    }
+
+    const payloadBody = JSON.stringify(sanitizedBody);
     const performFetch = (accessToken: string) =>
       fetch(`${API_BASE_URL}/operators`, {
         method: "POST",
