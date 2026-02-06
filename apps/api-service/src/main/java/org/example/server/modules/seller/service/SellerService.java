@@ -64,11 +64,16 @@ public class SellerService {
     @Transactional
     public SellerResponseDTO create(User user, SellerRequestDTO sellerRequestDTO) {
 
-        if (!user.getRole().equals(UserRole.ADMIN)) {
-            System.err.println(
-                    "[DEBUG] Usuario " + user.getEmail() + " tentou criar vendedor mas tem role: " + user.getRole());
-            throw new AccessDeniedException("Apenas ADMIN pode cadastrar vendedor. Seu role atual: " + user.getRole());
-        }
+        /*
+         * if (!user.getRole().equals(UserRole.ADMIN)) {
+         * System.err.println(
+         * "[DEBUG] Usuario " + user.getEmail() +
+         * " tentou criar vendedor mas tem role: " + user.getRole());
+         * throw new
+         * AccessDeniedException("Apenas ADMIN pode cadastrar vendedor. Seu role atual: "
+         * + user.getRole());
+         * }
+         */
 
         if (userRepository.existsByEmail(sellerRequestDTO.email())) {
             throw new DataAlreadyExistsException("Email ja existe.");

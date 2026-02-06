@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/grota-financiamentos/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/users").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/dealers").permitAll()
+                        .requestMatchers("/api/v1/grota-financiamentos/sellers/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/admin-register")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/").permitAll()
