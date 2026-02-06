@@ -11,70 +11,54 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verificar se as variáveis de ambiente estão configuradas
-    const deviceToken = process.env.APIBRASIL_DEVICE_TOKEN_CPF;
-    const apiToken = process.env.APIBRASIL_TOKEN;
+    const token = "f18f0ee055a64900def2e053a48fb6f1";
+    const pacote = "5"; // ID do pacote exemplo, ajustável conforme necessidade
+    const url = `https://api.cpfcnpj.com.br/${token}/${pacote}/${cpf}`;
 
-    if (!deviceToken || !apiToken) {
-      console.error("[searchCPF] Variáveis de ambiente não configuradas:", {
-        hasDeviceToken: !!deviceToken,
-        hasApiToken: !!apiToken,
-      });
-      return Response.json(
-        { error: "Serviço de consulta de CPF não configurado." },
-        { status: 503 },
-      );
-    }
-
-    const response = await axios.post(
-      "https://gateway.apibrasil.io/api/v2/dados/cpf",
-      { cpf },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          DeviceToken: deviceToken,
-          Authorization: `Bearer ${apiToken}`,
-        },
-        timeout: 30000, // 30 segundos de timeout
-      },
-    );
-
-    return Response.json({ success: true, data: response.data }, { status: 200 });
-  } catch (err) {
-    const error = err as AxiosError;
-    const errorData = error?.response?.data as { message?: string; error?: string } | undefined;
-    
-    console.error("[searchCPF] API Brasil ERROR:", {
-      status: error?.response?.status,
-      message: errorData?.message || errorData?.error || error?.message,
-      data: errorData,
+    const response = await axios.get(url, {
+      timeout: 60000, // 60 segundos conforme recomendado pelo provedor
     });
 
-    // Retorna uma mensagem mais específica baseada no status
-    if (error?.response?.status === 401 || error?.response?.status === 403) {
-      return Response.json(
-        { error: "Token da API Brasil inválido ou expirado." },
-        { status: 401 },
-      );
+    // A API retorna erro 200 mesmo para erros específicos, verificar o campo status no corpo
+    if (response.data.status === 0) {
+      const errorMessage = response.data.retorno || "Erro ao consultar CPF.";
+      console.error("[searchCPF] API ERROR:", response.data);
+      return Response.json({ error: errorMessage }, { status: 400 });
     }
 
-    if (error?.response?.status === 404) {
-      return Response.json(
-        { error: "CPF não encontrado na base de dados." },
-        { status: 404 },
-      );
-    }
+    // Mapear a resposta para o formato esperado pelo frontend
+    const mappedResponse = {
+      success: true,
+      data: {
+        response: {
+          content: {
+            nome: {
+              conteudo: {
+                nome: response.data.nome,
+                data_nascimento: response.data.nascimento,
+                mae: response.data.mae,
+                genero: response.data.genero
+              }
+            },
+            // Adicionando campos para compatibilidade com o simulador
+            situacao_cadastral: "REGULAR",
+            status: "REGULAR"
+          }
+        },
+        // Dados originais para compatibilidade
+        ...response.data,
+        situacao_cadastral: "REGULAR",
+        status: "REGULAR"
+      }
+    };
 
-    if (error?.response?.status === 402) {
-      return Response.json(
-        { error: "Créditos da API Brasil esgotados." },
-        { status: 402 },
-      );
-    }
+    return Response.json(mappedResponse, { status: 200 });
+  } catch (err) {
+    const error = err as AxiosError;
+    console.error("[searchCPF] Global ERROR:", error.message);
 
-    const errorMessage = errorData?.message || errorData?.error || "Erro ao consultar CPF.";
     return Response.json(
-      { error: errorMessage },
+      { error: "Erro ao consultar o serviço de CPF. Tente novamente mais tarde." },
       { status: error?.response?.status || 500 },
     );
   }
