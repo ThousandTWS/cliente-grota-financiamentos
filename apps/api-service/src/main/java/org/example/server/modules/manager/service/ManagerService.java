@@ -58,7 +58,9 @@ public class ManagerService {
     public ManagerResponseDTO create(User user, ManagerRequestDTO managerRequestDTO) {
 
         if (!user.getRole().equals(UserRole.ADMIN)) {
-            throw new AccessDeniedException("Apenas ADMIN pode cadastrar gestor.");
+            System.err.println(
+                    "[DEBUG] Usuario " + user.getEmail() + " tentou criar gestor mas tem role: " + user.getRole());
+            throw new AccessDeniedException("Apenas ADMIN pode cadastrar gestor. Seu role atual: " + user.getRole());
         }
 
         if (userRepository.existsByEmail(managerRequestDTO.email())) {

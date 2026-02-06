@@ -73,8 +73,8 @@ async function request<T>(
 
     const status = response.status;
     const message =
-      status === 401 || status === 403
-        ? "Sessao expirada ou acesso nao autorizado. Faca login novamente."
+      status === 401
+        ? "Sessao expirada. Faca login novamente."
         : detailedMessage;
 
     throw new Error(message);

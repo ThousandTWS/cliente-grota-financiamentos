@@ -65,7 +65,9 @@ public class SellerService {
     public SellerResponseDTO create(User user, SellerRequestDTO sellerRequestDTO) {
 
         if (!user.getRole().equals(UserRole.ADMIN)) {
-            throw new AccessDeniedException("Apenas ADMIN pode cadastrar vendedor.");
+            System.err.println(
+                    "[DEBUG] Usuario " + user.getEmail() + " tentou criar vendedor mas tem role: " + user.getRole());
+            throw new AccessDeniedException("Apenas ADMIN pode cadastrar vendedor. Seu role atual: " + user.getRole());
         }
 
         if (userRepository.existsByEmail(sellerRequestDTO.email())) {

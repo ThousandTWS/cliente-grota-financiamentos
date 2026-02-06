@@ -70,7 +70,9 @@ public class OperatorService {
     public OperatorResponseDTO create(User user, OperatorRequestDTO operatorRequestDTO) {
 
         if (!user.getRole().equals(UserRole.ADMIN)) {
-            throw new AccessDeniedException("Apenas ADMIN pode cadastrar operador.");
+            System.err.println(
+                    "[DEBUG] Usuario " + user.getEmail() + " tentou criar operador mas tem role: " + user.getRole());
+            throw new AccessDeniedException("Apenas ADMIN pode cadastrar operador. Seu role atual: " + user.getRole());
         }
 
         if (userRepository.existsByEmail(operatorRequestDTO.email())) {

@@ -55,7 +55,7 @@ public class AuthController {
                 this.cookieSecure = cookieSecure;
                 this.cookieSameSite = cookieSameSite;
         }
-
+ 
         @PostMapping("/register")
         @Operation(summary = "Cadastrar Lojista", description = "Cadastra um Lojista no banco de dados")
         @ApiResponses(value = {
@@ -146,7 +146,7 @@ public class AuthController {
                                 .header(HttpHeaders.SET_COOKIE, expiredRefreshCookie.toString())
                                 .body(new Api_Response(true, "Logout realizado com sucesso"));
         }
-
+ 
         @GetMapping("/me")
         @Operation(summary = "Obter usuário autenticado", description = "Retorna as informações do usuário atualmente autenticado ")
         @ApiResponses(value = {
@@ -183,7 +183,7 @@ public class AuthController {
                         canCreate = o.getCanCreate();
                         canUpdate = o.getCanUpdate();
                         canDelete = o.getCanDelete();
-                        // Get operator's allowed dealer IDs
+                        // Get operator's allowed dealer ID s
                         allowedDealerIds = o.getDealerIds();
                         allowedDealersCount = allowedDealerIds != null ? allowedDealerIds.size() : 0;
                 } else if (user.getSeller() != null) {
