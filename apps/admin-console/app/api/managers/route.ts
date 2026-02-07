@@ -76,20 +76,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validação e sanitização do payload
+    // Valida??o e sanitiza??o do payload
+    const normalizedCPF = String(body.CPF ?? "").replace(/\D/g, "");
+    const cpfValue = normalizedCPF === "" ? null : normalizedCPF;
+
     const sanitizedBody: any = {
       fullName: String(body.fullName || "").trim(),
-      email: (body.email && String(body.email).trim() !== "" && body.email !== "null") ? String(body.email).trim().toLowerCase() : null,
+      email:
+        body.email && String(body.email).trim() !== "" && body.email !== "null"
+          ? String(body.email).trim().toLowerCase()
+          : null,
       phone: String(body.phone || "").replace(/\D/g, ""),
       password: String(body.password || ""),
-      CPF: String(body.CPF || "").replace(/\D/g, ""),
+      CPF: cpfValue,
       birthData: String(body.birthData || ""),
       address: {
         street: String(body.address?.street || "").trim(),
         number: String(body.address?.number || "").trim(),
-        complement: (body.address?.complement && String(body.address.complement).trim()) 
-          ? String(body.address.complement).trim() 
-          : null,
+        complement:
+          body.address?.complement && String(body.address.complement).trim()
+            ? String(body.address.complement).trim()
+            : null,
         neighborhood: String(body.address?.neighborhood || "").trim(),
         city: String(body.address?.city || "").trim(),
         state: body.address?.state ? String(body.address.state).trim().toUpperCase() : null,
@@ -101,13 +108,6 @@ export async function POST(request: NextRequest) {
       canDelete: body.canDelete !== undefined ? Boolean(body.canDelete) : true,
     };
     
-    // Adiciona dealerId apenas se fornecido
-    if (body.dealerId !== null && body.dealerId !== undefined && body.dealerId !== "") {
-      sanitizedBody.dealerId = Number(body.dealerId);
-    } else {
-      sanitizedBody.dealerId = null;
-    }
-
     const payloadBody = JSON.stringify(sanitizedBody);
 
     // Função para fazer a requisição com o token atual
@@ -312,3 +312,4 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+

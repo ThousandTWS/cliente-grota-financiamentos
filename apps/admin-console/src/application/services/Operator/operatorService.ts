@@ -18,7 +18,7 @@ export type CreateOperatorPayload = {
   email: string;
   phone: string;
   password: string;
-  CPF: string;
+  CPF: string | null;
   birthData: string | null;
   address: {
     street: string | null;
@@ -115,3 +115,4 @@ export const deleteOperator = async (operatorId: number): Promise<void> => {
     method: "DELETE",
   });
 };
+

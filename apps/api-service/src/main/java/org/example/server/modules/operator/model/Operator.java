@@ -23,7 +23,7 @@ public class Operator {
     @Column(nullable = false, unique = true, length = 50)
     private String phone;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(nullable = true, unique = true, length = 20)
     private String CPF;
 
     private LocalDate birthData;

@@ -26,7 +26,6 @@ public record OperatorRequestDTO(
 
         String password,
 
-        @NotBlank(message = "O CPF e obrigatorio")
         @Size(min = 11, max = 14, message = "O CPF deve ter entre 11 e 14 caracteres")
         String CPF,
 

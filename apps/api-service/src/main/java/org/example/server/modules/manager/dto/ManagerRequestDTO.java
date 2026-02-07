@@ -27,7 +27,6 @@ public record ManagerRequestDTO(
         @Size(min = 6, max = 8, message = "A senha deve ter entre 6 e 8 caracteres")
         String password,
 
-        @NotBlank(message = "O CPF e obrigatorio")
         @Size(min = 11, max = 14, message = "O CPF deve ter entre 11 e 14 caracteres")
         String CPF,
 

@@ -49,11 +49,12 @@ const managerSchema = z.object({
     .max(8, "A senha deve ter no maximo 8 caracteres"),
   cpf: z
     .string()
-    .min(1, "Informe o CPF")
-    .refine((value) => digitsOnly(value).length === 11, {
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? digitsOnly(value) : ""))
+    .refine((value) => value === "" || digitsOnly(value).length === 11, {
       message: "Informe um CPF valido (11 digitos)",
-    })
-    .transform((value) => digitsOnly(value)),
+    }),
   birthData: z
     .string()
     .min(1, "Informe a data de nascimento")
@@ -185,7 +186,7 @@ function GestoresContent() {
         email: values.email.trim().toLowerCase(),
         phone: values.phone,
         password: values.password,
-        CPF: values.cpf,
+        CPF: values.cpf ? digitsOnly(values.cpf) : null,
         birthData: birthDateIso,
         address: {
           street: values.street,
@@ -439,7 +440,7 @@ function GestoresContent() {
             )}
           </div>
           <div className="space-y-2">
-            <Typography.Text>CPF</Typography.Text>
+            <Typography.Text>CPF (opcional)</Typography.Text>
             <Controller
               control={control}
               name="cpf"
@@ -663,3 +664,4 @@ function GestoresContent() {
     </div>
   );
 }
+

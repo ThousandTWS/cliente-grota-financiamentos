@@ -18,8 +18,8 @@ export type CreateManagerPayload = {
   email: string;
   phone: string;
   password: string;
-  CPF: string;
-  birthData: string;
+  CPF: string | null;
+  birthData: string | null;
   address: {
     street: string;
     number: string;
@@ -138,3 +138,4 @@ export const getManagerById = async (managerId: number): Promise<Manager> => {
     method: "GET",
   });
 };
+

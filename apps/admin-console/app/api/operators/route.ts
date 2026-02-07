@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
 
 
     const normalizedCPF = String(body.CPF ?? "").replace(/\D/g, "");
+    const cpfValue = normalizedCPF === "" ? null : normalizedCPF;
     const normalizedBirthDate = body.birthData === null || body.birthData === undefined || String(body.birthData).trim() === "" ? null : String(body.birthData).trim();
 
     const sanitizedBody: any = {
@@ -165,7 +166,7 @@ export async function POST(request: NextRequest) {
 
       password: String(body.password || ""),
 
-      CPF: normalizedCPF,
+      CPF: cpfValue,
 
       birthData: normalizedBirthDate,
 
@@ -217,19 +218,6 @@ export async function POST(request: NextRequest) {
     if (Array.isArray(body.dealerIds)) {
 
       sanitizedBody.dealerIds = body.dealerIds.map((id: any) => Number(id));
-
-    }
-
-
-    if (!sanitizedBody.CPF) {
-
-      return NextResponse.json(
-
-        { error: "CPF ? obrigat?rio." },
-
-        { status: 400 },
-
-      );
 
     }
 
