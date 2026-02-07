@@ -112,13 +112,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Validação e sanitização do payload
+    const normalizedCPF = String(body.CPF ?? "").replace(/\D/g, "");
+    const normalizedBirthDate = body.birthData === null || body.birthData === undefined || String(body.birthData).trim() === "" ? null : String(body.birthData).trim();
+
     const sanitizedBody: any = {
       fullName: String(body.fullName || "").trim(),
       email: (body.email && String(body.email).trim() !== "" && body.email !== "null") ? String(body.email).trim().toLowerCase() : null,
       phone: String(body.phone || "").replace(/\D/g, ""),
       password: String(body.password || ""),
-      CPF: String(body.CPF || "").replace(/\D/g, ""),
-      birthData: String(body.birthData || ""),
+      CPF: normalizedCPF,
+      birthData: normalizedBirthDate,
       address: {
         street: String(body.address?.street || "").trim(),
         number: String(body.address?.number || "").trim(),
@@ -320,3 +323,5 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+

@@ -63,7 +63,7 @@ public class SecurityConfig {
 
         http
                 .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -71,39 +71,39 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/grota-financiamentos/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/users").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/dealers").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/admin-register")
-                        .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/admin-register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/").permitAll()
 
                         // Documentos
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents")
-                        .hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents/*/url")
-                        .hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/documents/upload")
-                        .hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/grota-financiamentos/documents/*/review")
-                        .hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/logo")
-                        .hasRole("LOJISTA")
-                        // Operadores - liberar para ADMIN e OPERADOR
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/operators")
-                        .hasAnyRole("ADMIN", "OPERADOR")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/operators/**")
-                        .hasAnyRole("ADMIN", "OPERADOR")
-                        
-                        // Gestores - liberar para ADMIN e GESTOR
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/managers")
-                        .hasAnyRole("ADMIN", "GESTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/managers/**")
-                        .hasAnyRole("ADMIN", "GESTOR")
-                        
-                        // Vendedores - liberar para ADMIN, OPERADOR e GESTOR
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/sellers")
-                        .hasAnyRole("ADMIN", "OPERADOR", "GESTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/sellers/**")
-                        .hasAnyRole("ADMIN", "OPERADOR", "GESTOR", "VENDEDOR")
-                        
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents").hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents/*/url").hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/documents/upload").hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/grota-financiamentos/documents/*/review").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/logo").hasRole("LOJISTA")
+
+                        // Operadores - apenas ADMIN cria/atualiza; OPERADOR pode listar
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/operators").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/operators/**").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/grota-financiamentos/operators/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/grota-financiamentos/operators/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/grota-financiamentos/operators/**").hasRole("ADMIN")
+
+                        // Gestores - apenas ADMIN cria/atualiza; GESTOR pode listar
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/managers").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/managers/**").hasAnyRole("ADMIN", "GESTOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/grota-financiamentos/managers/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/grota-financiamentos/managers/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/grota-financiamentos/managers/**").hasRole("ADMIN")
+
+                        // Vendedores - apenas ADMIN cria/atualiza; demais roles podem visualizar
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/sellers").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/sellers/**").hasAnyRole("ADMIN", "OPERADOR", "GESTOR", "VENDEDOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/grota-financiamentos/sellers/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/grota-financiamentos/sellers/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/grota-financiamentos/sellers/**").hasRole("ADMIN")
+
+                        .anyRequest().authenticated()
+                )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

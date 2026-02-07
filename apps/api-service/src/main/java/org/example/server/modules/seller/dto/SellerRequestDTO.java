@@ -20,12 +20,16 @@ public record SellerRequestDTO(
         @Email(message = "E-mail invalido")
         String email,
 
+        @NotBlank(message = "O telefone e obrigatorio")
         String phone,
 
         String password,
 
+        @NotBlank(message = "O CPF e obrigatorio")
+        @Size(min = 11, max = 14, message = "O CPF deve ter entre 11 e 14 caracteres")
         String CPF,
 
+        @Past(message = "A data de nascimento deve ser uma data no passado")
         LocalDate birthData,
 
         @Valid
@@ -36,5 +40,3 @@ public record SellerRequestDTO(
         Boolean canUpdate,
         Boolean canDelete
 ) {}
-
-

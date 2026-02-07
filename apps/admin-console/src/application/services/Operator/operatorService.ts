@@ -18,7 +18,7 @@ export type CreateOperatorPayload = {
   email: string;
   phone: string;
   password: string;
-  CPF: string | null;
+  CPF: string;
   birthData: string | null;
   address: {
     street: string | null;

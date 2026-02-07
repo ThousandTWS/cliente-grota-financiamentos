@@ -48,9 +48,11 @@ const operatorSchema = z.object({
     .max(50, "A senha deve ter no maximo 50 caracteres"),
   cpf: z
     .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((value) => (value ? digitsOnly(value) : "")),
+    .min(1, "Informe o CPF")
+    .refine((value) => digitsOnly(value).length === 11, {
+      message: "Informe um CPF valido (11 digitos)",
+    })
+    .transform((value) => digitsOnly(value)),
   birthData: z
     .string()
     .optional()
@@ -182,7 +184,7 @@ function OperadoresContent() {
         email: normalizedEmail,
         phone: values.phone,
         password: values.password,
-        CPF: values.cpf || null,
+        CPF: values.cpf,
         birthData: birthDateIso,
         address: {
           street: values.street || null,
@@ -654,3 +656,5 @@ function OperadoresContent() {
     </div>
   );
 }
+
+
