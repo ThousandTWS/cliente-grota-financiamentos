@@ -16,22 +16,10 @@ public final class PasswordGenerator {
     private PasswordGenerator() {
     }
 
-    /**
-     * Generates a secure random password with 14 characters containing
-     * at least one lowercase, one uppercase, one digit, and one symbol.
-     *
-     * @return a secure random password
-     */
     public static String generate() {
         return generate(DEFAULT_LENGTH);
     }
 
-    /**
-     * Generates a secure random password with the specified length.
-     *
-     * @param length the desired password length (minimum 4)
-     * @return a secure random password
-     */
     public static String generate(int length) {
         if (length < 4) {
             length = 4;
@@ -59,12 +47,6 @@ public final class PasswordGenerator {
         return new String(passwordArray);
     }
 
-    /**
-     * Checks if a password string is null or blank.
-     *
-     * @param password the password to check
-     * @return true if the password is null or blank
-     */
     public static boolean isNullOrBlank(String password) {
         return password == null || password.isBlank();
     }

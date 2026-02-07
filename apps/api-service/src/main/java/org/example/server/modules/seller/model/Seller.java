@@ -18,10 +18,10 @@ public class Seller {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = true, unique = true, length = 50)
     private String phone;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(nullable = true, unique = true, length = 20)
     private String CPF;
 
     private LocalDate birthData;
@@ -36,16 +36,16 @@ public class Seller {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Column(nullable = true, columnDefinition = "boolean default true")
     private Boolean canView = true;
 
-    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Column(nullable = true, columnDefinition = "boolean default true")
     private Boolean canCreate = true;
 
-    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Column(nullable = true, columnDefinition = "boolean default true")
     private Boolean canUpdate = true;
 
-    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Column(nullable = true, columnDefinition = "boolean default true")
     private Boolean canDelete = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -163,5 +163,6 @@ public class Seller {
         return Objects.hash(id);
     }
 }
+
 
 

@@ -48,11 +48,12 @@ const sellerSchema = z.object({
     .max(50, "A senha deve ter no maximo 50 caracteres"),
   cpf: z
     .string()
-    .min(1, "Informe o CPF")
-    .refine((value) => digitsOnly(value).length === 11, {
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? digitsOnly(value) : ""))
+    .refine((value) => value === "" || digitsOnly(value).length === 11, {
       message: "Informe um CPF valido (11 digitos)",
-    })
-    .transform((value) => digitsOnly(value)),
+    }),
   birthData: z
     .string()
     .optional()
@@ -184,7 +185,7 @@ function VendedoresContent() {
         email: normalizedEmail,
         phone: values.phone,
         password: values.password,
-        CPF: values.cpf,
+        CPF: values.cpf ? digitsOnly(values.cpf) : null,
         birthData: birthDateIso,
         address: {
           street: values.street || null,
@@ -656,4 +657,6 @@ function VendedoresContent() {
     </div>
   );
 }
+
+
 

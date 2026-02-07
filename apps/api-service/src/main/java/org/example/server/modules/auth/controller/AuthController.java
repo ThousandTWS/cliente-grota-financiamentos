@@ -173,7 +173,6 @@ public class AuthController {
                         canCreate = m.getCanCreate();
                         canUpdate = m.getCanUpdate();
                         canDelete = m.getCanDelete();
-                        // Get manager's dealer ID
                         if (m.getDealer() != null) {
                                 dealerId = m.getDealer().getId();
                         }
@@ -183,7 +182,6 @@ public class AuthController {
                         canCreate = o.getCanCreate();
                         canUpdate = o.getCanUpdate();
                         canDelete = o.getCanDelete();
-                        // Get operator's allowed dealer ID s
                         allowedDealerIds = o.getDealerIds();
                         allowedDealersCount = allowedDealerIds != null ? allowedDealerIds.size() : 0;
                 } else if (user.getSeller() != null) {

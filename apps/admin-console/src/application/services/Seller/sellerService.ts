@@ -16,9 +16,9 @@ export type CreateSellerPayload = {
   dealerId?: number | null;
   fullName: string;
   email: string;
-  phone: string;
-  password: string;
-  CPF: string;
+  phone: string | null;
+  password: string | null;
+  CPF: string | null;
   birthData: string | null;
   address: {
     street: string | null;
@@ -116,3 +116,4 @@ export const deleteSeller = async (sellerId: number): Promise<void> => {
     method: "DELETE",
   });
 };
+
