@@ -17,7 +17,7 @@ public class CorsConfig implements WebMvcConfigurer {
                 // permite todos os headers
                 .allowedHeaders("*")
                 // permite envio de cookies, Authorization, etc.
-                .allowCredentials(true)
+                .allowCredentials(false)
                 // tempo em segundos para o navegador manter a resposta de preflight
                 .maxAge(3600);
     }
