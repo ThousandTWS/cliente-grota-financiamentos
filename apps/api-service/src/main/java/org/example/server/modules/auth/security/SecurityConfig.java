@@ -86,17 +86,24 @@ public class SecurityConfig {
                         .hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/logo")
                         .hasRole("LOJISTA")
-                        // Propostas - criação permitida para ADMIN, OPERADOR e VENDEDOR
-                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/proposals")
-                        .hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/grota-financiamentos/proposals/*/status")
-                        .hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/proposals/**")
-                        .hasAnyRole("ADMIN", "OPERADOR", "VENDEDOR", "LOJISTA", "GESTOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/grota-financiamentos/proposals/*").hasRole("ADMIN")
-                        // Cobrança: liberar para os mesmos perfis das demais operações
-                        .requestMatchers("/api/v1/grota-financiamentos/billing/**").authenticated()
-                        .anyRequest().authenticated())
+                        // Operadores - liberar para ADMIN e OPERADOR
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/operators")
+                        .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/operators/**")
+                        .hasAnyRole("ADMIN", "OPERADOR")
+                        
+                        // Gestores - liberar para ADMIN e GESTOR
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/managers")
+                        .hasAnyRole("ADMIN", "GESTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/managers/**")
+                        .hasAnyRole("ADMIN", "GESTOR")
+                        
+                        // Vendedores - liberar para ADMIN, OPERADOR e GESTOR
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/sellers")
+                        .hasAnyRole("ADMIN", "OPERADOR", "GESTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/sellers/**")
+                        .hasAnyRole("ADMIN", "OPERADOR", "GESTOR", "VENDEDOR")
+                        
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

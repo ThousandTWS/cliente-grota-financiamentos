@@ -60,8 +60,11 @@ export async function POST(request: NextRequest) {
   try {
     let session = await getAdminSession();
     if (!session) {
+      console.warn("[admin][operators] POST: Nenhuma sessao encontrada, retornando 401");
       return unauthorizedResponse();
     }
+
+    console.log("[admin][operators] POST: Sessao encontrada, proceedendo com requisicao");
 
     let body;
     try {
@@ -111,8 +114,11 @@ export async function POST(request: NextRequest) {
     }
 
     const payloadBody = JSON.stringify(sanitizedBody);
-    const performFetch = (accessToken: string) =>
-      fetch(`${API_BASE_URL}/operators`, {
+    
+    // Função para fazer a requisição com o token atual
+    const performFetch = async (accessToken: string) => {
+      console.log("[admin][operators] POST: Fazendo requisicao para", `${API_BASE_URL}/operators`);
+      return fetch(`${API_BASE_URL}/operators`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -121,13 +127,23 @@ export async function POST(request: NextRequest) {
         body: payloadBody,
         cache: "no-store",
       });
+    };
 
+    // Primeira tentativa com o token atual
     let upstreamResponse = await performFetch(session.accessToken);
+    console.log("[admin][operators] POST: Primeira tentativa status =", upstreamResponse.status);
+
+    // Se receber 401, tenta refresh de token e repete
     if (upstreamResponse.status === 401) {
+      console.log("[admin][operators] POST: Token expirou, tentando refresh...");
       const refreshed = await refreshAdminSession(session);
       if (refreshed) {
+        console.log("[admin][operators] POST: Refresh bem-sucedido, repetindo requisicao");
         session = refreshed;
         upstreamResponse = await performFetch(session.accessToken);
+        console.log("[admin][operators] POST: Segunda tentativa status =", upstreamResponse.status);
+      } else {
+        console.warn("[admin][operators] POST: Refresh falhou");
       }
     }
 
@@ -161,6 +177,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    console.log("[admin][operators] POST: Operador criado com sucesso");
     return NextResponse.json(payload ?? {}, {
       status: upstreamResponse.status,
     });
