@@ -626,8 +626,8 @@ function PainelOperadorContent() {
           </Sider>
 
           <Layout className="bg-white flex flex-col h-full">
-            <Header className="!bg-white !px-6 !py-4 border-b border-slate-100">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Header className="!bg-white !px-6 !py-4 !h-auto !leading-normal border-b border-slate-100">
+              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-slate-500">
                     Painel de operacao
@@ -639,7 +639,7 @@ function PainelOperadorContent() {
                     Monitoramento de propostas, equipes e lojas com insights visuais.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2 md:pb-1">
                   <Select
                     size="middle"
                     value={timeframe}
@@ -670,7 +670,7 @@ function PainelOperadorContent() {
                   </Card>
                 )}
                 <Row gutter={[16, 16]}>
-                  <Col xs={24} lg={16}>
+                  <Col xs={24} lg={24}>
                     <Card
                       className="border-0 shadow-sm"
                       title={
