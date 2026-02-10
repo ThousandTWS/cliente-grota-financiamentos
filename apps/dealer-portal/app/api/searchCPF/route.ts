@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+﻿import axios, { AxiosError } from "axios";
 
 export async function POST(req: Request) {
   const { cpf } = await req.json();
@@ -6,33 +6,56 @@ export async function POST(req: Request) {
   try {
     if (!cpf) {
       return Response.json(
-        { error: "Campos obrigatórios ausentes." },
+        { error: "Campos obrigatorios ausentes." },
         { status: 400 },
       );
     }
 
-    const response = await axios.post(
-      "https://gateway.apibrasil.io/api/v2/dados/cpf",
-      { cpf },
-      {
-        headers: {
-          "Content-Type": "application/json",
-           
-          DeviceToken: `${process.env.APIBRASIL_DEVICE_TOKEN_CPF}`,
-           
-          Authorization: `Bearer ${process.env.APIBRASIL_TOKEN}`,
-        },
-      },
-    );
+    const token = "f18f0ee055a64900def2e053a48fb6f1";
+    const pacote = "2";
+    const url = `https://api.cpfcnpj.com.br/${token}/${pacote}/${cpf}`;
 
-    return Response.json({ success: true, data: response.data }, { status: 200 });
+    const response = await axios.get(url, {
+      timeout: 60000,
+    });
+
+    if (response.data.status === 0) {
+      const errorMessage = response.data.retorno || "Erro ao consultar CPF.";
+      console.error("[searchCPF] API ERROR:", response.data);
+      return Response.json({ error: errorMessage }, { status: 400 });
+    }
+
+    const mappedResponse = {
+      success: true,
+      data: {
+        response: {
+          content: {
+            nome: {
+              conteudo: {
+                nome: response.data.nome,
+                data_nascimento: response.data.nascimento,
+                mae: response.data.mae,
+                genero: response.data.genero,
+              },
+            },
+            situacao_cadastral: "REGULAR",
+            status: "REGULAR",
+          },
+        },
+        ...response.data,
+        situacao_cadastral: "REGULAR",
+        status: "REGULAR",
+      },
+    };
+
+    return Response.json(mappedResponse, { status: 200 });
   } catch (err) {
     const error = err as AxiosError;
-    console.error("API Brasil ERROR:", error?.response?.data || err);
+    console.error("[searchCPF] Global ERROR:", error.message);
 
     return Response.json(
-      { error: "Erro interno ao buscar CPF." },
-      { status: 500 },
+      { error: "Erro ao consultar o servico de CPF. Tente novamente mais tarde." },
+      { status: error?.response?.status || 500 },
     );
   }
 }
