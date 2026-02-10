@@ -17,10 +17,13 @@ type ProposalsTableProps = {
 const statusLabels: Record<ProposalStatus, string> = {
   SUBMITTED: "Enviada",
   PENDING: "Pendente",
+  ANALYSIS: "Em analise",
   APPROVED: "Aprovada",
-  REJECTED: "Recusada",
-  PAID: "Paga",
+  APPROVED_DEDUCTED: "Aprovada deduzida",
   CONTRACT_ISSUED: "Contrato Emitido",
+  PAID: "Paga",
+  REJECTED: "Recusada",
+  WITHDRAWN: "Desistido",
 };
 
 const formatCurrency = (value: number) =>

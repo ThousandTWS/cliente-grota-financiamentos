@@ -53,7 +53,6 @@ export default function NotificationDropdown() {
     return () => clearInterval(interval);
   }, []);
 
-  // SSE para novas notificações em tempo real
   useEffect(() => {
     let source: EventSource | null = null;
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -175,7 +174,6 @@ export default function NotificationDropdown() {
               <span>{item.actor ?? "Sistema"}</span>
               {item.createdAt && (
                 <span>
-                  {/* Mostra horário real e relativo */}
                   {format(parseISO(item.createdAt), "dd/MM/yyyy HH:mm", {
                     locale: ptBR,
                   })}{" "}

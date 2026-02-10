@@ -30,7 +30,7 @@ const PANELS: { key: ProposalStatus; title: string; color: string; icon: React.R
   },
   {
     key: "PENDING",
-    title: "Em análise",
+    title: "Em analise",
     color: "#F59E0B",
     icon: <ClockCircleOutlined />
   },
@@ -38,6 +38,12 @@ const PANELS: { key: ProposalStatus; title: string; color: string; icon: React.R
     key: "APPROVED",
     title: "Aprovadas",
     color: "#10B981",
+    icon: <CheckCircleOutlined />
+  },
+  {
+    key: "APPROVED_DEDUCTED",
+    title: "Aprovadas deduzidas",
+    color: "#06B6D4",
     icon: <CheckCircleOutlined />
   },
   {
@@ -176,8 +182,9 @@ export function QuickStats() {
   const statusTags: Record<ProposalStatus, { color: string; label: string }> = {
     SUBMITTED: { color: 'blue', label: 'Recebida' },
     PENDING: { color: 'orange', label: 'Pendente' },
-    ANALYSIS: { color: 'purple', label: 'Em análise' },
+    ANALYSIS: { color: 'purple', label: 'Em analise' },
     APPROVED: { color: 'green', label: 'Aprovada' },
+    APPROVED_DEDUCTED: { color: 'geekblue', label: 'Aprovada deduzida' },
     CONTRACT_ISSUED: { color: 'geekblue', label: 'Contrato emitido' },
     PAID: { color: 'cyan', label: 'Paga' },
     REJECTED: { color: 'red', label: 'Reprovada' },

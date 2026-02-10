@@ -41,10 +41,20 @@ const statusConfig: Record<
     bulletColor: "bg-amber-400",
     barColor: "bg-amber-400",
   },
+  ANALYSIS: {
+    label: "Em analise",
+    bulletColor: "bg-indigo-400",
+    barColor: "bg-indigo-400",
+  },
   APPROVED: {
     label: "Aprovadas",
     bulletColor: "bg-emerald-500",
     barColor: "bg-emerald-500",
+  },
+  APPROVED_DEDUCTED: {
+    label: "Aprovadas deduzidas",
+    bulletColor: "bg-cyan-500",
+    barColor: "bg-cyan-500",
   },
   REJECTED: {
     label: "Recusadas",
@@ -60,6 +70,11 @@ const statusConfig: Record<
     label: "Contrato Emitido",
     bulletColor: "bg-violet-500",
     barColor: "bg-violet-500",
+  },
+  WITHDRAWN: {
+    label: "Desistido",
+    bulletColor: "bg-gray-400",
+    barColor: "bg-gray-400",
   },
 };
 

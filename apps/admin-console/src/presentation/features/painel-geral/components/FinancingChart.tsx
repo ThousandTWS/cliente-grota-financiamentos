@@ -46,6 +46,7 @@ export function FinancingChart() {
 
     months.forEach((month, index) => {
       let approvedValue = 0;
+      let approvedDeductedValue = 0;
       let pendingValue = 0;
 
       proposals.forEach((proposal) => {
@@ -56,6 +57,8 @@ export function FinancingChart() {
           const value = proposal.financedValue ?? 0;
           if (proposal.status === "APPROVED") {
             approvedValue += value;
+          } else if (proposal.status === "APPROVED_DEDUCTED") {
+            approvedDeductedValue += value;
           } else if (proposal.status === "PENDING" || proposal.status === "SUBMITTED") {
             pendingValue += value;
           }
@@ -66,6 +69,11 @@ export function FinancingChart() {
         month,
         value: approvedValue,
         type: "Aprovados",
+      });
+      result.push({
+        month,
+        value: approvedDeductedValue,
+        type: "Aprovados deduzidos",
       });
       result.push({
         month,
@@ -87,7 +95,7 @@ export function FinancingChart() {
     group: {
       padding: 0,
     },
-    color: ["#10B981", "#F59E0B"],
+    color: ["#10B981", "#06B6D4", "#F59E0B"],
 
     tooltip: {
       items: [
@@ -116,6 +124,7 @@ export function FinancingChart() {
       extra={
         <Space>
            <Tag color="success">Aprovados</Tag>
+           <Tag color="#06B6D4">Aprovados deduzidos</Tag>
            <Tag color="warning">Pendentes</Tag>
         </Space>
       }
@@ -140,3 +149,11 @@ export function FinancingChart() {
     </Card>
   );
 }
+
+
+
+
+
+
+
+

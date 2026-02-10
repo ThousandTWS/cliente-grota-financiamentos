@@ -14,6 +14,7 @@ const STATUS_LABELS: Record<ProposalStatus, string> = {
   PENDING: "Pendentes",
   ANALYSIS: "Em análise",
   APPROVED: "Aprovadas",
+  APPROVED_DEDUCTED: "Aprovadas deduzidas",
   CONTRACT_ISSUED: "Contrato emitido",
   PAID: "Pagas",
   REJECTED: "Rejeitadas",
@@ -25,6 +26,7 @@ const STATUS_COLORS: Record<ProposalStatus, string> = {
   PENDING: "#F59E0B",
   ANALYSIS: "#818cf8",
   APPROVED: "#10B981",
+  APPROVED_DEDUCTED: "#06b6d4",
   CONTRACT_ISSUED: "#2563eb",
   PAID: "#14B8A6",
   REJECTED: "#EF4444",
@@ -62,6 +64,7 @@ export function StatusDistribution() {
       PENDING: 0,
       ANALYSIS: 0,
       APPROVED: 0,
+      APPROVED_DEDUCTED: 0,
       CONTRACT_ISSUED: 0,
       PAID: 0,
       REJECTED: 0,
@@ -72,7 +75,7 @@ export function StatusDistribution() {
     });
 
     // Ordenar os dados para que os maiores valores apareçam no topo ou em uma ordem lógica de pipeline
-    const order: ProposalStatus[] = ["SUBMITTED", "PENDING", "ANALYSIS", "APPROVED", "CONTRACT_ISSUED", "PAID", "REJECTED", "WITHDRAWN"];
+    const order: ProposalStatus[] = ["SUBMITTED", "PENDING", "ANALYSIS", "APPROVED", "APPROVED_DEDUCTED", "CONTRACT_ISSUED", "PAID", "REJECTED", "WITHDRAWN"];
 
     return order
       .filter(status => totals[status] >= 0) // Incluindo zeros para manter o gráfico estável se preferir, ou filtrando como antes

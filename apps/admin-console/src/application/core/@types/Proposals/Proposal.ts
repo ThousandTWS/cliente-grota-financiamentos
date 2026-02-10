@@ -3,6 +3,7 @@ export type ProposalStatus =
   | "PENDING"
   | "ANALYSIS"
   | "APPROVED"
+  | "APPROVED_DEDUCTED"
   | "CONTRACT_ISSUED"
   | "PAID"
   | "REJECTED"
@@ -109,3 +110,4 @@ export interface ProposalEvent {
   payload?: unknown;
   createdAt: string;
 }
+

@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Valida??o e sanitiza??o do payload
     const normalizedCPF = String(body.CPF ?? "").replace(/\D/g, "");
     const cpfValue = normalizedCPF === "" ? null : normalizedCPF;
 
@@ -110,7 +109,6 @@ export async function POST(request: NextRequest) {
     
     const payloadBody = JSON.stringify(sanitizedBody);
 
-    // Função para fazer a requisição com o token atual
     const performFetch = async (accessToken: string) => {
       console.log("[admin][managers] POST: Fazendo requisicao para", `${API_BASE_URL}/managers`);
       return fetch(`${API_BASE_URL}/managers`, {
@@ -124,11 +122,9 @@ export async function POST(request: NextRequest) {
       });
     };
 
-    // Primeira tentativa com o token atual
     let upstreamResponse = await performFetch(session.accessToken);
     console.log("[admin][managers] POST: Primeira tentativa status =", upstreamResponse.status);
 
-    // Se receber 401, tenta refresh de token e repete
     if (upstreamResponse.status === 401) {
       console.log("[admin][managers] POST: Token expirou, tentando refresh...");
       const refreshed = await refreshAdminSession(session);
@@ -145,12 +141,10 @@ export async function POST(request: NextRequest) {
     const payload = await upstreamResponse.json().catch(() => null);
 
     if (!upstreamResponse.ok) {
-      // Trata erros de validação do backend (lista de erros)
       const errors = Array.isArray((payload as { errors?: unknown })?.errors)
         ? (payload as { errors: string[] }).errors
         : [];
       
-      // Se houver lista de erros, junta todos em uma mensagem
       let message: string;
       if (errors.length > 0) {
         message = errors.join("; ");

@@ -25,7 +25,6 @@ export async function POST(req: Request) {
       return Response.json({ error: errorMessage }, { status: 400 });
     }
 
-    // Mapear a resposta para o formato esperado pelo frontend (compatibilidade)
     const mappedResponse = {
       success: true,
       data: {
@@ -38,7 +37,6 @@ export async function POST(req: Request) {
             }
           }
         },
-        // Manter campos diretos para retrocompatibilidade do simulador que usa Fuzzy Search
         ...response.data,
         situacao_cadastral: "ATIVA",
         status: "ATIVA"

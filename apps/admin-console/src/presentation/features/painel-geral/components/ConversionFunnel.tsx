@@ -14,7 +14,7 @@ type FunnelStage = {
   count: number;
 };
 
-const STATUS_ORDER: ProposalStatus[] = ["SUBMITTED", "PENDING", "APPROVED", "REJECTED"];
+const STATUS_ORDER: ProposalStatus[] = ["SUBMITTED", "PENDING", "APPROVED", "APPROVED_DEDUCTED", "REJECTED"];
 
 const DEFAULT_STAGES: FunnelStage[] = [
   { stage: "Recebidas", count: 0 },
@@ -50,7 +50,7 @@ const buildFunnelFromProposals = (proposals: Proposal[]): FunnelStage[] => {
   const received = proposals.length;
   const analysis = totals.SUBMITTED + totals.PENDING;
   const preApproved = totals.PENDING;
-  const approved = totals.APPROVED;
+  const approved = totals.APPROVED + totals.APPROVED_DEDUCTED;
   const finalized = Math.max(0, approved - Math.floor(totals.REJECTED / 2));
 
   return enforceDescending([

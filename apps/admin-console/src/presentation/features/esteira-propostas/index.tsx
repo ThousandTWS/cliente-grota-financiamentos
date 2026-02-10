@@ -59,6 +59,11 @@ const statusConfig: Record<
     bulletColor: "bg-emerald-500",
     barColor: "bg-emerald-500",
   },
+  APPROVED_DEDUCTED: {
+    label: "Aprovadas deduzidas",
+    bulletColor: "bg-cyan-500",
+    barColor: "bg-cyan-500",
+  },
   CONTRACT_ISSUED: {
     label: "Contrato emitido",
     bulletColor: "bg-blue-600",

@@ -12,21 +12,19 @@ export async function POST(req: Request) {
     }
 
     const token = "f18f0ee055a64900def2e053a48fb6f1";
-    const pacote = "2"; // ID do pacote exemplo, ajustável conforme necessidade
+    const pacote = "2";
     const url = `https://api.cpfcnpj.com.br/${token}/${pacote}/${cpf}`;
 
     const response = await axios.get(url, {
-      timeout: 60000, // 60 segundos conforme recomendado pelo provedor
+      timeout: 60000, 
     });
 
-    // A API retorna erro 200 mesmo para erros específicos, verificar o campo status no corpo
     if (response.data.status === 0) {
       const errorMessage = response.data.retorno || "Erro ao consultar CPF.";
       console.error("[searchCPF] API ERROR:", response.data);
       return Response.json({ error: errorMessage }, { status: 400 });
     }
 
-    // Mapear a resposta para o formato esperado pelo frontend
     const mappedResponse = {
       success: true,
       data: {
@@ -40,12 +38,10 @@ export async function POST(req: Request) {
                 genero: response.data.genero
               }
             },
-            // Adicionando campos para compatibilidade com o simulador
             situacao_cadastral: "REGULAR",
             status: "REGULAR"
           }
         },
-        // Dados originais para compatibilidade
         ...response.data,
         situacao_cadastral: "REGULAR",
         status: "REGULAR"

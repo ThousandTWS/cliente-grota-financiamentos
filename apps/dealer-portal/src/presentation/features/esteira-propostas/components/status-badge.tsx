@@ -12,11 +12,13 @@ interface StatusBadgeProps {
 const statusConfig = {
   enviada: { label: "Enviada", color: "blue" },
   pendente: { label: "Pendente", color: "gold" },
+  em_analise: { label: "Em an·lise", color: "purple" },
   aprovada: { label: "Aprovada", color: "green" },
-  recusada: { label: "Recusada", color: "red" },
-  paga: { label: "Paga", color: "cyan" },
+  aprovada_deduzida: { label: "Aprovada deduzida", color: "geekblue" },
   contrato_emitido: { label: "Contrato Emitido", color: "purple" },
-  em_analise: { label: "Em An√°lise", color: "indigo" },
+  paga: { label: "Paga", color: "cyan" },
+  recusada: { label: "Recusada", color: "red" },
+  desistido: { label: "Desistido", color: "default" },
 };
 
 type StatusKey = keyof typeof statusConfig;
@@ -34,16 +36,31 @@ const normalizeStatus = (status?: string | null): StatusKey => {
     return "enviada";
   }
 
+  if (normalized === "pendente" || normalized === "pending") return "pendente";
+
+  if (
+    normalized === "em_analise" ||
+    normalized === "em analise" ||
+    normalized === "analyzing" ||
+    normalized === "analysis" ||
+    normalized === "em an·lise"
+  ) {
+    return "em_analise";
+  }
+
   if (normalized === "aprovada" || normalized === "aprovado" || normalized === "approved") {
     return "aprovada";
   }
 
-  if (normalized === "recusada" || normalized === "recusado" || normalized === "rejected") {
-    return "recusada";
-  }
-
-  if (normalized === "paga" || normalized === "pago" || normalized === "paid") {
-    return "paga";
+  if (
+    normalized === "aprovada deduzida" ||
+    normalized === "aprovado deduzido" ||
+    normalized === "aprovadas deduzidas" ||
+    normalized === "approved_deducted" ||
+    normalized === "approved-deducted" ||
+    normalized === "aprovados-deduzidos"
+  ) {
+    return "aprovada_deduzida";
   }
 
   if (
@@ -54,13 +71,16 @@ const normalizeStatus = (status?: string | null): StatusKey => {
     return "contrato_emitido";
   }
   
-  if (
-    normalized === "em_analise" ||
-    normalized === "em analise" ||
-    normalized === "analyzing" ||
-    normalized === "em an√°lise"
-  ) {
-    return "em_analise";
+  if (normalized === "paga" || normalized === "pago" || normalized === "paid") {
+    return "paga";
+  }
+
+  if (normalized === "recusada" || normalized === "recusado" || normalized === "rejected") {
+    return "recusada";
+  }
+
+  if (normalized === "desistido" || normalized === "withdrawn" || normalized === "desistencia") {
+    return "desistido";
   }
 
   return "pendente";

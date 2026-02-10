@@ -7,11 +7,13 @@ const { Text } = Typography;
 const statusColors: Record<ProposalStatus, string> = {
   SUBMITTED: "#0EA5E9",
   PENDING: "#F59E0B",
+  ANALYSIS: "#818CF8",
   APPROVED: "#10B981",
-  REJECTED: "#EF4444",
-  PAID: "#14B8A6",
+  APPROVED_DEDUCTED: "#06B6D4",
   CONTRACT_ISSUED: "#8B5CF6",
-  ANALYZING: "#818CF8",
+  PAID: "#14B8A6",
+  REJECTED: "#EF4444",
+  WITHDRAWN: "#9CA3AF",
 };
 
 type StatusLegendProps = {

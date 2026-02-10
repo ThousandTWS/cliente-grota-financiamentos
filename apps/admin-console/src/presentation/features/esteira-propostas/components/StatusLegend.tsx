@@ -9,6 +9,7 @@ const statusColors: Record<ProposalStatus, string> = {
   PENDING: "#f59e0b",
   ANALYSIS: "#818cf8",
   APPROVED: "#10b981",
+  APPROVED_DEDUCTED: "#06b6d4",
   CONTRACT_ISSUED: "#2563eb",
   PAID: "#14b8a6",
   REJECTED: "#ef4444",

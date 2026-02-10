@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="UltimateRestHistory">
+    <items>
+      <historyItem>
+        <option name="timestamp" value="1770550179234" />
+        <request url="http://192.168.1.9:8081/api/v1/auth/me" authType="bearer">
+          <authContent>
+            <entry key="token" value="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5NjE4ZjZiNi0xZjgwLTQ4MGQtYTQ4Yi0xYmY5M2I1ZmI4NzYiLCJlbWFpbCI6InZpbmljaXVzLm5leHRqc0BnbWFpbC5jb20iLCJyb2xlIjoiTE9KSVNUQSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzA1NTAwOTQsImV4cCI6MTc3MDU1MDk5NH0.FogR9Ym7lxYa5hHujAOaxrKhmdKM46qm-y5WnwWYzvA" />
+          </authContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770550155327" />
+        <request url="http://localhost:8080/api/v1/auth/me" authType="bearer">
+          <authContent>
+            <entry key="token" value="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5NjE4ZjZiNi0xZjgwLTQ4MGQtYTQ4Yi0xYmY5M2I1ZmI4NzYiLCJlbWFpbCI6InZpbmljaXVzLm5leHRqc0BnbWFpbC5jb20iLCJyb2xlIjoiTE9KSVNUQSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzA1NTAwOTQsImV4cCI6MTc3MDU1MDk5NH0.FogR9Ym7lxYa5hHujAOaxrKhmdKM46qm-y5WnwWYzvA" />
+          </authContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770550093805" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301527&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770550023937" />
+        <request method="PUT" url="http://192.168.1.9:8081/api/v1/auth/verify-code">
+          <bodyContent>{
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;code&quot; : &quot;130040&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770549966728" />
+        <request method="PUT" url="http://192.168.1.9:8081/api/v1/auth/verify-code">
+          <bodyContent>{
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;code&quot; : &quot;130040&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770549956172" />
+        <request method="PUT" url="http://192.168.1.9:8081/api/v1/auth/verify-code">
+          <bodyContent>{
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;code&quot; : &quot;&quot;130040
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770549954278" />
+        <request method="PUT" url="http://192.168.1.9:8081/api/v1/auth/verify-code">
+          <bodyContent>{
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;code&quot; : &quot;&quot;130040
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770549950764" />
+        <request method="PUT" url="http://192.168.1.9:8081/api/v1/auth/verify-code">
+          <bodyContent>{
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;code&quot; : &quot;&quot;130040
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770549761087" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/register">
+          <bodyContent>{
+  &quot;name&quot; : &quot;vinicius oliveira moreira&quot;,
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301527&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770549685506" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/register">
+          <bodyContent>{
+  &quot;name&quot; : &quot;vinicius oliveira moreira&quot;,
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301527&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548960871" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548960716" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548960515" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548960321" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548960105" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548959860" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548959591" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548958942" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548957923" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548941279" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548940769" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548940162" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548939461" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548938021" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548933501" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770548796567" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/register">
+          <bodyContent>{
+  &quot;name&quot; : &quot;marivaldo muniz moreira&quot;,
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770547971592" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/register">
+          <bodyContent>{
+  &quot;name&quot; : &quot;marivaldo muniz moreira&quot;,
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301547&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770547671422" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/register">
+          <bodyContent>{
+  &quot;name&quot; : &quot;marivaldo muniz moreira&quot;,
+  &quot;email&quot; : &quot;thousandtws@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301527&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770519660756" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/login">
+          <bodyContent>{
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301527&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770519490492" />
+        <request method="POST" url="http://192.168.1.9:8081/api/v1/auth/register">
+          <bodyContent>{
+  &quot;name&quot; : &quot;vinicius oliveira moreira&quot;,
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301527&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+      <historyItem>
+        <option name="timestamp" value="1770519367644" />
+        <request method="POST" url="http://localhost:8080/api/v1/auth/register">
+          <bodyContent>{
+  &quot;name&quot; : &quot;vinicius oliveira moreira&quot;,
+  &quot;email&quot; : &quot;vinicius.nextjs@gmail.com&quot;,
+  &quot;password&quot; : &quot;65301527&quot;
+}</bodyContent>
+        </request>
+      </historyItem>
+    </items>
+  </component>
+</project>
