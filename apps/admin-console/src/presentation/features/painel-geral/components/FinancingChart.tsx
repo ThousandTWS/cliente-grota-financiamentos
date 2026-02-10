@@ -73,7 +73,7 @@ export function FinancingChart() {
       result.push({
         month,
         value: approvedDeductedValue,
-        type: "Aprovados deduzidos",
+        type: "Aprovada Reduzido",
       });
       result.push({
         month,
@@ -124,7 +124,7 @@ export function FinancingChart() {
       extra={
         <Space>
            <Tag color="success">Aprovados</Tag>
-           <Tag color="#06B6D4">Aprovados deduzidos</Tag>
+           <Tag color="#06B6D4">Aprovada Reduzido</Tag>
            <Tag color="warning">Pendentes</Tag>
         </Space>
       }
@@ -149,11 +149,3 @@ export function FinancingChart() {
     </Card>
   );
 }
-
-
-
-
-
-
-
-

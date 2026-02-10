@@ -17,7 +17,7 @@ const statusConfig = {
   enviada: { label: "Enviada", color: "blue" },
   analise: { label: "Em analise", color: "purple" },
   aprovada: { label: "Aprovada", color: "cyan" },
-  aprovada_deduzida: { label: "Aprovada deduzida", color: "geekblue" },
+  aprovada_deduzida: { label: "Aprovada Reduzido", color: "geekblue" },
   contrato_emitido: { label: "Contrato emitido", color: "geekblue" },
   paga: { label: "Paga", color: "green" },
   recusada: { label: "Recusada", color: "red" },
@@ -62,7 +62,11 @@ const normalizeStatus = (status?: string | null): StatusKey => {
     normalized === "aprovadas deduzidas" ||
     normalized === "approved_deducted" ||
     normalized === "approved-deducted" ||
-    normalized === "aprovados-deduzidos"
+    normalized === "aprovados-deduzidos" ||
+    normalized === "aprovada reduzido" ||
+    normalized === "aprovado reduzido" ||
+    normalized === "aprovadas reduzido" ||
+    normalized === "aprovados reduzido"
   ) {
     return "aprovada_deduzida";
   }

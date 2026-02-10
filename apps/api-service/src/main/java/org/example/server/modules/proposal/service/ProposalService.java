@@ -361,7 +361,7 @@ public class ProposalService {
             case PENDING -> "pendente";
             case ANALYSIS -> "em análise";
             case APPROVED -> "aprovada";
-            case APPROVED_DEDUCTED -> "aprovada deduzida";
+            case APPROVED_DEDUCTED -> "aprovada reduzido";
             case CONTRACT_ISSUED -> "contrato emitido";
             case PAID -> "paga";
             case REJECTED -> "reprovada";

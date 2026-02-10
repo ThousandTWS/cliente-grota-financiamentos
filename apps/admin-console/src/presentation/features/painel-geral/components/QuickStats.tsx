@@ -42,7 +42,7 @@ const PANELS: { key: ProposalStatus; title: string; color: string; icon: React.R
   },
   {
     key: "APPROVED_DEDUCTED",
-    title: "Aprovadas deduzidas",
+    title: "Aprovada Reduzido",
     color: "#06B6D4",
     icon: <CheckCircleOutlined />
   },
@@ -184,7 +184,7 @@ export function QuickStats() {
     PENDING: { color: 'orange', label: 'Pendente' },
     ANALYSIS: { color: 'purple', label: 'Em analise' },
     APPROVED: { color: 'green', label: 'Aprovada' },
-    APPROVED_DEDUCTED: { color: 'geekblue', label: 'Aprovada deduzida' },
+    APPROVED_DEDUCTED: { color: 'geekblue', label: 'Aprovada Reduzido' },
     CONTRACT_ISSUED: { color: 'geekblue', label: 'Contrato emitido' },
     PAID: { color: 'cyan', label: 'Paga' },
     REJECTED: { color: 'red', label: 'Reprovada' },

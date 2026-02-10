@@ -60,7 +60,7 @@ const statusConfig: Record<
     barColor: "bg-emerald-500",
   },
   APPROVED_DEDUCTED: {
-    label: "Aprovadas deduzidas",
+    label: "Aprovada Reduzido",
     bulletColor: "bg-cyan-500",
     barColor: "bg-cyan-500",
   },
