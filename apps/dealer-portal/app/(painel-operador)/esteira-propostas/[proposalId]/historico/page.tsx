@@ -45,19 +45,25 @@ const { Paragraph, Text, Title } = Typography;
 const statusLabel: Record<ProposalStatus, string> = {
   SUBMITTED: "Enviada",
   PENDING: "Pendente",
+  ANALYSIS: "Em Analise",
   APPROVED: "Aprovada",
+  APPROVED_DEDUCTED: "Aprovada c/ Desconto",
   REJECTED: "Recusada",
   PAID: "Paga",
   CONTRACT_ISSUED: "Contrato Emitido",
+  WITHDRAWN: "Desistida",
 };
 
 const statusOptions: ProposalStatus[] = [
   "SUBMITTED",
   "PENDING",
+  "ANALYSIS",
   "APPROVED",
+  "APPROVED_DEDUCTED",
   "REJECTED",
   "PAID",
   "CONTRACT_ISSUED",
+  "WITHDRAWN",
 ];
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {

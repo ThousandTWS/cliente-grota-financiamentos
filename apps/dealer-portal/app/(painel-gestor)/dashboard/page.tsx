@@ -18,10 +18,13 @@ const statusConfig: Record<
 > = {
   SUBMITTED: { label: "Enviadas", color: "#0EA5E9" },
   PENDING: { label: "Pendentes", color: "#F59E0B" },
+  ANALYSIS: { label: "Em Analise", color: "#6366F1" },
   APPROVED: { label: "Aprovadas", color: "#10B981" },
+  APPROVED_DEDUCTED: { label: "Aprovadas c/ Desconto", color: "#0F766E" },
   REJECTED: { label: "Recusadas", color: "#EF4444" },
   PAID: { label: "Pagas", color: "#14B8A6" },
   CONTRACT_ISSUED: { label: "Contrato Emitido", color: "#8B5CF6" },
+  WITHDRAWN: { label: "Desistidas", color: "#94A3B8" },
 };
 
 type SellerItem = {
@@ -67,10 +70,13 @@ export default function GestorDashboardPage() {
     const totals: Record<ProposalStatus, number> = {
       SUBMITTED: 0,
       PENDING: 0,
+      ANALYSIS: 0,
       APPROVED: 0,
+      APPROVED_DEDUCTED: 0,
       REJECTED: 0,
       PAID: 0,
       CONTRACT_ISSUED: 0,
+      WITHDRAWN: 0,
     };
     proposals.forEach((proposal) => {
       totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;

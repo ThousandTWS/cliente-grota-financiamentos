@@ -55,6 +55,9 @@ const statusLabel: Record<ProposalStatus, string> = {
   REJECTED: "Recusada",
   PAID: "Paga",
   CONTRACT_ISSUED: "Contrato Emitido",
+  ANALYSIS: "",
+  APPROVED_DEDUCTED: "",
+  WITHDRAWN: ""
 };
 
 const statusTagColor: Record<ProposalStatus, string> = {
@@ -64,6 +67,9 @@ const statusTagColor: Record<ProposalStatus, string> = {
   REJECTED: "red",
   PAID: "cyan",
   CONTRACT_ISSUED: "purple",
+  ANALYSIS: "",
+  APPROVED_DEDUCTED: "",
+  WITHDRAWN: ""
 };
 
 type Seller = {
@@ -244,6 +250,9 @@ function PainelOperadorContent() {
       REJECTED: 0,
       PAID: 0,
       CONTRACT_ISSUED: 0,
+      ANALYSIS: 0,
+      APPROVED_DEDUCTED: 0,
+      WITHDRAWN: 0
     };
     filteredProposals.forEach((proposal) => {
       totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;
@@ -365,6 +374,8 @@ function PainelOperadorContent() {
     () => ({
       chart: {
         type: "area",
+        width: "100%",
+        parentHeightOffset: 0,
         toolbar: { show: false },
         animations: { enabled: true, easing: "easeinout", speed: 700 },
       },
@@ -510,67 +521,77 @@ function PainelOperadorContent() {
   return (
     <>
       {contextHolder}
-      <div className="p-4 md:p-6 min-h-screen">
-        <Layout className="overflow-hidden rounded-3xl border border-slate-100 shadow-xl bg-white" style={{ minHeight: "calc(100vh - 2rem)" }}>
+      <div className="min-h-screen">
+        <Layout className="rounded-3xl border border-slate-100 shadow-xl bg-white" style={{ minHeight: "calc(100vh - 2rem)" }}>
           <Sider
             breakpoint="lg"
             collapsedWidth={0}
             width={320}
-            className="!bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 !p-6"
-            style={{ height: "calc(100vh - 2rem)", position: "sticky", top: "1rem", overflow: "auto" }}
+            className="!bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 !p-6 operacao-scroll"
+            style={{ height: "calc(100vh - 2rem)", position: "sticky", top: "1rem", alignSelf: "flex-start", overflowY: "auto" }}
           >
-            <div className="mb-6 flex items-center gap-3 rounded-2xl bg-white/10 p-4 text-white shadow-inner">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
-                <Sparkles className="size-6" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-white/70">
-                  Operacao
-                </p>
-                <p className="text-lg font-semibold">Cockpit do operador</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Card className="!bg-white/10 !border-white/10 text-white" bordered={false}>
-                <Statistic
-                  title={<span className="text-white/70">Propostas ativas</span>}
-                  value={filteredProposals.length}
-                  prefix={<Activity className="mr-2 size-4" />}
-                  valueStyle={{ color: "#fff" }}
-                />
-                <Statistic
-                  className="mt-4"
-                  title={<span className="text-white/70">Conversao</span>}
-                  value={`${conversionRate.toFixed(1)}%`}
-                  prefix={<TrendingUp className="mr-2 size-4" />}
-                  valueStyle={{ color: "#22c55e" }}
-                />
-              </Card>
-
-              <Card className="!bg-white/10 !border-white/10 text-white" bordered={false}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/70">Vendedores</span>
-                  <Users className="size-4 text-white" />
+            <div className="space-y-4 text-white">
+              <div className="rounded-3xl bg-gradient-to-br from-[#0f1729] via-[#0f1b2f] to-[#0c1422] border border-white/5 px-4 py-5 shadow-[0_10px_40px_-24px_rgba(0,0,0,0.8)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+                    <Sparkles className="size-6" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.28em] text-white/60">Operacao</p>
+                    <p className="text-xl font-semibold leading-tight">Cockpit do operador</p>
+                    <p className="text-[12px] text-white/55">Visao panoramica das lojas</p>
+                  </div>
                 </div>
-                <p className="mt-2 text-3xl font-semibold">{sellers.length}</p>
-                <div className="mt-4 text-sm text-white/70">
-                  <p>Em andamento: {pendingTotal}</p>
-                  <p>Aprovadas: {statusTotals.APPROVED}</p>
-                </div>
-              </Card>
+              </div>
 
-              <Card className="!bg-white/10 !border-white/10" bordered={false}>
-                <div className="text-white/80 text-sm mb-2">Filtrar por loja</div>
+              <div className="rounded-3xl bg-[#111a2b] border border-white/5 px-4 py-4 shadow-[0_12px_32px_-26px_rgba(0,0,0,0.9)] space-y-4">
+                <div className="flex items-center justify-between text-white/70 text-xs tracking-[0.2em]">
+                  <span>Propostas ativas</span>
+                  <Activity className="size-4" />
+                </div>
+                <p className="text-4xl font-semibold leading-none">{filteredProposals.length}</p>
+                <div className="rounded-2xl bg-[#0f1522] border border-white/5 px-3 py-2 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">Conversao</p>
+                    <p className="text-lg font-semibold text-emerald-300">{conversionRate.toFixed(1)}%</p>
+                  </div>
+                  <TrendingUp className="size-5 text-emerald-300" />
+                </div>
+              </div>
+
+              <div className="rounded-3xl bg-[#111a2b] border border-white/5 px-4 py-4 shadow-[0_12px_32px_-26px_rgba(0,0,0,0.9)] space-y-3">
+                <div className="flex items-center justify-between text-white/70 text-xs tracking-[0.2em]">
+                  <span>Vendedores</span>
+                  <Users className="size-4" />
+                </div>
+                <div className="flex items-end gap-2">
+                  <p className="text-4xl font-semibold leading-none">{sellers.length}</p>
+                  <p className="text-[12px] text-white/60 mb-1">ativos</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[13px] text-white/75">
+                  <div className="rounded-2xl bg-[#0f1522] border border-white/5 px-3 py-2">
+                    Em andamento: {pendingTotal}
+                  </div>
+                  <div className="rounded-2xl bg-[#0f1522] border border-white/5 px-3 py-2">
+                    Aprovadas: {statusTotals.APPROVED}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl bg-[#111a2b] border border-white/5 px-4 py-4 shadow-[0_12px_32px_-26px_rgba(0,0,0,0.9)] space-y-3">
+                <div className="flex items-center justify-between text-sm text-white/80">
+                  <span className="uppercase tracking-[0.16em] text-[11px]">Filtrar por loja</span>
+                  <Store className="size-4 text-white/70" />
+                </div>
                 <Select
                   allowClear
                   placeholder="Todas as lojas"
-                  className="w-full"
+                  className="mt-1 w-full"
                   options={dealerOptions}
                   value={selectedDealerId ?? undefined}
                   onChange={(value) => handleDealerChange(value ?? null)}
                 />
-              </Card>
+              </div>
 
               <div className="grid grid-cols-1 gap-2">
                 <Button
@@ -578,7 +599,7 @@ function PainelOperadorContent() {
                   block
                   icon={<Calculator className="size-4" />}
                   onClick={() => router.push("/simulacao")}
-                  className="!bg-white !text-slate-900 !font-semibold"
+                  className="!bg-white !text-slate-900 !font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Nova simulacao
                 </Button>
@@ -587,6 +608,7 @@ function PainelOperadorContent() {
                   icon={<FileText className="size-4" />}
                   loading={reportLoading}
                   onClick={handleGenerateReport}
+                  className="!rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Gerar relatorio
                 </Button>
@@ -595,7 +617,7 @@ function PainelOperadorContent() {
                   type="text"
                   icon={<ArrowUpRight className="size-4" />}
                   onClick={() => router.push("/esteira-propostas")}
-                  className="!text-white"
+                  className="!text-white !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Ver esteira
                 </Button>
@@ -640,7 +662,7 @@ function PainelOperadorContent() {
               </div>
             </Header>
 
-            <Content className="!bg-slate-50 flex-1 overflow-y-auto">
+            <Content className="!bg-slate-50 flex-1 operacao-scroll" style={{ maxHeight: "calc(100vh - 2rem)", overflowY: "auto" }}>
               <div className="space-y-6 px-4 py-6 md:px-6">
                 {error && (
                   <Card className="border-0 shadow-sm">
@@ -664,12 +686,14 @@ function PainelOperadorContent() {
                       ) : filteredProposals.length === 0 ? (
                         <Empty description="Nenhum dado para o periodo" />
                       ) : (
-                        <Chart options={areaOptions} series={areaSeries} type="area" height={260} />
+                        <Chart options={areaOptions} series={areaSeries} type="area" height={260} width="100%" />
                       )}
                     </Card>
                   </Col>
-                  <Col xs={24} lg={8}>
-                    <Card className="border-0 shadow-sm h-full" bodyStyle={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} lg={24}>
+                    <Card className="border-0 shadow-sm h-full" styles={{ body: { display: "flex", flexDirection: "column", gap: 16 } }}>
                       <div className="flex items-center justify-between">
                         <div>
                           <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
@@ -908,7 +932,17 @@ function PainelOperadorContent() {
               Atualizado automaticamente pelos dados da esteira de propostas.
             </Footer>
           </Layout>
-        </Layout>
+        
+      <style jsx global>{`
+        .operacao-scroll {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .operacao-scroll::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+</Layout>
       </div>
     </>
   );

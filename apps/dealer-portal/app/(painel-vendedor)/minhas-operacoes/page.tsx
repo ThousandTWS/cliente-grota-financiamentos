@@ -25,6 +25,9 @@ const statusLabel: Record<ProposalStatus, string> = {
   REJECTED: "Recusada",
   PAID: "Paga",
   CONTRACT_ISSUED: "Contrato Emitido",
+  ANALYSIS: "",
+  APPROVED_DEDUCTED: "",
+  WITHDRAWN: ""
 };
 
 const statusTagColor: Record<ProposalStatus, string> = {
@@ -34,6 +37,9 @@ const statusTagColor: Record<ProposalStatus, string> = {
   REJECTED: "red",
   PAID: "cyan",
   CONTRACT_ISSUED: "purple",
+  ANALYSIS: "",
+  APPROVED_DEDUCTED: "",
+  WITHDRAWN: ""
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -87,6 +93,9 @@ export default function PainelVendedorPage() {
       REJECTED: 0,
       PAID: 0,
       CONTRACT_ISSUED: 0,
+      ANALYSIS: 0,
+      APPROVED_DEDUCTED: 0,
+      WITHDRAWN: 0
     };
     proposals.forEach((proposal) => {
       totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;
