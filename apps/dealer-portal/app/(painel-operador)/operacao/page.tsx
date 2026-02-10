@@ -533,12 +533,9 @@ function PainelOperadorContent() {
             <div className="space-y-4 text-white">
               <div className="rounded-3xl bg-gradient-to-br from-[#0f1729] via-[#0f1b2f] to-[#0c1422] border border-white/5 px-4 py-5 shadow-[0_10px_40px_-24px_rgba(0,0,0,0.8)]">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-                    <Sparkles className="size-6" />
-                  </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.28em] text-white/60">Operacao</p>
-                    <p className="text-xl font-semibold leading-tight">Cockpit do operador</p>
+                    <p className="text-xl font-semibold leading-tight">Painel do operador</p>
                     <p className="text-[12px] text-white/55">Visao panoramica das lojas</p>
                   </div>
                 </div>
