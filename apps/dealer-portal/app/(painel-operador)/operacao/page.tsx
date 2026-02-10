@@ -1,19 +1,38 @@
 "use client";
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Card, Empty, Select, Skeleton, Tag, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Empty,
+  Layout,
+  List,
+  Progress,
+  Row,
+  Col,
+  Select,
+  Skeleton,
+  Statistic,
+  Tag,
+  Typography,
+  message,
+} from "antd";
 import {
   Activity,
   ArrowUpRight,
+  BarChart3,
   Calculator,
-  ClipboardList,
-  Filter,
+  FileText,
   Mail,
   Phone,
+  Sparkles,
   Store,
+  TrendingUp,
   Users,
 } from "lucide-react";
+import type { ApexOptions } from "apexcharts";
 import {
   Proposal,
   ProposalStatus,
@@ -24,18 +43,10 @@ import {
   type DealerSummary,
 } from "@/application/services/DealerServices/dealerService";
 
-const { Text } = Typography;
+const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-type Seller = {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  CPF: string;
-  dealerId: number | null;
-  status: string;
-  createdAt: string;
-};
+const { Text } = Typography;
+const { Header, Content, Sider, Footer } = Layout;
 
 const statusLabel: Record<ProposalStatus, string> = {
   SUBMITTED: "Enviada",
@@ -53,6 +64,17 @@ const statusTagColor: Record<ProposalStatus, string> = {
   REJECTED: "red",
   PAID: "cyan",
   CONTRACT_ISSUED: "purple",
+};
+
+type Seller = {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  CPF: string;
+  dealerId: number | null;
+  status: string;
+  createdAt: string;
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -87,6 +109,7 @@ const maskCpf = (cpf: string) => {
 function PainelOperadorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [messageApi, contextHolder] = message.useMessage();
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [dealers, setDealers] = useState<DealerSummary[]>([]);
@@ -97,6 +120,8 @@ function PainelOperadorContent() {
   const [selectedDealerId, setSelectedDealerId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState<7 | 14 | 30>(14);
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     const param = searchParams.get("dealerId");
@@ -174,7 +199,7 @@ function PainelOperadorContent() {
             dealersList
               .filter((dealer) => typeof dealer.id === "number")
               .map((dealer) => ({
-                value: dealer.id,
+                value: dealer.id as number,
                 label:
                   dealer.fullName ??
                   dealer.fullNameEnterprise ??
@@ -204,12 +229,10 @@ function PainelOperadorContent() {
     };
   }, [selectedDealerId]);
 
-  const showDealerFilter = dealerOptions.length > 1 || selectedDealerId !== null;
-
   const filteredProposals = useMemo(() => {
     if (!selectedDealerId) return proposals;
     return proposals.filter(
-      (proposal) => Number(proposal.dealerId) == selectedDealerId,
+      (proposal) => Number(proposal.dealerId) === selectedDealerId,
     );
   }, [proposals, selectedDealerId]);
 
@@ -229,6 +252,10 @@ function PainelOperadorContent() {
   }, [filteredProposals]);
 
   const pendingTotal = statusTotals.SUBMITTED + statusTotals.PENDING;
+  const conversionRate = useMemo(() => {
+    const total = filteredProposals.length || 1;
+    return (statusTotals.APPROVED / total) * 100;
+  }, [filteredProposals.length, statusTotals.APPROVED]);
 
   const recentProposals = useMemo(() => {
     return [...filteredProposals]
@@ -303,6 +330,116 @@ function PainelOperadorContent() {
     return Array.from(map.values()).sort((a, b) => b.proposals - a.proposals);
   }, [dealerIndex, filteredProposals, sellers, selectedDealerId, dealers]);
 
+  const timeline = useMemo(() => {
+    const days = timeframe;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const counts = new Map<string, number>();
+    filteredProposals.forEach((proposal) => {
+      const date = new Date(proposal.createdAt);
+      if (Number.isNaN(date.getTime())) return;
+      date.setHours(0, 0, 0, 0);
+      const key = date.toISOString().slice(0, 10);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+
+    const categories: string[] = [];
+    const values: number[] = [];
+
+    for (let offset = days - 1; offset >= 0; offset -= 1) {
+      const current = new Date(today);
+      current.setDate(today.getDate() - offset);
+      const key = current.toISOString().slice(0, 10);
+      const label = new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "short",
+      }).format(current);
+      categories.push(label);
+      values.push(counts.get(key) ?? 0);
+    }
+
+    return { categories, values };
+  }, [filteredProposals, timeframe]);
+
+  const areaOptions = useMemo<ApexOptions>(
+    () => ({
+      chart: {
+        type: "area",
+        toolbar: { show: false },
+        animations: { enabled: true, easing: "easeinout", speed: 700 },
+      },
+      dataLabels: { enabled: false },
+      stroke: { curve: "smooth", width: 3 },
+      colors: ["#2563eb"],
+      xaxis: { categories: timeline.categories },
+      yaxis: { labels: { formatter: (val) => `${Math.round(val)}` } },
+      fill: {
+        type: "gradient",
+        gradient: {
+          shadeIntensity: 0.6,
+          opacityFrom: 0.45,
+          opacityTo: 0.05,
+          stops: [0, 50, 100],
+        },
+      },
+      grid: {
+        borderColor: "#eef2ff",
+        strokeDashArray: 3,
+      },
+      tooltip: {
+        theme: "light",
+      },
+    }),
+    [timeline.categories],
+  );
+
+  const areaSeries = useMemo(
+    () => [
+      {
+        name: "Propostas",
+        data: timeline.values,
+      },
+    ],
+    [timeline.values],
+  );
+
+  const approvalOptions = useMemo<ApexOptions>(
+    () => ({
+      chart: {
+        type: "radialBar",
+        sparkline: { enabled: true },
+      },
+      plotOptions: {
+        radialBar: {
+          hollow: { size: "60%" },
+          track: { background: "#f1f5f9" },
+          dataLabels: {
+            name: { show: true, fontSize: "12px" },
+            value: {
+              formatter: (val) => `${val}%`,
+              fontSize: "22px",
+            },
+          },
+        },
+      },
+      colors: ["#22c55e"],
+      labels: ["Taxa de aprovação"],
+    }),
+    [],
+  );
+
+  const statusBars = useMemo(
+    () => [
+      { key: "SUBMITTED", label: "Enviadas", value: statusTotals.SUBMITTED, color: "#2563eb" },
+      { key: "PENDING", label: "Pendente", value: statusTotals.PENDING, color: "#f59e0b" },
+      { key: "APPROVED", label: "Aprovadas", value: statusTotals.APPROVED, color: "#10b981" },
+      { key: "REJECTED", label: "Recusadas", value: statusTotals.REJECTED, color: "#ef4444" },
+      { key: "PAID", label: "Pagas", value: statusTotals.PAID, color: "#06b6d4" },
+      { key: "CONTRACT_ISSUED", label: "Contrato emitido", value: statusTotals.CONTRACT_ISSUED, color: "#8b5cf6" },
+    ],
+    [statusTotals],
+  );
+
   const handleDealerChange = (value: number | null) => {
     const nextValue = value ?? null;
     setSelectedDealerId(nextValue);
@@ -316,301 +453,464 @@ function PainelOperadorContent() {
     router.replace(query ? `/operacao?${query}` : "/operacao");
   };
 
+  const handleGenerateReport = async () => {
+    setReportLoading(true);
+    try {
+      const jsPDF = (await import("jspdf")).default;
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("Relatorio de Operacao", 14, 16);
+      doc.setFontSize(11);
+      let cursor = 28;
+      doc.text(`Total de propostas: ${filteredProposals.length}`, 14, cursor);
+      cursor += 6;
+      doc.text(`Aprovadas: ${statusTotals.APPROVED}`, 14, cursor);
+      cursor += 6;
+      doc.text(`Recusadas: ${statusTotals.REJECTED}`, 14, cursor);
+      cursor += 6;
+      doc.text(
+        `Taxa de aprovacao: ${conversionRate.toFixed(1)}%`,
+        14,
+        cursor,
+      );
+      cursor += 10;
+      doc.text("Top lojas:", 14, cursor);
+      cursor += 6;
+      dealerSummaries.slice(0, 5).forEach((dealer) => {
+        doc.text(
+          `- ${dealer.name} (${dealer.proposals} propostas)`,
+          16,
+          cursor,
+        );
+        cursor += 5;
+      });
+      cursor += 4;
+      doc.text("Ultimas propostas:", 14, cursor);
+      cursor += 6;
+      recentProposals.slice(0, 6).forEach((proposal) => {
+        doc.text(
+          `#${proposal.id} - ${proposal.customerName ?? "Sem nome"} (${statusLabel[proposal.status]})`,
+          16,
+          cursor,
+        );
+        cursor += 5;
+      });
+      doc.save(`relatorio-operacao-${new Date()
+        .toISOString()
+        .slice(0, 10)}.pdf`);
+      messageApi.success("Relatorio gerado com sucesso");
+    } catch (err) {
+      console.error(err);
+      messageApi.error("Nao foi possivel gerar o relatorio");
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-sky-800 px-6 py-8 text-white shadow-xl">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            <Text className="text-xs uppercase tracking-[0.4em] text-white/70">
-              Dashboard do operador
-            </Text>
-            <h1 className="text-3xl font-semibold">Resumo das operacoes</h1>
-            <p className="text-sm text-white/70">
-              Acompanhe a producao das lojas vinculadas ao seu usuario.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              type="primary"
-              className="!bg-white/15 !text-white hover:!bg-white/25"
-              icon={<Calculator className="size-4" />}
-              onClick={() => router.push("/simulacao")}
-            >
-              Nova simulacao
-            </Button>
-            <Button
-              type="default"
-              className="!border-white/30 !bg-transparent !text-white hover:!bg-white/10"
-              icon={<ArrowUpRight className="size-4" />}
-              onClick={() => router.push("/esteira-propostas")}
-            >
-              Ver propostas
-            </Button>
-            <Button
-              type="default"
-              className="!border-white/30 !bg-transparent !text-white hover:!bg-white/10"
-              icon={<ArrowUpRight className="size-4" />}
-              onClick={() => router.push("/operador/relatorios")}
-            >
-              Baixar relatorio
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          {showDealerFilter && (
-            <div className="flex items-center gap-2">
-              <Filter className="size-4 text-slate-400" />
-              <Select
-                allowClear
-                placeholder="Filtrar por loja"
-                style={{ minWidth: 200 }}
-                options={dealerOptions}
-                value={selectedDealerId}
-                onChange={(value) => handleDealerChange(value ?? null)}
-              />
+    <>
+      {contextHolder}
+      <div className="p-4 md:p-6 min-h-screen">
+        <Layout className="overflow-hidden rounded-3xl border border-slate-100 shadow-xl bg-white" style={{ minHeight: "calc(100vh - 2rem)" }}>
+          <Sider
+            breakpoint="lg"
+            collapsedWidth={0}
+            width={320}
+            className="!bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 !p-6"
+            style={{ height: "calc(100vh - 2rem)", position: "sticky", top: "1rem", overflow: "auto" }}
+          >
+            <div className="mb-6 flex items-center gap-3 rounded-2xl bg-white/10 p-4 text-white shadow-inner">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                <Sparkles className="size-6" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.25em] text-white/70">
+                  Operacao
+                </p>
+                <p className="text-lg font-semibold">Cockpit do operador</p>
+              </div>
             </div>
-          )}
-          <div className="flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-            <Users className="size-4" />
-            {sellers.length} vendedor{sellers.length !== 1 ? "es" : ""}
-          </div>
-          <div className="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
-            <Store className="size-4" />
-            {dealerOptions.length || dealerSummaries.length} loja
-            {(dealerOptions.length || dealerSummaries.length) !== 1 ? "s" : ""}
-          </div>
-        </div>
-      </div>
 
-      {error ? (
-        <Card className="border-0 shadow-sm">
-          <Empty description={error} />
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {isLoading ? (
-            Array.from({ length: 4 }).map((_, index) => (
-              <Card key={`summary-${index}`} className="border-0 shadow-sm">
-                <Skeleton active title paragraph={{ rows: 1 }} />
-              </Card>
-            ))
-          ) : (
-            <>
-              <Card className="border-0 shadow-sm">
-                <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                  Total de propostas
-                </Text>
-                <div className="mt-3 flex items-center justify-between">
-                  <p className="text-3xl font-semibold text-slate-800">
-                    {filteredProposals.length}
-                  </p>
-                  <Activity className="size-6 text-sky-500" />
-                </div>
-              </Card>
-              <Card className="border-0 shadow-sm">
-                <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                  Em andamento
-                </Text>
-                <div className="mt-3 flex items-center justify-between">
-                  <p className="text-3xl font-semibold text-amber-600">
-                    {pendingTotal}
-                  </p>
-                  <Activity className="size-6 text-amber-500" />
-                </div>
-              </Card>
-              <Card className="border-0 shadow-sm">
-                <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                  Aprovadas
-                </Text>
-                <div className="mt-3 flex items-center justify-between">
-                  <p className="text-3xl font-semibold text-emerald-600">
-                    {statusTotals.APPROVED}
-                  </p>
-                  <Activity className="size-6 text-emerald-500" />
-                </div>
-              </Card>
-              <Card className="border-0 shadow-sm">
-                <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                  Recusadas
-                </Text>
-                <div className="mt-3 flex items-center justify-between">
-                  <p className="text-3xl font-semibold text-rose-600">
-                    {statusTotals.REJECTED}
-                  </p>
-                  <Activity className="size-6 text-rose-500" />
-                </div>
-              </Card>
-            </>
-          )}
-        </div>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <Card className="border-0 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Ultimas propostas
-              </Text>
-              <p className="text-lg font-semibold text-slate-800">
-                Atividade recente
-              </p>
-            </div>
-            <Button type="link" onClick={() => router.push("/esteira-propostas")}>
-              Ver tudo
-            </Button>
-          </div>
-
-          {isLoading ? (
-            <Skeleton active title={false} paragraph={{ rows: 4 }} />
-          ) : recentProposals.length == 0 ? (
-            <Empty description="Nenhuma proposta registrada." />
-          ) : (
             <div className="space-y-3">
-              {recentProposals.map((proposal) => (
-                <div
-                  key={proposal.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700">
-                      {proposal.customerName}
-                    </p>
-                    <Text className="text-xs text-slate-500">
-                      #{proposal.id} ? {formatDateTime(proposal.createdAt)}
-                    </Text>
-                  </div>
-                  <Tag color={statusTagColor[proposal.status]}>
-                    {statusLabel[proposal.status]}
-                  </Tag>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card className="border-0 shadow-sm">
-          <div className="mb-4">
-            <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-              Lojas vinculadas
-            </Text>
-            <p className="text-lg font-semibold text-slate-800">
-              Operacoes por loja
-            </p>
-          </div>
-
-          {isLoading ? (
-            <Skeleton active title={false} paragraph={{ rows: 4 }} />
-          ) : dealerSummaries.length == 0 ? (
-            <Empty description="Nenhuma loja vinculada." />
-          ) : (
-            <div className="space-y-3">
-              {dealerSummaries.map((dealer) => (
-                <div
-                  key={dealer.id}
-                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700">
-                      {dealer.name}
-                    </p>
-                    <Text className="text-xs text-slate-500">
-                      {dealer.sellers} vendedor{dealer.sellers != 1 ? "es" : ""}
-                    </Text>
-                  </div>
-                  <span className="text-sm font-semibold text-slate-600">
-                    {dealer.proposals} proposta{dealer.proposals != 1 ? "s" : ""}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
-
-      <Card className="border-0 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-              Vendedores
-            </Text>
-            <p className="text-lg font-semibold text-slate-800">
-              Equipe das lojas vinculadas
-            </p>
-          </div>
-          <Button type="link" onClick={() => router.push("/vendedores")}>
-            Ver vendedores
-          </Button>
-        </div>
-
-        {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Card key={`seller-skeleton-${index}`}>
-                <Skeleton active title paragraph={{ rows: 2 }} />
+              <Card className="!bg-white/10 !border-white/10 text-white" bordered={false}>
+                <Statistic
+                  title={<span className="text-white/70">Propostas ativas</span>}
+                  value={filteredProposals.length}
+                  prefix={<Activity className="mr-2 size-4" />}
+                  valueStyle={{ color: "#fff" }}
+                />
+                <Statistic
+                  className="mt-4"
+                  title={<span className="text-white/70">Conversao</span>}
+                  value={`${conversionRate.toFixed(1)}%`}
+                  prefix={<TrendingUp className="mr-2 size-4" />}
+                  valueStyle={{ color: "#22c55e" }}
+                />
               </Card>
-            ))}
-          </div>
-        ) : sellers.length == 0 ? (
-          <Empty description="Nenhum vendedor encontrado nas lojas vinculadas." />
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {sellers.map((seller, index) => (
-              <Card
-                key={seller.id}
-                className="animate-in fade-in slide-in-from-bottom-2 duration-300 hover:shadow-lg transition-shadow"
-                style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <Text className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                        {seller.CPF ? maskCpf(seller.CPF) : "CPF nao informado"}
-                      </Text>
-                      <h3 className="text-lg font-semibold text-slate-800">
-                        {seller.fullName || "Nome nao informado"}
-                      </h3>
-                    </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${seller.status === "ATIVO"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700"
-                        }`}
+
+              <Card className="!bg-white/10 !border-white/10 text-white" bordered={false}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/70">Vendedores</span>
+                  <Users className="size-4 text-white" />
+                </div>
+                <p className="mt-2 text-3xl font-semibold">{sellers.length}</p>
+                <div className="mt-4 text-sm text-white/70">
+                  <p>Em andamento: {pendingTotal}</p>
+                  <p>Aprovadas: {statusTotals.APPROVED}</p>
+                </div>
+              </Card>
+
+              <Card className="!bg-white/10 !border-white/10" bordered={false}>
+                <div className="text-white/80 text-sm mb-2">Filtrar por loja</div>
+                <Select
+                  allowClear
+                  placeholder="Todas as lojas"
+                  className="w-full"
+                  options={dealerOptions}
+                  value={selectedDealerId ?? undefined}
+                  onChange={(value) => handleDealerChange(value ?? null)}
+                />
+              </Card>
+
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  type="primary"
+                  block
+                  icon={<Calculator className="size-4" />}
+                  onClick={() => router.push("/simulacao")}
+                  className="!bg-white !text-slate-900 !font-semibold"
+                >
+                  Nova simulacao
+                </Button>
+                <Button
+                  block
+                  icon={<FileText className="size-4" />}
+                  loading={reportLoading}
+                  onClick={handleGenerateReport}
+                >
+                  Gerar relatorio
+                </Button>
+                <Button
+                  block
+                  type="text"
+                  icon={<ArrowUpRight className="size-4" />}
+                  onClick={() => router.push("/esteira-propostas")}
+                  className="!text-white"
+                >
+                  Ver esteira
+                </Button>
+              </div>
+            </div>
+          </Sider>
+
+          <Layout className="bg-white flex flex-col h-full">
+            <Header className="!bg-white !px-6 !py-4 border-b border-slate-100">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-slate-500">
+                    Painel de operacao
+                  </p>
+                  <h1 className="text-3xl font-semibold text-slate-900">
+                    Visao geral em tempo real
+                  </h1>
+                  <p className="text-sm text-slate-500">
+                    Monitoramento de propostas, equipes e lojas com insights visuais.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Select
+                    size="middle"
+                    value={timeframe}
+                    onChange={(value) => setTimeframe(value as 7 | 14 | 30)}
+                    options={[
+                      { value: 7, label: "Ultimos 7 dias" },
+                      { value: 14, label: "Ultimos 14 dias" },
+                      { value: 30, label: "Ultimos 30 dias" },
+                    ]}
+                    className="w-44"
+                  />
+                  <Button
+                    icon={<FileText className="size-4" />}
+                    onClick={handleGenerateReport}
+                    loading={reportLoading}
+                  >
+                    Exportar PDF
+                  </Button>
+                </div>
+              </div>
+            </Header>
+
+            <Content className="!bg-slate-50 flex-1 overflow-y-auto">
+              <div className="space-y-6 px-4 py-6 md:px-6">
+                {error && (
+                  <Card className="border-0 shadow-sm">
+                    <Empty description={error} />
+                  </Card>
+                )}
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} lg={16}>
+                    <Card
+                      className="border-0 shadow-sm"
+                      title={
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="size-4 text-blue-600" />
+                          <span>Fluxo de propostas</span>
+                        </div>
+                      }
+                      extra={<Tag color="blue">Serie temporal</Tag>}
                     >
-                      {seller.status || "PENDENTE"}
-                    </span>
-                  </div>
+                      {isLoading ? (
+                        <Skeleton active paragraph={{ rows: 4 }} />
+                      ) : filteredProposals.length === 0 ? (
+                        <Empty description="Nenhum dado para o periodo" />
+                      ) : (
+                        <Chart options={areaOptions} series={areaSeries} type="area" height={260} />
+                      )}
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    <Card className="border-0 shadow-sm h-full" bodyStyle={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                            Conversao
+                          </Text>
+                          <p className="text-lg font-semibold text-slate-800">Aprovacao vs total</p>
+                        </div>
+                        <Tag color="green">{conversionRate.toFixed(1)}%</Tag>
+                      </div>
+                      {isLoading ? (
+                        <Skeleton active paragraph={{ rows: 3 }} />
+                      ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="flex items-center justify-center">
+                            <Chart
+                              options={approvalOptions}
+                              series={[Number(conversionRate.toFixed(1))]}
+                              type="radialBar"
+                              height={200}
+                            />
+                          </div>
+                          <div className="space-y-3">
+                            {statusBars.map((status) => {
+                              const total = filteredProposals.length || 1;
+                              const percent = Math.round((status.value / total) * 100);
+                              return (
+                                <div key={status.key}>
+                                  <div className="flex items-center justify-between text-sm text-slate-600">
+                                    <span>{status.label}</span>
+                                    <span className="font-semibold">{status.value}</span>
+                                  </div>
+                                  <Progress
+                                    percent={percent}
+                                    strokeColor={status.color}
+                                    size="small"
+                                    showInfo={false}
+                                    className="!mb-1"
+                                  />
+                                  <Text className="text-[11px] text-slate-400">{percent}% do total</Text>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  </Col>
+                </Row>
 
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Mail className="size-4 text-slate-400" />
-                      <span className="truncate">{seller.email || "Sem email"}</span>
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} lg={14}>
+                    <Card
+                      className="border-0 shadow-sm"
+                      title={
+                        <div className="flex items-center gap-2">
+                          <Activity className="size-4 text-amber-600" />
+                          <span>Atividade recente</span>
+                        </div>
+                      }
+                      extra={
+                        <Button type="link" onClick={() => router.push("/esteira-propostas")}>
+                          Ver esteira
+                        </Button>
+                      }
+                    >
+                      {isLoading ? (
+                        <Skeleton active paragraph={{ rows: 5 }} />
+                      ) : recentProposals.length === 0 ? (
+                        <Empty description="Nenhuma proposta registrada." />
+                      ) : (
+                        <List
+                          itemLayout="horizontal"
+                          dataSource={recentProposals}
+                          renderItem={(proposal) => (
+                            <List.Item className="rounded-xl border border-slate-100 px-3 py-2 transition hover:-translate-y-0.5 hover:shadow-sm">
+                              <List.Item.Meta
+                                title={
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-slate-800">
+                                      {proposal.customerName ?? "Sem nome"}
+                                    </span>
+                                    <Tag color={statusTagColor[proposal.status]}>
+                                      {statusLabel[proposal.status]}
+                                    </Tag>
+                                  </div>
+                                }
+                                description={
+                                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                    <span>#{proposal.id}</span>
+                                    <span>•</span>
+                                    <span>{formatDateTime(proposal.createdAt)}</span>
+                                    {proposal.dealerId && (
+                                      <span className="inline-flex items-center gap-1">
+                                        <Store className="size-3" />
+                                        {dealerIndex[proposal.dealerId] ?? `Loja #${proposal.dealerId}`}
+                                      </span>
+                                    )}
+                                  </div>
+                                }
+                              />
+                            </List.Item>
+                          )}
+                        />
+                      )}
+                    </Card>
+                  </Col>
+
+                  <Col xs={24} lg={10}>
+                    <Card
+                      className="border-0 shadow-sm h-full"
+                      title={
+                        <div className="flex items-center gap-2">
+                          <Store className="size-4 text-purple-600" />
+                          <span>Ranking de lojas</span>
+                        </div>
+                      }
+                      extra={<Tag color="purple">Top 5</Tag>}
+                    >
+                      {isLoading ? (
+                        <Skeleton active paragraph={{ rows: 4 }} />
+                      ) : dealerSummaries.length === 0 ? (
+                        <Empty description="Nenhuma loja vinculada." />
+                      ) : (
+                        <List
+                          dataSource={dealerSummaries.slice(0, 5)}
+                          renderItem={(dealer, index) => (
+                            <List.Item>
+                              <List.Item.Meta
+                                avatar={
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 text-purple-700 font-semibold">
+                                    {index + 1}
+                                  </div>
+                                }
+                                title={
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-slate-800">{dealer.name}</span>
+                                    <Tag color="purple">{dealer.proposals} propostas</Tag>
+                                  </div>
+                                }
+                                description={
+                                  <div className="text-xs text-slate-500">
+                                    {dealer.sellers} vendedor{dealer.sellers !== 1 ? "es" : ""}
+                                  </div>
+                                }
+                              />
+                            </List.Item>
+                          )}
+                        />
+                      )}
+                    </Card>
+                  </Col>
+                </Row>
+
+                <Card
+                  className="border-0 shadow-sm"
+                  title={
+                    <div className="flex items-center gap-2">
+                      <Users className="size-4 text-slate-700" />
+                      <span>Equipe das lojas vinculadas</span>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Phone className="size-4 text-slate-400" />
-                      <span>
-                        {seller.phone ? formatPhone(seller.phone) : "Sem telefone"}
-                      </span>
+                  }
+                  extra={
+                    <Button type="link" onClick={() => router.push("/vendedores")}>
+                      Ver vendedores
+                    </Button>
+                  }
+                >
+                  {isLoading ? (
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <Card key={`seller-skeleton-${index}`}>
+                          <Skeleton active title paragraph={{ rows: 2 }} />
+                        </Card>
+                      ))}
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Store className="size-4 text-slate-400" />
-                      <span>
-                        {seller.dealerId
-                          ? dealerIndex[seller.dealerId] ?? `Loja #${seller.dealerId}`
-                          : "Loja nao informada"}
-                      </span>
+                  ) : sellers.length === 0 ? (
+                    <Empty description="Nenhum vendedor encontrado nas lojas vinculadas." />
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                      {sellers.map((seller, index) => (
+                        <Card
+                          key={seller.id}
+                          className="transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+                          style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <Text className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                  {seller.CPF ? maskCpf(seller.CPF) : "CPF nao informado"}
+                                </Text>
+                                <h3 className="text-lg font-semibold text-slate-800">
+                                  {seller.fullName || "Nome nao informado"}
+                                </h3>
+                              </div>
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-semibold ${seller.status === "ATIVO"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-amber-100 text-amber-700"
+                                  }`}
+                              >
+                                {seller.status || "PENDENTE"}
+                              </span>
+                            </div>
+
+                            <div className="space-y-2 text-sm">
+                              <div className="flex items-center gap-2 text-slate-600">
+                                <Mail className="size-4 text-slate-400" />
+                                <span className="truncate">{seller.email || "Sem email"}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-slate-600">
+                                <Phone className="size-4 text-slate-400" />
+                                <span>
+                                  {seller.phone ? formatPhone(seller.phone) : "Sem telefone"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-slate-600">
+                                <Store className="size-4 text-slate-400" />
+                                <span>
+                                  {seller.dealerId
+                                    ? dealerIndex[seller.dealerId] ?? `Loja #${seller.dealerId}`
+                                    : "Loja nao informada"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </Card>
-    </div>
+                  )}
+                </Card>
+              </div>
+            </Content>
+
+            <Footer className="!bg-white text-center text-sm text-slate-500 flex-shrink-0">
+              Atualizado automaticamente pelos dados da esteira de propostas.
+            </Footer>
+          </Layout>
+        </Layout>
+      </div>
+    </>
   );
 }
 

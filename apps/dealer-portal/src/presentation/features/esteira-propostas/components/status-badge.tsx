@@ -12,7 +12,7 @@ interface StatusBadgeProps {
 const statusConfig = {
   enviada: { label: "Enviada", color: "blue" },
   pendente: { label: "Pendente", color: "gold" },
-  em_analise: { label: "Em an·lise", color: "purple" },
+  em_analise: { label: "Em an√°lise", color: "purple" },
   aprovada: { label: "Aprovada", color: "green" },
   aprovada_deduzida: { label: "Aprovada Reduzido", color: "geekblue" },
   contrato_emitido: { label: "Contrato Emitido", color: "purple" },
@@ -43,7 +43,7 @@ const normalizeStatus = (status?: string | null): StatusKey => {
     normalized === "em analise" ||
     normalized === "analyzing" ||
     normalized === "analysis" ||
-    normalized === "em an·lise"
+    normalized === "em an√°lise"
   ) {
     return "em_analise";
   }
