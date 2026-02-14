@@ -54,6 +54,19 @@ fs.copyFileSync(
 
 console.log('Created fixed index.js with correct import paths');
 
+// Create .npmrc file to handle peer dependency issues
+const npmrcContent = `# Use legacy peer deps to handle React 19 compatibility
+legacy-peer-deps=true
+
+# Skip optional dependencies to speed up install
+optional=false
+
+# Set registry if needed
+# registry=https://registry.npmjs.org/`;
+
+fs.writeFileSync(path.join(adminConsoleDir, '.npmrc'), npmrcContent);
+console.log('Created .npmrc file to handle peer dependencies');
+
 // Update imports in files that use @grota/realtime-client
 const filesToUpdate = [
   'src/presentation/features/painel-geral/components/RealtimeBridgePanel.tsx',

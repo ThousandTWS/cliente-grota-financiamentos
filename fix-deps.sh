@@ -8,7 +8,7 @@ echo "Fixing workspace dependencies for Azure deployment..."
 ADMIN_CONSOLE_DIR="apps/admin-console"
 REALTIME_CLIENT_DIR="packages/realtime-client"
 
-# Remove @grota/realtime-client from package.json dependencies
+# Update package.json dependencies
 if [ -f "$ADMIN_CONSOLE_DIR/package.json" ]; then
   # Use sed to remove the line with @grota/realtime-client
   sed -i '/"@grota\/realtime-client": "workspace:\*"/d' "$ADMIN_CONSOLE_DIR/package.json"
@@ -49,6 +49,20 @@ if [ -f "$REALTIME_CLIENT_DIR/index.d.ts" ]; then
 fi
 
 echo "Created fixed index.js with correct import paths"
+
+# Create .npmrc file to handle peer dependency issues
+cat > "$ADMIN_CONSOLE_DIR/.npmrc" << 'EOF'
+# Use legacy peer deps to handle React 19 compatibility
+legacy-peer-deps=true
+
+# Skip optional dependencies to speed up install
+optional=false
+
+# Set registry if needed
+# registry=https://registry.npmjs.org/
+EOF
+
+echo "Created .npmrc file to handle peer dependencies"
 
 # Update imports in key files (simplified - just a few files)
 update_imports() {
