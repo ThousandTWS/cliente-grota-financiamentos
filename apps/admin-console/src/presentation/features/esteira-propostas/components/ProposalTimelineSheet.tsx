@@ -9,7 +9,7 @@ import {
   REALTIME_EVENT_TYPES,
   parseBridgeEvent,
   useRealtimeChannel,
-} from "@grota/realtime-client";
+} from "@/lib/realtime-client";
 import { getRealtimeUrl } from "@/application/config/realtime";
 import { formatDateTime } from "../utils/date";
 

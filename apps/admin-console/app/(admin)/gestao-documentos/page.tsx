@@ -7,7 +7,7 @@ import {
   dispatchBridgeEvent,
   parseBridgeEvent,
   useRealtimeChannel,
-} from "@grota/realtime-client";
+} from "@/lib/realtime-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {

@@ -8,7 +8,7 @@ import {
   dispatchBridgeEvent,
   parseBridgeEvent,
   useRealtimeChannel,
-} from "@grota/realtime-client";
+} from "@/lib/realtime-client";
 import {
   Proposal,
   ProposalFilters,

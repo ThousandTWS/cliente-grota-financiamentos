@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { MessageSquare, Send, Signal, WifiOff } from "lucide-react";
 
-import { useRealtimeChannel } from "@grota/realtime-client";
+import { useRealtimeChannel } from "@/lib/realtime-client";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/presentation/layout/components/ui/badge";

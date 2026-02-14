@@ -4,7 +4,7 @@ import {
   REALTIME_EVENT_TYPES,
   parseBridgeEvent,
   useRealtimeChannel,
-} from "@grota/realtime-client";
+} from "@/lib/realtime-client";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
 import { getRealtimeUrl } from "@/application/config/realtime";
 import {
