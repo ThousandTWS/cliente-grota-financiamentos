@@ -71,9 +71,6 @@ importers:
       '@fullcalendar/timegrid':
         specifier: ^6.1.15
         version: 6.1.19(@fullcalendar/core@6.1.19)
-      '@grota/realtime-client':
-        specifier: workspace:*
-        version: link:../../packages/realtime-client
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.63.0(react@19.2.1))
