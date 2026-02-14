@@ -1,8 +1,6 @@
 # Grota Financiamentos - Sistema Integrado
 
-Este repositório contém o ecossistema completo do **Grota Financiamentos de Veículos**, organizado em um monorepo gerenciado pelo **Turborepo**. O projeto engloba desde o site institucional até os painéis administrativos e a API core de serviços.
-
-### Frontend (Apps)
+Este repositório contém o ecossistema completo do **Grota Financiamentos de Veículos**, organizado em um monorepo gerenciado pelo **Turborepo**. O projeto engloba desde o site institucional até os painéis administrativos e a API core de serviços
 
 - **Next.js 15/16** (App Router)
 - **TypeScript**
