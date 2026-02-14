@@ -28,14 +28,27 @@ if [ -d "$REALTIME_CLIENT_DIR/src" ]; then
   echo "Copied realtime-client source files"
 fi
 
-# Copy index files
-if [ -f "$REALTIME_CLIENT_DIR/index.js" ]; then
-  cp "$REALTIME_CLIENT_DIR/index.js" "$TARGET_DIR/"
-fi
+# Create a fixed index.js file with correct import paths
+cat > "$TARGET_DIR/index.js" << 'EOF'
+"use client";
 
+export { useRealtimeChannel as default, useRealtimeChannel } from "./use-realtime-channel.js";
+export { NotificationProvider, useNotificationBus } from "./notification-bus.js";
+export { REALTIME_CHANNELS, REALTIME_EVENT_TYPES } from "./constants.js";
+export {
+  parseBridgeEvent,
+  dispatchBridgeEvent,
+  createProposalDraftSnapshot,
+  buildNotificationPayload,
+} from "./utils.js";
+EOF
+
+# Copy index.d.ts if it exists
 if [ -f "$REALTIME_CLIENT_DIR/index.d.ts" ]; then
   cp "$REALTIME_CLIENT_DIR/index.d.ts" "$TARGET_DIR/"
 fi
+
+echo "Created fixed index.js with correct import paths"
 
 # Update imports in key files (simplified - just a few files)
 update_imports() {

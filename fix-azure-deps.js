@@ -31,18 +31,28 @@ srcFiles.forEach(file => {
   fs.copyFileSync(srcPath, destPath);
 });
 
-// Copy index files
-fs.copyFileSync(
-  path.join(realtimeClientDir, 'index.js'),
-  path.join(targetDir, 'index.js')
-);
+// Create a fixed index.js file with correct import paths
+const fixedIndexJs = `"use client";
 
+export { useRealtimeChannel as default, useRealtimeChannel } from "./use-realtime-channel.js";
+export { NotificationProvider, useNotificationBus } from "./notification-bus.js";
+export { REALTIME_CHANNELS, REALTIME_EVENT_TYPES } from "./constants.js";
+export {
+  parseBridgeEvent,
+  dispatchBridgeEvent,
+  createProposalDraftSnapshot,
+  buildNotificationPayload,
+} from "./utils.js";`;
+
+fs.writeFileSync(path.join(targetDir, 'index.js'), fixedIndexJs);
+
+// Copy index.d.ts if it exists
 fs.copyFileSync(
   path.join(realtimeClientDir, 'index.d.ts'),
   path.join(targetDir, 'index.d.ts')
 );
 
-console.log('Copied realtime-client source to admin-console/src/lib/realtime-client/');
+console.log('Created fixed index.js with correct import paths');
 
 // Update imports in files that use @grota/realtime-client
 const filesToUpdate = [
