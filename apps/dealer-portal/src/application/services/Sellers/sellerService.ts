@@ -15,9 +15,9 @@ const refreshSession = async () => {
   return response.ok;
 };
 
-export async function fetchAllSellers(): Promise<Seller[]> {
+const fetchSellersFromEndpoint = async (endpoint: string): Promise<Seller[]> => {
   const request = () =>
-    fetch("/api/sellers", {
+    fetch(endpoint, {
       method: "GET",
       credentials: "include",
       cache: "no-store",
@@ -47,4 +47,12 @@ export async function fetchAllSellers(): Promise<Seller[]> {
     return (payload as { content: Seller[] }).content;
   }
   return [];
+};
+
+export async function fetchAllSellers(): Promise<Seller[]> {
+  return fetchSellersFromEndpoint("/api/sellers");
+}
+
+export async function fetchManagerPanelSellers(): Promise<Seller[]> {
+  return fetchSellersFromEndpoint("/api/sellers/manager-panel");
 }

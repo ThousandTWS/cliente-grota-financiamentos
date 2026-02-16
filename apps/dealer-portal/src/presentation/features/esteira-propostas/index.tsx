@@ -21,7 +21,10 @@ import { QueueStats, ProposalsDashboardSummary } from "./components/QueueStats";
 import { StatusLegend } from "./components/StatusLegend";
 import { QueueFilters } from "./components/QueueFilters";
 import { ProposalsTable } from "./components/ProposalsTable";
-import { fetchAllSellers } from "@/application/services/Sellers/sellerService";
+import {
+  fetchAllSellers,
+  fetchManagerPanelSellers,
+} from "@/application/services/Sellers/sellerService";
 import { fetchAllDealers } from "@/application/services/DealerServices/dealerService";
 import { getRealtimeUrl } from "@/application/config/realtime";
 
@@ -112,10 +115,12 @@ const initialFilters: LocalFilters = {
 
 type EsteiraDePropostasFeatureProps = {
   showCreate?: boolean;
+  useManagerSellers?: boolean;
 };
 
 export function EsteiraDePropostasFeature({
   showCreate = true,
+  useManagerSellers = false,
 }: EsteiraDePropostasFeatureProps) {
   const router = useRouter();
   const [filters, setFilters] = useState<LocalFilters>(initialFilters);
@@ -183,8 +188,11 @@ export function EsteiraDePropostasFeature({
   useEffect(() => {
     const loadEntities = async () => {
       try {
+        const sellersRequest = useManagerSellers
+          ? fetchManagerPanelSellers()
+          : fetchAllSellers();
         const [sellers, dealers] = await Promise.all([
-          fetchAllSellers(),
+          sellersRequest,
           fetchAllDealers(),
         ]);
         setOperatorOptions(
@@ -235,7 +243,7 @@ export function EsteiraDePropostasFeature({
     };
 
     loadEntities();
-  }, []);
+  }, [useManagerSellers]);
 
   useEffect(() => {
     if (!latestRealtimeMessage) return;

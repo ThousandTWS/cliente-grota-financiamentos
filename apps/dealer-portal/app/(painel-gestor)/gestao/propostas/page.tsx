@@ -23,7 +23,7 @@ export default function GestorPropostasPage() {
         </div>
 
         <Card className="dealer-portal-card rounded-3xl text-slate-900 shadow-2xl">
-          <EsteiraDePropostasFeature showCreate={false} />
+          <EsteiraDePropostasFeature showCreate={false} useManagerSellers />
         </Card>
       </div>
     </div>
