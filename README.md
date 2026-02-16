@@ -9,8 +9,6 @@ Este repositório contém o ecossistema completo do **Grota Financiamentos de Ve
 - **Lucide React** (Ícones)
 - **Pnpm** (Gerenciador de pacotes)
 
-### Backend & Realtime
-
 - **Spring Boot (Java)** (API Core)
 - **Maven** (Build Tool)
 - **Node.js + WebSockets** (Sincronização em tempo real)
