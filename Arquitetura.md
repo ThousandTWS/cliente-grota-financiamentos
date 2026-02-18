@@ -8,8 +8,6 @@ Este repositório é um **starter Turborepo** adaptado para o projeto **Grota Fi
 - `api-service` — API Spring Boot que concentra propostas, notificações e cadastros
 - `e2e-tests` — suíte Playwright para cenários end-to-end
 
-> Todos os apps e pacotes usam TypeScript.
-
 ---
 
 ## Arquitetura Geral
