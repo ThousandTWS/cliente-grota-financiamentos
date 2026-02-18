@@ -1,231 +1,340 @@
+"use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  REALTIME_CHANNELS,
-  REALTIME_EVENT_TYPES,
-  parseBridgeEvent,
-  useRealtimeChannel,
-} from "@/lib/realtime-client";
+  Bar,
+  BarChart,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { Card, Typography, Segmented, Space } from "antd";
+import { fetchProposals } from "@/application/services/Proposals/proposalService";
+import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
+import { getAllLogistics, Dealer } from "@/application/services/Logista/logisticService";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
-import { getRealtimeUrl } from "@/application/config/realtime";
-import {
-  Card,
-  Typography,
-  Avatar,
-  Tag,
-  Space,
-  Badge,
-  Tooltip
-} from "antd";
-import { ClockCircleOutlined, SyncOutlined, UserOutlined } from "@ant-design/icons";
+import { getAllOperators, Operator } from "@/application/services/Operator/operatorService";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
-interface SellerActivity {
-  id: string;
-  sellerId: number;
-  sellerName: string;
-  action: string;
-  target: string;
-  status: "approval" | "submission" | "rejection" | "update";
-  timestamp: string;
-}
+type ChannelKey = "all" | "online" | "shop";
+type GroupBy = "status" | "loja" | "operador" | "vendedor" | "canal";
 
-const typeConfig = {
-  approval: {
-    label: "Aprovação",
-    color: "green",
-  },
-  submission: {
-    label: "Envio",
-    color: "blue",
-  },
-  rejection: {
-    label: "Rejeição",
-    color: "red",
-  },
-  update: {
-    label: "Atualização",
-    color: "orange",
-  },
-} as const;
-
-const SALES_CHANNEL = REALTIME_CHANNELS.NOTIFICATIONS;
-const SALES_IDENTITY = "admin-sellers-activity";
-
-const formatTimeDistance = (value: string, now = Date.now()) => {
-  const timestamp = new Date(value).getTime();
-  const diff = Math.max(0, now - timestamp);
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diff < minute) {
-    const seconds = Math.floor(diff / 1000);
-    return `há ${seconds || 1}s`;
-  }
-  if (diff < hour) {
-    const minutes = Math.floor(diff / minute);
-    return `há ${minutes}m`;
-  }
-  if (diff < day) {
-    const hours = Math.floor(diff / hour);
-    return `há ${hours}h`;
-  }
-  const days = Math.floor(diff / day);
-  return `há ${days}d`;
+const statusLabels: Record<ProposalStatus, string> = {
+  SUBMITTED: "Enviadas",
+  PENDING: "Pendentes",
+  ANALYSIS: "Em análise",
+  APPROVED: "Aprovadas",
+  APPROVED_DEDUCTED: "Aprovada reduzido",
+  CONTRACT_ISSUED: "Contrato emitido",
+  PAID: "Pagas",
+  REJECTED: "Recusadas",
+  WITHDRAWN: "Desistidas",
 };
 
-const deriveInitials = (name: string) => {
-  return name
+const palette = [
+  "#2563EB",
+  "#1D4ED8",
+  "#6366F1",
+  "#7C3AED",
+  "#10B981",
+  "#F97316",
+  "#EF4444",
+  "#0EA5E9",
+];
+
+const groupOptions: Array<{ label: string; value: GroupBy }> = [
+  { label: "Status", value: "status" },
+  { label: "Loja", value: "loja" },
+  { label: "Operador", value: "operador" },
+  { label: "Vendedor", value: "vendedor" },
+  { label: "Canal", value: "canal" },
+];
+
+const channelOptions = [
+  { label: "Todos", value: "all" },
+  { label: "On-line", value: "online" },
+  { label: "Loja", value: "shop" },
+];
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const parseMetadata = (metadata: Proposal["metadata"]) => {
+  if (!metadata) return null;
+  if (typeof metadata === "string") {
+    try {
+      return JSON.parse(metadata) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof metadata === "object") {
+    return metadata as Record<string, unknown>;
+  }
+  return null;
+};
+
+const normalizeChannel = (metadata: Proposal["metadata"]) => {
+  const parsed = parseMetadata(metadata);
+  const candidate =
+    (parsed?.channel as string | number | undefined) ??
+    (parsed?.salesChannel as string | number | undefined) ??
+    (parsed?.source as string | number | undefined) ??
+    (parsed?.origin as string | number | undefined);
+  if (!candidate) return "outros";
+  return String(candidate).toLowerCase().trim();
+};
+
+const channelMatches = (value: string, filter: ChannelKey) => {
+  if (filter === "all") return true;
+  if (filter === "online") {
+    return value.includes("online") || value.includes("digital");
+  }
+  if (filter === "shop") {
+    return value.includes("shop") || value.includes("loja") || value.includes("store");
+  }
+  return value === filter;
+};
+
+const capitalizeLabel = (value: string) =>
+  value
+    .replace(/[-_]/g, " ")
     .split(" ")
-    .map((piece) => piece.charAt(0))
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-};
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
 
 export function RecentActivity() {
-  const [activities, setActivities] = useState<SellerActivity[]>([]);
-  const [sellersIndex, setSellersIndex] = useState<Record<number, Seller>>({});
-  const [now, setNow] = useState(() => Date.now());
-
-  const { messages } = useRealtimeChannel({
-    channel: SALES_CHANNEL,
-    identity: SALES_IDENTITY,
-    url: getRealtimeUrl(),
-  });
-
-  const lastMessage = messages[messages.length - 1];
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [channelFilter, setChannelFilter] = useState<ChannelKey>("all");
+  const [groupBy, setGroupBy] = useState<GroupBy>("status");
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      setNow(Date.now());
-    }, 10000); // 10s is enough for time display
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    const syncSellers = async () => {
+    let mounted = true;
+    const load = async () => {
       try {
-        const sellers = await getAllSellers();
-        const map = sellers.reduce<Record<number, Seller>>((acc, item) => {
-          acc[item.id] = item;
-          return acc;
-        }, {});
-        setSellersIndex(map);
-
-        const bootstrapActivities: SellerActivity[] = sellers.map((seller) => ({
-          id: `seller-${seller.id}`,
-          sellerId: seller.id,
-          sellerName: seller.fullName ?? `Vendedor ${seller.id}`,
-          action: "está ativo",
-          target: seller.email ?? seller.phone ?? "sem contato",
-          status: "update",
-          timestamp: seller.createdAt ?? new Date().toISOString(),
-        }));
-        setActivities(bootstrapActivities.slice(0, 10));
-      } catch (error) {
-        console.error("[RecentActivity] Failed to load sellers", error);
+        setLoading(true);
+        const [proposalData, dealersData, sellersData, operatorsData] = await Promise.all([
+          fetchProposals(),
+          getAllLogistics(),
+          getAllSellers(),
+          getAllOperators(),
+        ]);
+        if (!mounted) return;
+        setProposals(proposalData);
+        setDealers(dealersData);
+        setSellers(sellersData);
+        setOperators(operatorsData);
+        setError(null);
+      } catch (err) {
+        console.error("[RecentActivity] Failed to load data", err);
+        if (mounted) setError("Erro ao carregar dados.");
+      } finally {
+        if (mounted) setLoading(false);
       }
     };
-
-    syncSellers();
+    load();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!lastMessage) return;
-    const parsed = parseBridgeEvent(lastMessage);
-    if (
-      //@ts-ignore
-      parsed?.event !== REALTIME_EVENT_TYPES.SELLER_ACTIVITY_SENT ||
-      //@ts-ignore
-      !parsed.payload
-    ) {
-      return;
-    }
+  const dealerMap = useMemo(
+    () =>
+      dealers.reduce<Record<number, Dealer>>((acc, dealer) => {
+        if (dealer.id) acc[dealer.id] = dealer;
+        return acc;
+      }, {}),
+    [dealers],
+  );
 
-    //@ts-ignore
-    const payload = parsed.payload as SellerActivity;
-    setActivities((current) => {
-      const next = [payload, ...current];
-      return next.slice(0, 20);
-    });
-  }, [lastMessage]);
+  const sellerMap = useMemo(
+    () =>
+      sellers.reduce<Record<number, Seller>>((acc, seller) => {
+        if (seller.id) acc[seller.id] = seller;
+        return acc;
+      }, {}),
+    [sellers],
+  );
 
-  const displayedActivities = useMemo(() => {
-    return activities.map((activity) => {
-      const seller = sellersIndex[activity.sellerId];
-      return {
-        ...activity,
-        sellerName: seller?.fullName ?? activity.sellerName,
-        sellerInitials: seller?.fullName
-          ? deriveInitials(seller.fullName)
-          : deriveInitials(activity.sellerName),
-      };
+  const operatorMap = useMemo(
+    () =>
+      operators.reduce<Record<number, Operator>>((acc, operator) => {
+        if (operator.id) acc[operator.id] = operator;
+        return acc;
+      }, {}),
+    [operators],
+  );
+
+  const filteredProposals = useMemo(
+    () => proposals.filter((proposal) => channelMatches(normalizeChannel(proposal.metadata), channelFilter)),
+    [proposals, channelFilter],
+  );
+
+  const chartData = useMemo(() => {
+    const groups = new Map<string, { label: string; value: number; color?: string }>();
+    filteredProposals.forEach((proposal) => {
+      const value = proposal.financedValue ?? 0;
+      if (value === 0) return;
+      let key = "";
+      let label = "";
+      switch (groupBy) {
+        case "status":
+          key = proposal.status;
+          label = statusLabels[proposal.status];
+          break;
+        case "loja": {
+          const dealer = dealerMap[proposal.dealerId ?? -1];
+          key = `loja-${proposal.dealerId ?? "unknown"}`;
+          label = dealer?.enterprise ?? dealer?.fullName ?? `Loja #${proposal.dealerId ?? "??"}`;
+          break;
+        }
+        case "operador": {
+          const metadata = parseMetadata(proposal.metadata);
+          const operatorName = metadata?.operatorName ?? metadata?.operator ?? "";
+          const operatorId = metadata?.operatorId;
+          if (operatorName) {
+            key = `operator-${operatorName}`;
+            label = String(operatorName);
+          } else if (typeof operatorId === "number" && operatorMap[operatorId]) {
+            key = `operator-${operatorId}`;
+            label = operatorMap[operatorId].fullName ?? `Operador #${operatorId}`;
+          } else {
+            key = `operator-${proposal.sellerId ?? "unknown"}`;
+            label = sellerMap[proposal.sellerId ?? -1]?.fullName ?? "Operador não informado";
+          }
+          break;
+        }
+        case "vendedor": {
+          const sellerId = proposal.sellerId ?? -1;
+          key = `seller-${sellerId}`;
+          label = sellerMap[sellerId]?.fullName ?? `Vendedor #${sellerId}`;
+          break;
+        }
+        case "canal": {
+          const channelKey = normalizeChannel(proposal.metadata);
+          key = `channel-${channelKey}`;
+          label = capitalizeLabel(channelKey);
+          break;
+        }
+      }
+      if (!key) return;
+      const current = groups.get(key);
+      const nextValue = (current?.value ?? 0) + value;
+      groups.set(key, {
+        label,
+        value: nextValue,
+        color: current?.color,
+      });
     });
-  }, [activities, sellersIndex]);
+
+    let paletteIndex = 0;
+    return Array.from(groups.values())
+      .filter((entry) => entry.value > 0)
+      .map((entry) => ({ ...entry, color: entry.color ?? palette[(paletteIndex++) % palette.length] }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredProposals, groupBy, dealerMap, sellerMap, operatorMap]);
+
+  const totalSales = useMemo(
+    () => filteredProposals.reduce((sum, proposal) => sum + (proposal.financedValue ?? 0), 0),
+    [filteredProposals],
+  );
 
   return (
-    <Card 
+    <Card
       className="shadow-sm border-slate-200 h-full"
       title={
-        <Space orientation="vertical" size={0}>
-          <Typography.Title level={5} style={{ margin: 0 }}>Atividades Recentes</Typography.Title>
-          <Text type="secondary" style={{ fontSize: '12px' }}>Eventos em tempo real</Text>
+        <Space
+          direction="vertical"
+          size={0}
+          className="w-full flex-wrap gap-2 flex items-center justify-between"
+        >
+          <div>
+            <Title level={5} style={{ margin: 0 }}>
+              Proporção por categoria de vendas
+            </Title>
+            <Text type="secondary" className="text-xs">
+              Distribuição real entre as dimensões
+            </Text>
+          </div>
+          <Segmented
+            value={groupBy}
+            onChange={(value) => setGroupBy(value as GroupBy)}
+            options={groupOptions}
+          />
         </Space>
       }
-      extra={
-        <Tag color="green" icon={<SyncOutlined spin />}>Live</Tag>
-      }
     >
-      <div style={{ height: '430px', overflowY: 'auto', paddingRight: '8px' }}>
-        <div className="ant-list ant-list-horizontal">
-          <div className="ant-spin-nested-loading">
-            <div className="ant-spin-container">
-              {displayedActivities.map((item) => (
-                <div key={item.id} className="ant-list-item">
-                  <div className="ant-list-item-meta">
-                    <div className="ant-list-item-meta-avatar">
-                      <Badge dot color={typeConfig[item.status]?.color || 'orange'} offset={[-2, 32]}>
-                        <Avatar 
-                          icon={<UserOutlined />} 
-                          style={{ backgroundColor: '#134B73' }}
-                        >
-                          {item.sellerInitials}
-                        </Avatar>
-                      </Badge>
-                    </div>
-                    <div className="ant-list-item-meta-content">
-                      <h4 className="ant-list-item-meta-title">
-                        <Space size={4}>
-                          <Text strong>{item.sellerName}</Text>
-                          <Text type="secondary">{item.action}</Text>
-                        </Space>
-                      </h4>
-                      <div className="ant-list-item-meta-description">
-                        <Space orientation="vertical" size={0} style={{ width: '100%' }}>
-                          <Tag color={typeConfig[item.status]?.color || 'orange'} style={{ fontSize: '10px', lineHeight: '16px' }}>
-                            {typeConfig[item.status]?.label || 'Evento'}
-                          </Tag>
-                          <Text type="secondary" ellipsis style={{ fontSize: '11px', maxWidth: '200px' }}>
-                            {item.target}
-                          </Text>
-                        </Space>
-                      </div>
-                    </div>
-                  </div>
-                  <ul className="ant-list-item-action" style={{ marginLeft: 48 }}>
-                    <li>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>
-                        <ClockCircleOutlined style={{ marginRight: '4px' }} />
-                        {formatTimeDistance(item.timestamp, now)}
-                      </Text>
-                    </li>
-                  </ul>
-                </div>
-              ))}
-            </div>
+      <div className="mb-3">
+        <Segmented
+          value={channelFilter}
+          onChange={(value) => setChannelFilter(value as ChannelKey)}
+          options={channelOptions}
+        />
+      </div>
+      <div className="relative h-[380px]">
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <Text type="secondary">Carregando...</Text>
+          </div>
+        ) : error ? (
+          <div className="flex h-full items-center justify-center">
+            <Text type="secondary">{error}</Text>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="flex h-full items-center justify-center">
+            <Text type="secondary">Sem dados suficientes.</Text>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData.slice(0, 8)}
+              layout="vertical"
+              margin={{ top: 8, right: 16, left: 20, bottom: 8 }}
+            >
+              <XAxis
+                type="number"
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                dataKey="label"
+                type="category"
+                width={140}
+                tick={{ fill: "#334155", fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                formatter={(value) => [formatCurrency(Number(value)), "Vendas"]}
+                contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
+              />
+              <Bar dataKey="value" radius={[6, 6, 6, 6]}>
+                {chartData.slice(0, 8).map((entry) => (
+                  <Cell key={entry.label} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <Text type="secondary" className="text-xs uppercase tracking-wide">
+              Vendas
+            </Text>
+            <div className="text-2xl font-semibold">{formatCurrency(totalSales)}</div>
           </div>
         </div>
       </div>

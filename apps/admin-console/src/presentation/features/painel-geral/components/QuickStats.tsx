@@ -10,7 +10,7 @@ import {
   SyncOutlined,
 } from "@ant-design/icons";
 import { Card, Row, Col, Typography, Space, Tag, Spin, Empty, Flex, Avatar, Badge, Modal, Pagination } from "antd";
-import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
@@ -24,11 +24,6 @@ const PANELS: { key: ProposalStatus; title: string; color: string }[] = [
     key: "SUBMITTED",
     title: "Propostas Enviadas",
     color: "#3B82F6",
-  },
-  {
-    key: "PENDING",
-    title: "Em analise",
-    color: "#F59E0B",
   },
   {
     key: "APPROVED",
@@ -69,6 +64,15 @@ const getDateKey = (value: Date) =>
 
 type DailyPoint = { date: string; value: number };
 
+const formatPtBrDate = (value: string) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  }).format(parsed);
+};
+
 const buildDailySeries = (
   proposals: Proposal[],
   days: number,
@@ -103,21 +107,28 @@ const buildDailySeries = (
 const Sparkline = ({ data, stroke }: { data: DailyPoint[]; stroke: string }) => (
   <div className="h-10 w-32">
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data}>
+      <AreaChart data={data}>
         <Tooltip
           cursor={{ stroke: "#e2e8f0", strokeWidth: 1 }}
-          formatter={(value) => [Number(value).toLocaleString("pt-BR"), "Quantidade"]}
-          labelFormatter={(label) => `Dia ${label}`}
+          formatter={(value) => [Number(value).toLocaleString("pt-BR"), "Propostas"]}
+          labelFormatter={(label) => `Dia ${formatPtBrDate(String(label))}`}
+          contentStyle={{
+            borderRadius: 8,
+            borderColor: "#e2e8f0",
+            fontSize: 12,
+          }}
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="value"
           stroke={stroke}
           strokeWidth={2}
+          fill={stroke}
+          fillOpacity={0.15}
           dot={false}
           isAnimationActive={false}
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   </div>
 );

@@ -7,7 +7,6 @@ import {
   ManagersList, 
   OperatorsList, 
   QuickStats, 
-  RecentActivity, 
   SellersList,
   StatusDistribution
 } from "@/presentation/features/painel-geral";
@@ -47,11 +46,8 @@ export default function Dashboard() {
           </Row>
 
           <Row gutter={[24, 24]}>
-            <Col xs={24} lg={12}>
+            <Col xs={24} lg={24}>
               <ConversionFunnel />
-            </Col>
-            <Col xs={24} lg={12}>
-              <RecentActivity />
             </Col>
           </Row>
 

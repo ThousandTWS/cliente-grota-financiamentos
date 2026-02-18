@@ -1,200 +1,273 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Funnel } from "@ant-design/plots";
-import { Card, Typography, Spin, Empty, Alert, Button, Space, Row, Col, Statistic } from "antd";
-import { ReloadOutlined } from "@ant-design/icons";
+import React, { useEffect, useMemo, useState } from "react";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Card, Typography, Spin, Empty, Alert, Table } from "antd";
+import { EllipsisOutlined, ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
-import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
+import { Proposal } from "@/application/core/@types/Proposals/Proposal";
+import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
 
-const { Title, Text } = Typography;
+const { Text, Title } = Typography;
 
-type FunnelStage = {
-  stage: string;
-  count: number;
-};
+type DailyPoint = { date: string; value: number };
 
-const STATUS_ORDER: ProposalStatus[] = ["SUBMITTED", "PENDING", "APPROVED", "APPROVED_DEDUCTED", "REJECTED"];
+const getDateKey = (value: Date) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
 
-const DEFAULT_STAGES: FunnelStage[] = [
-  { stage: "Recebidas", count: 0 },
-  { stage: "Em Análise", count: 0 },
-  { stage: "Pré-Aprovadas", count: 0 },
-  { stage: "Aprovadas", count: 0 },
-  { stage: "Finalizadas", count: 0 },
-];
-
-const enforceDescending = (stages: FunnelStage[]): FunnelStage[] => {
-  let previous = stages.length > 0 ? stages[0].count : 0;
-  return stages.map((stage, index) => {
-    if (index === 0) {
-      previous = stage.count;
-      return stage;
-    }
-    const normalized = Math.max(0, Math.min(stage.count, previous));
-    previous = normalized;
-    return { ...stage, count: normalized };
-  });
-};
-
-const buildFunnelFromProposals = (proposals: Proposal[]): FunnelStage[] => {
-  const totals: Record<ProposalStatus, number> = STATUS_ORDER.reduce(
-    (acc, status) => ({ ...acc, [status]: 0 }),
-    {} as Record<ProposalStatus, number>,
-  );
-
+const buildDailySeries = (proposals: Proposal[], days: number) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const counts = new Map<string, number>();
   proposals.forEach((proposal) => {
-    totals[proposal.status] = (totals[proposal.status] ?? 0) + 1;
+    const date = new Date(proposal.createdAt);
+    if (Number.isNaN(date.getTime())) return;
+    date.setHours(0, 0, 0, 0);
+    const key = getDateKey(date);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   });
 
-  const received = proposals.length;
-  const analysis = totals.SUBMITTED + totals.PENDING;
-  const preApproved = totals.PENDING;
-  const approved = totals.APPROVED + totals.APPROVED_DEDUCTED;
-  const finalized = Math.max(0, approved - Math.floor(totals.REJECTED / 2));
+  const series: DailyPoint[] = [];
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const current = new Date(today);
+    current.setDate(today.getDate() - offset);
+    const key = getDateKey(current);
+    series.push({ date: key, value: counts.get(key) ?? 0 });
+  }
 
-  return enforceDescending([
-    { stage: "Recebidas", count: received },
-    { stage: "Em Análise", count: analysis },
-    { stage: "Pré-Aprovadas", count: preApproved },
-    { stage: "Aprovadas", count: approved },
-    { stage: "Finalizadas", count: finalized },
-  ]);
+  return series;
+};
+
+const calcTrend = (current: number, previous: number) => {
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return ((current - previous) / previous) * 100;
 };
 
 export function ConversionFunnel() {
-  const [stages, setStages] = useState<FunnelStage[]>(DEFAULT_STAGES);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  const sync = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const proposals = await fetchProposals();
-      setStages(buildFunnelFromProposals(proposals));
-      setHasError(false);
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error("[ConversionFunnel] Failed to sync", error);
-      setHasError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    sync();
-  }, [sync]);
+    let mounted = true;
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const [proposalData, sellersData] = await Promise.all([
+          fetchProposals(),
+          getAllSellers(),
+        ]);
+        if (!mounted) return;
+        setProposals(proposalData);
+        setSellers(sellersData);
+        setError(null);
+      } catch (err) {
+        console.error("[PopularSearches] Failed to load data", err);
+        if (mounted) setError("Erro ao carregar dados.");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  const total = useMemo(() => stages[0]?.count ?? 0, [stages]);
-  const approved = useMemo(() => stages[3]?.count ?? 0, [stages]);
-  const finalized = useMemo(() => stages[4]?.count ?? 0, [stages]);
-  const approvalRate = total ? Math.round((approved / total) * 100) : 0;
-  const finalizationRate = total ? Math.round((finalized / total) * 100) : 0;
+  const proposalsSeries = useMemo(() => buildDailySeries(proposals, 14), [proposals]);
 
-  const config = {
-    data: stages,
-    xField: "stage",
-    yField: "count",
-    shapeField: 'pyramid',
-    label: [
-      {
-        text: (d: any) => d.count,
-        position: 'inside',
-        fontSize: 16,
+  const totals = useMemo(() => {
+    const now = Date.now();
+    const last7 = now - 7 * 24 * 60 * 60 * 1000;
+    const prev7 = now - 14 * 24 * 60 * 60 * 1000;
+
+    const last7Proposals = proposals.filter((p) => new Date(p.createdAt).getTime() >= last7).length;
+    const prev7Proposals = proposals.filter((p) => {
+      const time = new Date(p.createdAt).getTime();
+      return time >= prev7 && time < last7;
+    }).length;
+
+    const last7Users = new Set(
+      proposals
+        .filter((p) => new Date(p.createdAt).getTime() >= last7)
+        .map((p) => p.sellerId)
+        .filter((id): id is number => typeof id === "number"),
+    ).size;
+
+    const prev7Users = new Set(
+      proposals
+        .filter((p) => {
+          const time = new Date(p.createdAt).getTime();
+          return time >= prev7 && time < last7;
+        })
+        .map((p) => p.sellerId)
+        .filter((id): id is number => typeof id === "number"),
+    ).size;
+
+    return {
+      totalUsers: new Set(
+        proposals.map((p) => p.sellerId).filter((id): id is number => typeof id === "number"),
+      ).size || sellers.length,
+      totalSearches: proposals.length,
+      usersTrend: calcTrend(last7Users, prev7Users),
+      searchesTrend: calcTrend(last7Proposals, prev7Proposals),
+    };
+  }, [proposals, sellers.length]);
+
+  const tableData = useMemo(() => {
+    const totalsBySeller = proposals.reduce<Record<number, { count: number; last7: number; prev7: number }>>(
+      (acc, proposal) => {
+        if (!proposal.sellerId) return acc;
+        const entry = acc[proposal.sellerId] ?? { count: 0, last7: 0, prev7: 0 };
+        entry.count += 1;
+        const created = new Date(proposal.createdAt).getTime();
+        const now = Date.now();
+        const last7 = now - 7 * 24 * 60 * 60 * 1000;
+        const prev7 = now - 14 * 24 * 60 * 60 * 1000;
+        if (created >= last7) entry.last7 += 1;
+        if (created >= prev7 && created < last7) entry.prev7 += 1;
+        acc[proposal.sellerId] = entry;
+        return acc;
       },
-      {
-        text: (d: any, i: number, data: any[]) => {
-          if (i && data[i - 1].count > 0) return "— " + ((d.count / data[i - 1].count) * 100).toFixed(2) + '%';
-          return '';
-        },
-        position: 'top-right',
-        textAlign: 'left',
-        textBaseline: 'middle',
-        dx: 10,
-        style: {
-          fill: '#aaa',
-          fontSize: 12,
-        }
-      },
-    ],
-    tooltip: {
-      formatter: (datum: any) => {
+      {},
+    );
+
+    return Object.entries(totalsBySeller)
+      .map(([id, data], index) => {
+        const seller = sellers.find((item) => item.id === Number(id));
+        const trend = calcTrend(data.last7, data.prev7);
         return {
-          name: datum.stage,
-          value: `${datum.count} (${total ? ((datum.count / total) * 100).toFixed(1) : 0}%)`,
+          key: id,
+          rank: index + 1,
+          keyword: seller?.fullName ?? `Vendedor #${id}`,
+          userNumber: data.count,
+          weeklyIncrease: trend,
         };
-      },
+      })
+      .sort((a, b) => b.userNumber - a.userNumber);
+  }, [proposals, sellers]);
+
+  const columns = [
+    {
+      title: "Número",
+      dataIndex: "rank",
+      key: "rank",
+      width: 70,
     },
-    legend: false as const,
-  };
+    {
+      title: "Palavra-chave",
+      dataIndex: "keyword",
+      key: "keyword",
+      render: (value: string) => (
+        <Text className="text-blue-600">{value}</Text>
+      ),
+    },
+    {
+      title: "Usuários",
+      dataIndex: "userNumber",
+      key: "userNumber",
+      align: "right" as const,
+    },
+    {
+      title: "Aumento semanal",
+      dataIndex: "weeklyIncrease",
+      key: "weeklyIncrease",
+      align: "right" as const,
+      render: (value: number) => (
+        <span className={value >= 0 ? "text-emerald-600" : "text-red-500"}>
+          {value >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(value).toFixed(1)}%
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <Card 
+    <Card
       className="w-full shadow-sm border-slate-200"
       title={
-        <Space orientation="vertical" size={0}>
-          <Title level={5} style={{ margin: 0 }}>Funil de Conversão</Title>
-          <Text type="secondary" style={{ fontSize: '12px' }}>Eficiência das etapas de financiamento</Text>
-        </Space>
-      }
-      extra={
-        <Button 
-          type="text" 
-          icon={<ReloadOutlined spin={isLoading} />} 
-          onClick={sync}
-          disabled={isLoading}
-        >
-          {lastUpdated && !isLoading ? lastUpdated.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : ""}
-        </Button>
+        <div className="flex items-center justify-between">
+          <Title level={5} style={{ margin: 0 }}>Popular Searches</Title>
+          <EllipsisOutlined className="text-slate-400" />
+        </div>
       }
     >
-      <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
-        <Row gutter={16}>
-          <Col span={8}>
-            <Statistic 
-              title="Aprovação" 
-              value={approvalRate} 
-              suffix="%" 
-              styles={{ content: { color: '#10B981', fontSize: '20px' } }}
-            />
-          </Col>
-          <Col span={8}>
-            <Statistic 
-              title="Finalizadas" 
-              value={finalizationRate} 
-              suffix="%" 
-              styles={{ content: { color: '#3B82F6', fontSize: '20px' } }}
-            />
-          </Col>
-          <Col span={8}>
-            <Statistic 
-              title="Total" 
-              value={total} 
-              styles={{ content: { fontSize: '20px' } }}
-            />
-          </Col>
-        </Row>
-      </div>
+      {isLoading ? (
+        <div className="flex h-[360px] items-center justify-center">
+          <Spin tip="Carregando dados...">
+            <div style={{ minHeight: '100px', minWidth: '200px' }} />
+          </Spin>
+        </div>
+      ) : error ? (
+        <Alert message={error} type="error" showIcon />
+      ) : proposals.length === 0 ? (
+        <div className="flex h-[360px] items-center justify-center">
+          <Empty description="Nenhum dado encontrado" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <Text type="secondary" className="text-xs">Número de usuários de busca</Text>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-2xl font-semibold">{totals.totalUsers.toLocaleString("pt-BR")}</span>
+                <span className={totals.usersTrend >= 0 ? "text-emerald-600 text-xs" : "text-red-500 text-xs"}>
+                  {totals.usersTrend >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(totals.usersTrend).toFixed(1)}%
+                </span>
+              </div>
+              <div className="mt-2 h-16">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={proposalsSeries}>
+                    <YAxis hide domain={["auto", "auto"]} />
+                    <XAxis hide dataKey="date" />
+                    <Tooltip
+                      formatter={(value) => [Number(value).toLocaleString("pt-BR"), "Usuários"]}
+                      labelFormatter={(label) => `Dia ${label}`}
+                      contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
+                    />
+                    <Area type="monotone" dataKey="value" stroke="#3B82F6" fill="#93C5FD" fillOpacity={0.35} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div>
+              <Text type="secondary" className="text-xs">Número de buscas</Text>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-2xl font-semibold">{totals.totalSearches.toLocaleString("pt-BR")}</span>
+                <span className={totals.searchesTrend >= 0 ? "text-emerald-600 text-xs" : "text-red-500 text-xs"}>
+                  {totals.searchesTrend >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(totals.searchesTrend).toFixed(1)}%
+                </span>
+              </div>
+              <div className="mt-2 h-16">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={proposalsSeries}>
+                    <YAxis hide domain={["auto", "auto"]} />
+                    <XAxis hide dataKey="date" />
+                    <Tooltip
+                      formatter={(value) => [Number(value).toLocaleString("pt-BR"), "Buscas"]}
+                      labelFormatter={(label) => `Dia ${label}`}
+                      contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
+                    />
+                    <Area type="monotone" dataKey="value" stroke="#3B82F6" fill="#93C5FD" fillOpacity={0.35} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
 
-      <div style={{ height: "300px", width: "100%" }}>
-        {isLoading ? (
-          <div className="flex h-full items-center justify-center">
-             <Spin tip="Carregando funil...">
-               <div style={{ minHeight: '100px', minWidth: '200px' }} />
-             </Spin>
-          </div>
-        ) : hasError ? (
-          <Alert message="Erro ao carregar dados" type="error" showIcon />
-        ) : total === 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <Empty description="Nenhum dado encontrado" />
-          </div>
-        ) : (
-          <Funnel {...config} />
-        )}
-      </div>
+          <Table
+            columns={columns}
+            dataSource={tableData}
+            pagination={{ pageSize: 5 }}
+            size="small"
+          />
+        </div>
+      )}
     </Card>
   );
 }
