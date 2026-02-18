@@ -101,6 +101,9 @@ type LocalFilters = {
   dealerId?: string;
   dealerCode?: string;
   operatorId?: string;
+  dateField: "CREATED" | "STATUS_UPDATED";
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 const initialFilters: LocalFilters = {
@@ -109,6 +112,40 @@ const initialFilters: LocalFilters = {
   dealerId: undefined,
   dealerCode: "",
   operatorId: undefined,
+  dateField: "CREATED",
+  dateFrom: undefined,
+  dateTo: undefined,
+};
+
+const normalizeTimestamp = (value?: string) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(
+    /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2})(\.\d+)?([zZ]|[+-]\d{2}:?\d{2})?$/,
+  );
+  if (!match) return trimmed;
+  const [, datePart, timePart, fraction, tz] = match;
+  let normalized = `${datePart}T${timePart}`;
+  if (fraction) {
+    const ms = fraction.slice(1, 4).padEnd(3, "0");
+    normalized += `.${ms}`;
+  }
+  normalized += tz ?? "Z";
+  return normalized;
+};
+
+const toLocalDateKey = (value?: string) => {
+  const normalized = normalizeTimestamp(value);
+  if (!normalized) return null;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(parsed);
 };
 
 export default function EsteiraDePropostasFeature() {
@@ -471,13 +508,25 @@ export default function EsteiraDePropostasFeature() {
       const matchesOperator = filters.operatorId
         ? String(proposal.sellerId ?? "") === filters.operatorId
         : true;
+      const referenceDate =
+        filters.dateField === "STATUS_UPDATED"
+          ? toLocalDateKey(proposal.updatedAt)
+          : toLocalDateKey(proposal.createdAt);
+      const matchesDateFrom = filters.dateFrom
+        ? referenceDate !== null && referenceDate >= filters.dateFrom
+        : true;
+      const matchesDateTo = filters.dateTo
+        ? referenceDate !== null && referenceDate <= filters.dateTo
+        : true;
 
       return (
         matchesStatus &&
         matchesSearch &&
         matchesDealer &&
         matchesDealerCode &&
-        matchesOperator
+        matchesOperator &&
+        matchesDateFrom &&
+        matchesDateTo
       );
     });
   }, [filters, proposals]);
@@ -829,7 +878,6 @@ export default function EsteiraDePropostasFeature() {
         onCreate={handleCreate}
         onExport={handleExport}
         isRefreshing={isRefreshing}
-        onTestSound={playNotificationSound}
       />
       <div className="mb-5">
       <Alert

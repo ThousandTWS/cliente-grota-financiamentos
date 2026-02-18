@@ -12,7 +12,7 @@ import {
   SyncOutlined,
   CloseCircleOutlined
 } from "@ant-design/icons";
-import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin, Empty, Flex, Avatar, List, Badge, Modal } from "antd";
+import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin, Empty, Flex, Avatar, Badge, Modal, Pagination } from "antd";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
@@ -74,6 +74,7 @@ export function QuickStats() {
   const [sellersModalOpen, setSellersModalOpen] = useState(false);
   const [dealersModalOpen, setDealersModalOpen] = useState(false);
   const [proposalsModalOpen, setProposalsModalOpen] = useState(false);
+  const [proposalsPage, setProposalsPage] = useState(1);
   const { user } = useUser();
 
   useEffect(() => {
@@ -178,6 +179,11 @@ export function QuickStats() {
   }, [proposals]);
 
   const lastProposals = useMemo(() => allProposalsSorted.slice(0, 5), [allProposalsSorted]);
+  const paginatedProposals = useMemo(() => {
+    const pageSize = 10;
+    const start = (proposalsPage - 1) * pageSize;
+    return allProposalsSorted.slice(start, start + pageSize);
+  }, [allProposalsSorted, proposalsPage]);
 
   const statusTags: Record<ProposalStatus, { color: string; label: string }> = {
     SUBMITTED: { color: 'blue', label: 'Recebida' },
@@ -256,29 +262,26 @@ export function QuickStats() {
           >
             {topSellersDisplay.length > 0 ? (
               <>
-                <List
-                  itemLayout="horizontal"
-                  dataSource={topSellersDisplay}
-                  renderItem={(item, index) => (
-                    <List.Item
-                      extra={<Text strong type="success">{currency(item.total)}</Text>}
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <Avatar
-                            style={{
-                              backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
-                            }}
-                          >
-                            {index + 1}º
-                          </Avatar>
-                        }
-                        title={<Text ellipsis style={{ maxWidth: 140 }}>{item.name}</Text>}
-                        description={`${item.count} propostas`}
-                      />
-                    </List.Item>
-                  )}
-                />
+                <div className="divide-y divide-slate-100">
+                  {topSellersDisplay.map((item, index) => (
+                    <div key={item.id} className="flex items-center justify-between py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar
+                          style={{
+                            backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
+                          }}
+                        >
+                          {index + 1}º
+                        </Avatar>
+                        <div className="min-w-0">
+                          <Text ellipsis style={{ maxWidth: 140, display: "block" }}>{item.name}</Text>
+                          <Text type="secondary">{item.count} propostas</Text>
+                        </div>
+                      </div>
+                      <Text strong type="success">{currency(item.total)}</Text>
+                    </div>
+                  ))}
+                </div>
                 {topSellersAll.length > 3 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Typography.Link onClick={() => setSellersModalOpen(true)}>
@@ -311,29 +314,26 @@ export function QuickStats() {
           >
             {topDealersDisplay.length > 0 ? (
               <>
-                <List
-                  itemLayout="horizontal"
-                  dataSource={topDealersDisplay}
-                  renderItem={(item, index) => (
-                    <List.Item
-                      extra={<Text strong type="success">{currency(item.total)}</Text>}
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <Avatar
-                            style={{
-                              backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
-                            }}
-                          >
-                            {index + 1}º
-                          </Avatar>
-                        }
-                        title={<Text ellipsis style={{ maxWidth: 140 }}>{item.name}</Text>}
-                        description={`${item.count} propostas`}
-                      />
-                    </List.Item>
-                  )}
-                />
+                <div className="divide-y divide-slate-100">
+                  {topDealersDisplay.map((item, index) => (
+                    <div key={item.id} className="flex items-center justify-between py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar
+                          style={{
+                            backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : '#d48806',
+                          }}
+                        >
+                          {index + 1}º
+                        </Avatar>
+                        <div className="min-w-0">
+                          <Text ellipsis style={{ maxWidth: 140, display: "block" }}>{item.name}</Text>
+                          <Text type="secondary">{item.count} propostas</Text>
+                        </div>
+                      </div>
+                      <Text strong type="success">{currency(item.total)}</Text>
+                    </div>
+                  ))}
+                </div>
                 {topDealersAll.length > 3 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Typography.Link onClick={() => setDealersModalOpen(true)}>
@@ -366,34 +366,29 @@ export function QuickStats() {
           >
             {lastProposals.length > 0 ? (
               <>
-                <List
-                  itemLayout="horizontal"
-                  dataSource={lastProposals}
-                  renderItem={(item) => (
-                    <List.Item
-                      extra={
-                        <Tag color={statusTags[item.status].color}>
-                          {statusTags[item.status].label}
-                        </Tag>
-                      }
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <Badge 
-                            status={
-                              item.status === 'APPROVED' ? 'success' : 
-                              item.status === 'REJECTED' ? 'error' : 
-                              item.status === 'PAID' ? 'processing' : 
-                              'warning'
-                            } 
-                          />
-                        }
-                        title={<Text ellipsis style={{ maxWidth: 120 }}>{item.customerName}</Text>}
-                        description={new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                      />
-                    </List.Item>
-                  )}
-                />
+                <div className="divide-y divide-slate-100">
+                  {lastProposals.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Badge
+                          status={
+                            item.status === 'APPROVED' ? 'success' :
+                            item.status === 'REJECTED' ? 'error' :
+                            item.status === 'PAID' ? 'processing' :
+                            'warning'
+                          }
+                        />
+                        <div className="min-w-0">
+                          <Text ellipsis style={{ maxWidth: 120, display: "block" }}>{item.customerName}</Text>
+                          <Text type="secondary">{new Date(item.createdAt).toLocaleDateString("pt-BR")}</Text>
+                        </div>
+                      </div>
+                      <Tag color={statusTags[item.status].color}>
+                        {statusTags[item.status].label}
+                      </Tag>
+                    </div>
+                  ))}
+                </div>
                 {allProposalsSorted.length > 5 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Typography.Link onClick={() => setProposalsModalOpen(true)}>
@@ -422,29 +417,26 @@ export function QuickStats() {
         footer={null}
         width={600}
       >
-        <List
-          itemLayout="horizontal"
-          dataSource={topSellersAll}
-          renderItem={(item, index) => (
-            <List.Item
-              extra={<Text strong type="success">{currency(item.total)}</Text>}
-            >
-              <List.Item.Meta
-                avatar={
-                  <Avatar
-                    style={{
-                      backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : index === 2 ? '#d48806' : '#bfbfbf',
-                    }}
-                  >
-                    {index + 1}º
-                  </Avatar>
-                }
-                title={item.name}
-                description={`${item.count} propostas`}
-              />
-            </List.Item>
-          )}
-        />
+        <div className="divide-y divide-slate-100">
+          {topSellersAll.map((item, index) => (
+            <div key={item.id} className="flex items-center justify-between py-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar
+                  style={{
+                    backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : index === 2 ? '#d48806' : '#bfbfbf',
+                  }}
+                >
+                  {index + 1}º
+                </Avatar>
+                <div className="min-w-0">
+                  <Text style={{ display: "block" }}>{item.name}</Text>
+                  <Text type="secondary">{item.count} propostas</Text>
+                </div>
+              </div>
+              <Text strong type="success">{currency(item.total)}</Text>
+            </div>
+          ))}
+        </div>
       </Modal>
 
       {/* Modal - Todas as Lojas */}
@@ -460,29 +452,26 @@ export function QuickStats() {
         footer={null}
         width={600}
       >
-        <List
-          itemLayout="horizontal"
-          dataSource={topDealersAll}
-          renderItem={(item, index) => (
-            <List.Item
-              extra={<Text strong type="success">{currency(item.total)}</Text>}
-            >
-              <List.Item.Meta
-                avatar={
-                  <Avatar
-                    style={{
-                      backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : index === 2 ? '#d48806' : '#bfbfbf',
-                    }}
-                  >
-                    {index + 1}º
-                  </Avatar>
-                }
-                title={item.name}
-                description={`${item.count} propostas`}
-              />
-            </List.Item>
-          )}
-        />
+        <div className="divide-y divide-slate-100">
+          {topDealersAll.map((item, index) => (
+            <div key={item.id} className="flex items-center justify-between py-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar
+                  style={{
+                    backgroundColor: index === 0 ? '#faad14' : index === 1 ? '#8c8c8c' : index === 2 ? '#d48806' : '#bfbfbf',
+                  }}
+                >
+                  {index + 1}º
+                </Avatar>
+                <div className="min-w-0">
+                  <Text style={{ display: "block" }}>{item.name}</Text>
+                  <Text type="secondary">{item.count} propostas</Text>
+                </div>
+              </div>
+              <Text strong type="success">{currency(item.total)}</Text>
+            </div>
+          ))}
+        </div>
       </Modal>
 
       {/* Modal - Todas as Propostas */}
@@ -494,50 +483,50 @@ export function QuickStats() {
           </Flex>
         }
         open={proposalsModalOpen}
-        onCancel={() => setProposalsModalOpen(false)}
+        onCancel={() => {
+          setProposalsModalOpen(false);
+          setProposalsPage(1);
+        }}
         footer={null}
         width={700}
       >
-        <List
-          itemLayout="horizontal"
-          dataSource={allProposalsSorted}
-          pagination={{
-            pageSize: 10,
-            size: 'small',
-          }}
-          renderItem={(item) => (
-            <List.Item
-              extra={
-                <Tag color={statusTags[item.status].color}>
-                  {statusTags[item.status].label}
-                </Tag>
-              }
-            >
-              <List.Item.Meta
-                avatar={
-                  <Badge 
-                    status={
-                      item.status === 'APPROVED' ? 'success' : 
-                      item.status === 'REJECTED' ? 'error' : 
-                      item.status === 'PAID' ? 'processing' : 
-                      'warning'
-                    } 
-                  />
-                }
-                title={item.customerName}
-                description={
+        <div className="divide-y divide-slate-100">
+          {paginatedProposals.map((item) => (
+            <div key={item.id} className="flex items-center justify-between py-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <Badge
+                  status={
+                    item.status === 'APPROVED' ? 'success' :
+                    item.status === 'REJECTED' ? 'error' :
+                    item.status === 'PAID' ? 'processing' :
+                    'warning'
+                  }
+                />
+                <div className="min-w-0">
+                  <Text style={{ display: "block" }}>{item.customerName}</Text>
                   <Space>
                     <Text type="secondary">{new Date(item.createdAt).toLocaleDateString("pt-BR")}</Text>
                     {item.financedValue && <Text type="secondary">• {currency(item.financedValue)}</Text>}
                   </Space>
-                }
-              />
-            </List.Item>
-          )}
-        />
+                </div>
+              </div>
+              <Tag color={statusTags[item.status].color}>
+                {statusTags[item.status].label}
+              </Tag>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Pagination
+            current={proposalsPage}
+            total={allProposalsSorted.length}
+            pageSize={10}
+            size="small"
+            onChange={(page) => setProposalsPage(page)}
+            showSizeChanger={false}
+          />
+        </div>
       </Modal>
     </div>
   );
 }
-
-
