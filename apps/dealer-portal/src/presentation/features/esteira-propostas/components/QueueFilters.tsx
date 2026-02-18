@@ -1,7 +1,6 @@
 import { ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Button, DatePicker, Input, Select, Typography } from "antd";
+import { Button, Input, Select, Typography } from "antd";
 import { Download, Filter, Plus, RefreshCw, Search } from "lucide-react";
-import dayjs from "dayjs";
 
 const { Text } = Typography;
 
@@ -137,21 +136,26 @@ export function QueueFilters({
           </div>
           <div className="space-y-1 xl:col-span-6">
             <Text className="text-xs font-medium text-muted-foreground">Periodo</Text>
-            <DatePicker.RangePicker
-              value={[
-                filters.dateFrom ? dayjs(filters.dateFrom) : null,
-                filters.dateTo ? dayjs(filters.dateTo) : null,
-              ]}
-              onChange={(dates) =>
-                onFiltersChange({
-                  dateFrom: dates?.[0] ? dates[0].format("YYYY-MM-DD") : undefined,
-                  dateTo: dates?.[1] ? dates[1].format("YYYY-MM-DD") : undefined,
-                })
-              }
-              format="DD/MM/YYYY"
-              className="w-full"
-              allowEmpty={[true, true]}
-            />
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="date"
+                value={filters.dateFrom ?? ""}
+                onChange={(event) =>
+                  onFiltersChange({
+                    dateFrom: event.target.value || undefined,
+                  })
+                }
+              />
+              <Input
+                type="date"
+                value={filters.dateTo ?? ""}
+                onChange={(event) =>
+                  onFiltersChange({
+                    dateTo: event.target.value || undefined,
+                  })
+                }
+              />
+            </div>
           </div>
         </div>
 
