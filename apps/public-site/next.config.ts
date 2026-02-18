@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isVercel = process.env.VERCEL === "1";
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -9,11 +11,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /**
-   * Standalone output makes it easier to copy only the runtime
-   * dependencies into the production container image.
-   */
-  output: "standalone",
+  // Vercel already traces runtime files; standalone is only needed for custom containers.
+  ...(isVercel ? {} : { output: "standalone" }),
   turbopack: {
     root: "../..",
   },
