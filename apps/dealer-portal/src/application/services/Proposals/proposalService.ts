@@ -15,6 +15,11 @@ const statusSchema = z.enum(
   ["SUBMITTED", "PENDING", "ANALYSIS", "APPROVED", "APPROVED_DEDUCTED", "CONTRACT_ISSUED", "PAID", "REJECTED", "WITHDRAWN"] satisfies ProposalStatus[],
 );
 
+const nullableStringToEmpty = z.preprocess(
+  (value) => (value == null ? "" : value),
+  z.string(),
+);
+
 const ProposalSchema = z.object({
   id: z.coerce.number(),
   dealerId: z.coerce.number().nullable().optional(),
@@ -24,10 +29,10 @@ const ProposalSchema = z.object({
   customerBirthDate: z.string().nullable(),
   customerEmail: z.string(),
   customerPhone: z.string(),
-  cnhCategory: z.string(),
+  cnhCategory: nullableStringToEmpty,
   hasCnh: z.coerce.boolean().default(false),
-  vehiclePlate: z.string(),
-  fipeCode: z.string(),
+  vehiclePlate: nullableStringToEmpty,
+  fipeCode: nullableStringToEmpty,
   fipeValue: z.coerce.number(),
   vehicleBrand: z.string(),
   vehicleModel: z.string(),
