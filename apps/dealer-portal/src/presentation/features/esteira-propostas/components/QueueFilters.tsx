@@ -1,6 +1,7 @@
 import { ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Button, Input, Select, Typography } from "antd";
-import { Filter, Plus, RefreshCw, Search } from "lucide-react";
+import { Button, DatePicker, Input, Select, Typography } from "antd";
+import { Download, Filter, Plus, RefreshCw, Search } from "lucide-react";
+import dayjs from "dayjs";
 
 const { Text } = Typography;
 
@@ -11,6 +12,9 @@ type QueueFiltersProps = {
     dealerId?: string;
     dealerCode?: string;
     status: ProposalStatus | "ALL";
+    dateField: "CREATED" | "STATUS_UPDATED";
+    dateFrom?: string;
+    dateTo?: string;
   };
   operators: { value: string; label: string }[];
   dealers: { value: string; label: string }[];
@@ -18,6 +22,7 @@ type QueueFiltersProps = {
   onFiltersChange: (partial: Partial<QueueFiltersProps["filters"]>) => void;
   onRefresh: () => void;
   onCreate: () => void;
+  onExport?: () => void;
   isRefreshing?: boolean;
   showCreate?: boolean;
 };
@@ -30,6 +35,7 @@ export function QueueFilters({
   onFiltersChange,
   onRefresh,
   onCreate,
+  onExport,
   isRefreshing,
   showCreate = true,
 }: QueueFiltersProps) {
@@ -40,6 +46,9 @@ export function QueueFilters({
       dealerId: undefined,
       dealerCode: "",
       status: "ALL",
+      dateField: "CREATED",
+      dateFrom: undefined,
+      dateTo: undefined,
     });
   };
 
@@ -99,20 +108,54 @@ export function QueueFilters({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-1 lg:min-w-[260px] lg:flex-1">
-          <Text className="text-xs font-medium text-muted-foreground">Status</Text>
-          <Select
-            value={filters.status}
-            onChange={(value) =>
-              onFiltersChange({ status: value as ProposalStatus | "ALL" })
-            }
-            options={statuses}
-            className="w-full"
-          />
+      <div className="mt-4 flex flex-col gap-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
+          <div className="space-y-1 xl:col-span-3">
+            <Text className="text-xs font-medium text-muted-foreground">Status</Text>
+            <Select
+              value={filters.status}
+              onChange={(value) =>
+                onFiltersChange({ status: value as ProposalStatus | "ALL" })
+              }
+              options={statuses}
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-1 xl:col-span-3">
+            <Text className="text-xs font-medium text-muted-foreground">Data base</Text>
+            <Select
+              value={filters.dateField}
+              onChange={(value) =>
+                onFiltersChange({ dateField: value as "CREATED" | "STATUS_UPDATED" })
+              }
+              options={[
+                { value: "CREATED", label: "Criacao da ficha" },
+                { value: "STATUS_UPDATED", label: "Atualizacao de status" },
+              ]}
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-1 xl:col-span-6">
+            <Text className="text-xs font-medium text-muted-foreground">Periodo</Text>
+            <DatePicker.RangePicker
+              value={[
+                filters.dateFrom ? dayjs(filters.dateFrom) : null,
+                filters.dateTo ? dayjs(filters.dateTo) : null,
+              ]}
+              onChange={(dates) =>
+                onFiltersChange({
+                  dateFrom: dates?.[0] ? dates[0].format("YYYY-MM-DD") : undefined,
+                  dateTo: dates?.[1] ? dates[1].format("YYYY-MM-DD") : undefined,
+                })
+              }
+              format="DD/MM/YYYY"
+              className="w-full"
+              allowEmpty={[true, true]}
+            />
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Button
             icon={<RefreshCw className="size-4" />}
             onClick={onRefresh}
@@ -120,6 +163,11 @@ export function QueueFilters({
           >
             Atualizar
           </Button>
+          {onExport ? (
+            <Button type="text" icon={<Download className="size-4" />} onClick={onExport}>
+              Exportar CSV
+            </Button>
+          ) : null}
           {showCreate ? (
             <Button type="primary" icon={<Plus className="size-4" />} onClick={onCreate}>
               Nova ficha

@@ -1,18 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { 
-  ArrowUpOutlined, 
-  ArrowDownOutlined, 
-  UserOutlined, 
-  ShopOutlined, 
+import {
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  UserOutlined,
+  ShopOutlined,
   FileTextOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
   SyncOutlined,
-  CloseCircleOutlined
 } from "@ant-design/icons";
-import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin, Empty, Flex, Avatar, Badge, Modal, Pagination } from "antd";
+import { Card, Row, Col, Typography, Space, Tag, Spin, Empty, Flex, Avatar, Badge, Modal, Pagination } from "antd";
+import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
@@ -21,36 +19,31 @@ import { useUser } from "@/application/core/context/UserContext";
 
 const { Title, Text } = Typography;
 
-const PANELS: { key: ProposalStatus; title: string; color: string; icon: React.ReactNode }[] = [
+const PANELS: { key: ProposalStatus; title: string; color: string }[] = [
   {
     key: "SUBMITTED",
     title: "Propostas Enviadas",
     color: "#3B82F6",
-    icon: <SyncOutlined />
   },
   {
     key: "PENDING",
     title: "Em analise",
     color: "#F59E0B",
-    icon: <ClockCircleOutlined />
   },
   {
     key: "APPROVED",
     title: "Aprovadas",
     color: "#10B981",
-    icon: <CheckCircleOutlined />
   },
   {
     key: "APPROVED_DEDUCTED",
     title: "Aprovada Reduzido",
     color: "#06B6D4",
-    icon: <CheckCircleOutlined />
   },
   {
     key: "REJECTED",
     title: "Reprovadas",
     color: "#EF4444",
-    icon: <CloseCircleOutlined />
   },
 ];
 
@@ -65,6 +58,69 @@ const getTrend = (current: number, previous: number) => {
   if (previous === 0) return current === 0 ? 0 : 100;
   return ((current - previous) / previous) * 100;
 };
+
+const getDateKey = (value: Date) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+
+type DailyPoint = { date: string; value: number };
+
+const buildDailySeries = (
+  proposals: Proposal[],
+  days: number,
+  filter?: (proposal: Proposal) => boolean,
+) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const counts = new Map<string, number>();
+  proposals.forEach((proposal) => {
+    if (filter && !filter(proposal)) return;
+    const date = new Date(proposal.createdAt);
+    if (Number.isNaN(date.getTime())) return;
+    date.setHours(0, 0, 0, 0);
+    const key = getDateKey(date);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+
+  const series: DailyPoint[] = [];
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const current = new Date(today);
+    current.setDate(today.getDate() - offset);
+    const key = getDateKey(current);
+    series.push({
+      date: key,
+      value: counts.get(key) ?? 0,
+    });
+  }
+
+  return series;
+};
+
+const Sparkline = ({ data, stroke }: { data: DailyPoint[]; stroke: string }) => (
+  <div className="h-10 w-32">
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data}>
+        <Tooltip
+          cursor={{ stroke: "#e2e8f0", strokeWidth: 1 }}
+          formatter={(value) => [Number(value).toLocaleString("pt-BR"), "Quantidade"]}
+          labelFormatter={(label) => `Dia ${label}`}
+        />
+        <Line
+          type="monotone"
+          dataKey="value"
+          stroke={stroke}
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+);
 
 export function QuickStats() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -107,16 +163,19 @@ export function QuickStats() {
     const last30Days = now - 30 * 24 * 60 * 60 * 1000;
     const prev30Days = now - 60 * 24 * 60 * 60 * 1000;
 
-    return PANELS.map(panel => {
-      const relevantProposals = proposals.filter(p => p.status === panel.key);
-      const totalValue = relevantProposals.reduce((sum, p) => sum + (p.financedValue ?? 0), 0);
-      
-      const currentCount = relevantProposals.filter(p => {
+    return PANELS.map((panel) => {
+      const relevantProposals = proposals.filter((p) => p.status === panel.key);
+      const totalValue = relevantProposals.reduce(
+        (sum, p) => sum + (p.financedValue ?? 0),
+        0,
+      );
+
+      const currentCount = relevantProposals.filter((p) => {
         const d = new Date(p.createdAt).getTime();
         return d >= last30Days;
       }).length;
-      
-      const previousCount = relevantProposals.filter(p => {
+
+      const previousCount = relevantProposals.filter((p) => {
         const d = new Date(p.createdAt).getTime();
         return d >= prev30Days && d < last30Days;
       }).length;
@@ -125,7 +184,8 @@ export function QuickStats() {
         ...panel,
         count: relevantProposals.length,
         totalValue,
-        trend: getTrend(currentCount, previousCount)
+        trend: getTrend(currentCount, previousCount),
+        series: buildDailySeries(relevantProposals, 14),
       };
     });
   }, [proposals]);
@@ -216,27 +276,35 @@ export function QuickStats() {
       </div>
 
       <Row gutter={[16, 16]}>
-        {statsSummary.map(item => (
+        {statsSummary.map((item) => (
           <Col xs={24} sm={12} xl={6} key={item.key}>
             <Card className="shadow-sm border-slate-200" hoverable>
-              <Statistic
-                title={
-                  <Space>
-                    <span style={{ color: item.color }}>{item.icon}</span>
-                    <span>{item.title}</span>
-                  </Space>
-                }
-                value={item.count}
-                suffix={
-                  <span style={{ fontSize: '14px', color: item.trend >= 0 ? '#52c41a' : '#ff4d4f' }}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{item.title}</Text>
+                  <Title level={3} style={{ margin: "6px 0 0" }}>
+                    {item.count.toLocaleString("pt-BR")}
+                  </Title>
+                </div>
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200"
+                  style={{ color: item.color }}
+                >
+                  <SyncOutlined />
+                </div>
+              </div>
+              <div className="mt-3">
+                <Sparkline data={item.series} stroke={item.color} />
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  Tendência 30d
+                  <span className={item.trend >= 0 ? "text-emerald-600" : "text-red-500"}>
                     {item.trend >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
                     {Math.abs(item.trend).toFixed(1)}%
                   </span>
-                }
-              />
-              <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between items-center">
-                <Text type="secondary" style={{ fontSize: '12px' }}>Volume Total</Text>
-                <Text strong>{currency(item.totalValue)}</Text>
+                </span>
+                <span className="text-slate-900 font-semibold">{currency(item.totalValue)}</span>
               </div>
             </Card>
           </Col>
