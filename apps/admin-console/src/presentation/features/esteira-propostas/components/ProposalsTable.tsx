@@ -1,7 +1,7 @@
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { Button, Card, Input, Modal, Select, Skeleton, Typography } from "antd";
 import { StatusBadge } from "../../logista/components/status-badge";
-import { Clock3, Eye, StickyNote, Trash2, BellRing, CheckCircle2 } from "lucide-react";
+import { Clock3, Eye, StickyNote, Trash2, CheckCircle2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTime } from "../utils/date";
@@ -198,13 +198,14 @@ export function ProposalsTable({
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       {cards.map((proposal) => (
         <Card
           key={proposal.id}
-          className={`bg-gradient-to-br from-white via-slate-50 to-white shadow-sm transition-all duration-300 ${unconfirmedIds[proposal.id] ? "proposal-flash ring-2 ring-amber-400 border-amber-300" : recentIds[proposal.id] ? "ring-2 ring-sky-300/50 border-sky-200" : ""}`}
+          className={`mb-6 last:mb-0 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition-all duration-300 ${unconfirmedIds[proposal.id] ? "proposal-flash ring-2 ring-amber-400 border-amber-300" : recentIds[proposal.id] ? "ring-2 ring-sky-300/50 border-sky-200" : ""}`}
+          styles={{ body: { padding: 24 } }}
         >
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <Text className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
                 {proposal.customerCpf ? maskCpf(proposal.customerCpf) : "CPF nao informado"}
@@ -212,12 +213,7 @@ export function ProposalsTable({
               <p className="text-lg font-semibold text-[#134B73]">{proposal.customerName}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {unconfirmedIds[proposal.id] && (
-                <div className="flex items-center gap-1.5 animate-bounce rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white shadow-lg">
-                  <BellRing className="size-3.5" />
-                  NOVA FICHA
-                </div>
-              )}
+              
               <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
                 <Clock3 className="size-4" />
                 {formatDateTime(proposal.createdAt)}
@@ -226,9 +222,9 @@ export function ProposalsTable({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr]">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(260px,1fr)]">
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Text className="text-xs text-muted-foreground">Lojista</Text>
                   <p className="font-semibold text-slate-700">{proposal.dealerLabel}</p>
@@ -243,7 +239,7 @@ export function ProposalsTable({
                   ) : null}
                 </div>
               </div>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm">
                   <Text className="text-xs text-muted-foreground">Valor financiado</Text>
                   <p className="font-semibold text-emerald-600">{formatCurrency(proposal.financedValue)}</p>
@@ -259,7 +255,7 @@ export function ProposalsTable({
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 rounded-2xl border border-slate-200 bg-white/70 p-3">
               {unconfirmedIds[proposal.id] && (
                 <Button
                   type="primary"
@@ -281,6 +277,7 @@ export function ProposalsTable({
                 }))}
               />
               <Button
+                className="w-full mt-2"
                 onClick={() => handleOpenMessage(proposal)}
                 icon={<StickyNote className="size-4" />}
               >
@@ -288,6 +285,7 @@ export function ProposalsTable({
               </Button>
               <div className="flex flex-col gap-2">
                 <Button
+                  className="w-full"
                   onClick={() =>
                     router.push(`/esteira-de-propostas/${proposal.id}/historico`)
                   }
@@ -297,6 +295,7 @@ export function ProposalsTable({
                 </Button>
                 <Button
                   danger
+                  className="w-full"
                   onClick={() => handleOpenDelete(proposal)}
                   disabled={deletingId === proposal.id}
                   icon={<Trash2 className="size-4" />}
