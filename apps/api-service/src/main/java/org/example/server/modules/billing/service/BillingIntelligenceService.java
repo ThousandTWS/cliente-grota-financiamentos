@@ -43,6 +43,9 @@ public class BillingIntelligenceService {
     @Value("${billing.intelligence.high-value-threshold:5000}")
     private BigDecimal highValueThreshold;
 
+    @Value("${billing.intelligence.alert-refresh-limit:300}")
+    private int alertRefreshLimit;
+
     public BillingIntelligenceService(
             BillingContractRepository contractRepository,
             BillingInstallmentRepository installmentRepository,
@@ -75,7 +78,7 @@ public class BillingIntelligenceService {
 
         List<BillingIntelligenceTitleDTO> titles = contexts.stream()
                 .filter(ctx -> matchesFilters(ctx, client, periodFrom, periodTo, status, aging, minValue, maxValue))
-                .map(ctx -> toTitleDto(ctx, resolveInsight(ctx, false)))
+                .map(ctx -> toTitleDto(ctx, resolveInsight(ctx, false, false, false)))
                 .filter(dto -> matchesRisk(dto, risk))
                 .sorted(priorityComparator())
                 .toList();
@@ -95,15 +98,6 @@ public class BillingIntelligenceService {
 
     @Transactional
     public List<BillingIntelligenceAlertDTO> getAlerts(Optional<Integer> limit) {
-        // Garante que o painel de alertas reflita a carteira atual, respeitando anti-spam.
-        List<TitleContext> contexts = buildTitleContexts(LocalDate.now());
-        List<BillingIntelligenceTitleDTO> titles = contexts.stream()
-                .filter(ctx -> !"PAGO".equalsIgnoreCase(ctx.titleStatus()))
-                .map(ctx -> toTitleDto(ctx, resolveInsight(ctx, false)))
-                .sorted(priorityComparator())
-                .toList();
-        refreshAlerts(titles);
-
         int targetLimit = limit.orElse(50);
         if (targetLimit <= 0) targetLimit = 50;
 
@@ -122,8 +116,20 @@ public class BillingIntelligenceService {
                 .findByContractAndNumber(contract, request.installmentNumber())
                 .orElseThrow(() -> new RecordNotFoundException("Parcela nao encontrada"));
 
-        TitleContext context = buildContext(contract, installment, LocalDate.now(), new HashMap<>(), new HashMap<>());
-        ResolvedInsight insight = resolveInsight(context, Boolean.TRUE.equals(request.forceRefresh()));
+        TitleContext context = buildContext(
+                contract,
+                installment,
+                LocalDate.now(),
+                new HashMap<>(),
+                new HashMap<>(),
+                true
+        );
+        ResolvedInsight insight = resolveInsight(
+                context,
+                Boolean.TRUE.equals(request.forceRefresh()),
+                true,
+                true
+        );
 
         return new BillingAiAnalyzeResponseDTO(
                 request.contractId(),
@@ -142,7 +148,7 @@ public class BillingIntelligenceService {
     private List<TitleContext> buildTitleContexts(LocalDate today) {
         List<BillingInstallment> installments = installmentRepository.findAllWithContract();
         Map<Long, ContractActivity> contractActivityCache = new HashMap<>();
-        Map<String, Integer> recurrenceCache = new HashMap<>();
+        Map<String, Integer> recurrenceCache = precomputeRecurrence90Days(installments, today);
 
         return installments.stream()
                 .filter(installment -> installment.getContract() != null)
@@ -151,7 +157,8 @@ public class BillingIntelligenceService {
                         installment,
                         today,
                         contractActivityCache,
-                        recurrenceCache
+                        recurrenceCache,
+                        false
                 ))
                 .toList();
     }
@@ -161,7 +168,8 @@ public class BillingIntelligenceService {
             BillingInstallment installment,
             LocalDate today,
             Map<Long, ContractActivity> contractActivityCache,
-            Map<String, Integer> recurrenceCache
+            Map<String, Integer> recurrenceCache,
+            boolean includeActivity
     ) {
         int daysLate = calculateInstallmentDaysLate(installment, today);
         String titleStatus = resolveTitleStatus(installment, daysLate);
@@ -171,16 +179,23 @@ public class BillingIntelligenceService {
         String customerId = generateCustomerKey(customerDocumentDigits, contract.getCustomerName());
         String titleId = generateTitleKey(contract.getId(), installment.getNumber());
 
-        ContractActivity activity = contractActivityCache.computeIfAbsent(
+        ContractActivity activity = includeActivity
+                ? contractActivityCache.computeIfAbsent(
                 contract.getId(),
                 ignored -> loadContractActivity(contract)
-        );
+        )
+                : new ContractActivity(null, 0);
 
         String recurrenceCacheKey = !customerDocumentDigits.isBlank() ? customerDocumentDigits : rawCustomerDocument;
-        int recurrence90Days = recurrenceCache.computeIfAbsent(
-                recurrenceCacheKey,
-                ignored -> calculateRecurrence90Days(rawCustomerDocument, customerDocumentDigits, today)
-        );
+        int recurrence90Days = 0;
+        if (!recurrenceCacheKey.isBlank()) {
+            int fallbackNotFound = includeActivity ? -1 : 0;
+            recurrence90Days = recurrenceCache.getOrDefault(recurrenceCacheKey, fallbackNotFound);
+            if (recurrence90Days < 0) {
+                recurrence90Days = calculateRecurrence90Days(rawCustomerDocument, customerDocumentDigits, today);
+                recurrenceCache.put(recurrenceCacheKey, recurrence90Days);
+            }
+        }
 
         String customerSegment = contract.getProfessionalEnterprise() != null
                 && !contract.getProfessionalEnterprise().isBlank()
@@ -216,6 +231,34 @@ public class BillingIntelligenceService {
                 .count();
 
         return new ContractActivity(lastContact, reminders);
+    }
+
+    private Map<String, Integer> precomputeRecurrence90Days(
+            List<BillingInstallment> installments,
+            LocalDate today
+    ) {
+        LocalDate fromDate = today.minusDays(90);
+        Map<String, Integer> recurrenceMap = new HashMap<>();
+
+        for (BillingInstallment installment : installments) {
+            BillingContract contract = installment.getContract();
+            if (contract == null) continue;
+
+            LocalDate dueDate = installment.getDueDate();
+            if (dueDate == null || dueDate.isBefore(fromDate)) continue;
+
+            int delay = calculateInstallmentDaysLate(installment, today);
+            if (delay <= 0) continue;
+
+            String rawDocument = Optional.ofNullable(contract.getCustomerDocument()).orElse("").trim();
+            String digits = digitsOnly(rawDocument);
+            String customerKey = !digits.isBlank() ? digits : rawDocument;
+            if (customerKey.isBlank()) continue;
+
+            recurrenceMap.merge(customerKey, 1, Integer::sum);
+        }
+
+        return recurrenceMap;
     }
 
     private int calculateRecurrence90Days(
@@ -346,7 +389,12 @@ public class BillingIntelligenceService {
         );
     }
 
-    private ResolvedInsight resolveInsight(TitleContext context, boolean forceGemini) {
+    private ResolvedInsight resolveInsight(
+            TitleContext context,
+            boolean forceGemini,
+            boolean allowGeminiRequest,
+            boolean persistFallback
+    ) {
         LocalDateTime ttlBoundary = LocalDateTime.now().minusHours(Math.max(1, cacheTtlHours));
         if (!forceGemini) {
             Optional<BillingAiInsight> cached = insightRepository
@@ -360,36 +408,42 @@ public class BillingIntelligenceService {
             }
         }
 
-        GeminiBillingIntelligenceService.BillingGeminiInput geminiInput =
-                new GeminiBillingIntelligenceService.BillingGeminiInput(
-                        context.installment().getAmount(),
-                        context.installment().getDueDate(),
-                        context.daysLate(),
-                        context.recurrence90Days(),
-                        context.lastContactDate(),
-                        context.remindersCount(),
-                        context.customerSegment(),
-                        BillingIntelligenceRules.calculateFallbackRiskScore(
-                                context.daysLate(),
-                                context.installment().getAmount(),
-                                context.recurrence90Days(),
-                                context.remindersCount(),
-                                highValueThreshold
-                        ),
-                        context.maskedDocument()
-                );
+        if (allowGeminiRequest) {
+            GeminiBillingIntelligenceService.BillingGeminiInput geminiInput =
+                    new GeminiBillingIntelligenceService.BillingGeminiInput(
+                            context.installment().getAmount(),
+                            context.installment().getDueDate(),
+                            context.daysLate(),
+                            context.recurrence90Days(),
+                            context.lastContactDate(),
+                            context.remindersCount(),
+                            context.customerSegment(),
+                            BillingIntelligenceRules.calculateFallbackRiskScore(
+                                    context.daysLate(),
+                                    context.installment().getAmount(),
+                                    context.recurrence90Days(),
+                                    context.remindersCount(),
+                                    highValueThreshold
+                            ),
+                            context.customerId(),
+                            context.maskedDocument()
+                    );
 
-        Optional<GeminiBillingIntelligenceService.GeminiRiskOutput> aiOutput =
-                geminiBillingIntelligenceService.analyze(geminiInput);
+            Optional<GeminiBillingIntelligenceService.GeminiRiskOutput> aiOutput =
+                    geminiBillingIntelligenceService.analyze(geminiInput);
 
-        if (aiOutput.isPresent()) {
-            BillingAiInsight saved = persistInsight(context, aiOutput.get());
-            return toResolvedInsight(saved);
+            if (aiOutput.isPresent()) {
+                BillingAiInsight saved = persistInsight(context, aiOutput.get());
+                return toResolvedInsight(saved);
+            }
         }
 
         GeminiBillingIntelligenceService.GeminiRiskOutput fallback = buildFallbackInsight(context);
-        BillingAiInsight savedFallback = persistInsight(context, fallback);
-        return toResolvedInsight(savedFallback);
+        if (persistFallback) {
+            BillingAiInsight savedFallback = persistInsight(context, fallback);
+            return toResolvedInsight(savedFallback);
+        }
+        return toResolvedInsight(fallback);
     }
 
     private BillingAiInsight persistInsight(
@@ -458,6 +512,19 @@ public class BillingIntelligenceService {
                 Optional.ofNullable(entity.getMessage()).orElse("Ha uma pendencia em aberto. Podemos apoiar na regularizacao?"),
                 Optional.ofNullable(entity.getProvider()).orElse("fallback"),
                 entity.getCreatedAt()
+        );
+    }
+
+    private ResolvedInsight toResolvedInsight(GeminiBillingIntelligenceService.GeminiRiskOutput output) {
+        return new ResolvedInsight(
+                Optional.ofNullable(output.riskLevel()).orElse("medio"),
+                Optional.ofNullable(output.riskScore()).orElse(0),
+                Optional.ofNullable(output.recommendedNextAction()).orElse("Registrar contato com o cliente."),
+                Optional.ofNullable(output.recommendedChannel()).orElse("telefone"),
+                Optional.ofNullable(output.alertReason()).orElse("Titulo com necessidade de acompanhamento."),
+                Optional.ofNullable(output.suggestedMessage()).orElse("Ha uma pendencia em aberto. Podemos apoiar na regularizacao?"),
+                Optional.ofNullable(output.provider()).orElse("fallback"),
+                LocalDateTime.now()
         );
     }
 
@@ -533,7 +600,12 @@ public class BillingIntelligenceService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime cooldownBoundary = now.minusHours(Math.max(1, alertCooldownHours));
 
-        for (BillingIntelligenceTitleDTO title : titles) {
+        List<BillingIntelligenceTitleDTO> targetTitles = titles;
+        if (alertRefreshLimit > 0 && titles.size() > alertRefreshLimit) {
+            targetTitles = titles.subList(0, alertRefreshLimit);
+        }
+
+        for (BillingIntelligenceTitleDTO title : targetTitles) {
             String customerId = title.customerId();
             Optional<BillingIntelligenceAlert> latest = alertRepository
                     .findTopByCustomerIdOrderByCreatedAtDesc(customerId);

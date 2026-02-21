@@ -143,6 +143,7 @@ export default function CobrancasInteligenciaPage() {
   const [summary, setSummary] = useState<BillingIntelligenceSummary | null>(null);
   const [alerts, setAlerts] = useState<BillingIntelligenceAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAlertsLoading, setIsAlertsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoadingKey, setActionLoadingKey] = useState<string | null>(null);
 
@@ -166,6 +167,22 @@ export default function CobrancasInteligenciaPage() {
     };
   }, []);
 
+  const loadAlerts = useCallback(async () => {
+    setIsAlertsLoading(true);
+    try {
+      const alertsPayload = await fetchBillingAlerts(100);
+      setAlerts(alertsPayload);
+    } catch (error) {
+      message.warning(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel atualizar os alertas agora.",
+      );
+    } finally {
+      setIsAlertsLoading(false);
+    }
+  }, []);
+
   const loadData = useCallback(
     async (nextFilters?: FilterForm) => {
       const activeFilters = nextFilters ?? filters;
@@ -176,12 +193,9 @@ export default function CobrancasInteligenciaPage() {
         setIsLoading(true);
       }
       try {
-        const [intelligencePayload, alertsPayload] = await Promise.all([
-          fetchBillingIntelligence(payloadFilters),
-          fetchBillingAlerts(100),
-        ]);
+        const intelligencePayload = await fetchBillingIntelligence(payloadFilters);
         setSummary(intelligencePayload);
-        setAlerts(alertsPayload);
+        void loadAlerts();
       } catch (error) {
         message.error(
           error instanceof Error
@@ -193,7 +207,7 @@ export default function CobrancasInteligenciaPage() {
         setIsRefreshing(false);
       }
     },
-    [filters, summary, toApiFilters],
+    [filters, loadAlerts, summary, toApiFilters],
   );
 
   useEffect(() => {
@@ -703,6 +717,13 @@ export default function CobrancasInteligenciaPage() {
                   <BellOutlined />
                   Painel de alertas
                 </Space>
+              }
+              extra={
+                isAlertsLoading ? (
+                  <Text type="secondary" className="text-xs">
+                    Atualizando...
+                  </Text>
+                ) : undefined
               }
             >
               <div className="space-y-3">

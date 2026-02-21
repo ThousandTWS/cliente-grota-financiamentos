@@ -9,6 +9,7 @@ import {
 const INTELLIGENCE_ENDPOINT = "/api/cobrancas/inteligencia";
 const ALERTS_ENDPOINT = "/api/cobrancas/alerts";
 const IA_ANALYZE_ENDPOINT = "/api/cobrancas/ia/analisar";
+const REQUEST_TIMEOUT_MS = 15000;
 
 function toQueryString(filters: BillingIntelligenceFilters = {}) {
   const params = new URLSearchParams();
@@ -29,15 +30,29 @@ function toQueryString(filters: BillingIntelligenceFilters = {}) {
 }
 
 async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, {
-    credentials: "include",
-    cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(input, {
+      credentials: "include",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Tempo limite excedido ao carregar inteligencia de cobrancas.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const payload = await response.json().catch(() => null);
 

@@ -2,7 +2,12 @@ package org.example.server.modules.billing.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -14,6 +19,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -23,8 +29,35 @@ import java.util.Optional;
 @Service
 public class GeminiBillingIntelligenceService {
 
+    private static final Logger logger = LoggerFactory.getLogger(GeminiBillingIntelligenceService.class);
+
+    private static final String RATE_LIMIT_LUA = """
+            local max = tonumber(ARGV[1])
+            local window = tonumber(ARGV[2])
+            local current = redis.call('INCR', KEYS[1])
+            if current == 1 then
+              redis.call('EXPIRE', KEYS[1], window)
+            end
+            local ttl = redis.call('TTL', KEYS[1])
+            if ttl < 0 then
+              ttl = window
+            end
+            local remaining = max - current
+            if remaining < 0 then
+              remaining = 0
+            end
+            if current > max then
+              return {0, max, remaining, ttl}
+            end
+            return {1, max, remaining, ttl}
+            """;
+
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+    private final StringRedisTemplate redisTemplate;
+    private final DefaultRedisScript<List> rateLimitScript;
+
+    private volatile boolean redisLimiterAvailable = true;
 
     @Value("${gemini.api.key:}")
     private String apiKey;
@@ -35,15 +68,40 @@ public class GeminiBillingIntelligenceService {
     @Value("${billing.intelligence.gemini-timeout-seconds:20}")
     private long timeoutSeconds;
 
-    public GeminiBillingIntelligenceService(ObjectMapper objectMapper) {
+    @Value("${billing.intelligence.gemini-rate-limit.enabled:true}")
+    private boolean redisRateLimitEnabled;
+
+    @Value("${billing.intelligence.gemini-rate-limit.redis-prefix:rl:gemini}")
+    private String redisRateLimitPrefix;
+
+    @Value("${billing.intelligence.gemini-rate-limit.global-max:50}")
+    private int redisRateLimitGlobalMax;
+
+    @Value("${billing.intelligence.gemini-rate-limit.per-customer-max:5}")
+    private int redisRateLimitPerCustomerMax;
+
+    @Value("${billing.intelligence.gemini-rate-limit.window-seconds:60}")
+    private int redisRateLimitWindowSeconds;
+
+    public GeminiBillingIntelligenceService(
+            ObjectMapper objectMapper,
+            @Autowired(required = false) StringRedisTemplate redisTemplate
+    ) {
         this.objectMapper = objectMapper;
+        this.redisTemplate = redisTemplate;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+        this.rateLimitScript = new DefaultRedisScript<>();
+        this.rateLimitScript.setScriptText(RATE_LIMIT_LUA);
+        this.rateLimitScript.setResultType(List.class);
     }
 
     public Optional<GeminiRiskOutput> analyze(BillingGeminiInput input) {
         if (apiKey == null || apiKey.isBlank() || input == null) {
+            return Optional.empty();
+        }
+        if (isRedisRateLimited(input)) {
             return Optional.empty();
         }
 
@@ -75,6 +133,9 @@ public class GeminiBillingIntelligenceService {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                if (isProviderRateLimitResponse(response.statusCode(), response.body())) {
+                    logger.warn("[Billing Gemini] Rate limit retornado pelo provedor Gemini.");
+                }
                 return Optional.empty();
             }
 
@@ -109,6 +170,122 @@ public class GeminiBillingIntelligenceService {
         } catch (Exception exception) {
             return Optional.empty();
         }
+    }
+
+    private boolean isRedisRateLimited(BillingGeminiInput input) {
+        if (!redisRateLimitEnabled || redisTemplate == null || !redisLimiterAvailable) {
+            return false;
+        }
+
+        int safeWindowSeconds = Math.max(1, redisRateLimitWindowSeconds);
+
+        if (redisRateLimitGlobalMax > 0) {
+            RateLimitDecision global = consumeRateLimit(
+                    buildRateLimitKey("global"),
+                    redisRateLimitGlobalMax,
+                    safeWindowSeconds
+            );
+            if (global.enforced() && !global.allowed()) {
+                logger.warn(
+                        "[Billing Gemini] Limite global Redis atingido (remaining={}, reset={}s).",
+                        global.remaining(),
+                        global.resetSeconds()
+                );
+                return true;
+            }
+        }
+
+        if (redisRateLimitPerCustomerMax > 0) {
+            String customerKey = normalizeKeySegment(input.customerKey());
+            if (!customerKey.isBlank()) {
+                RateLimitDecision customer = consumeRateLimit(
+                        buildRateLimitKey("customer:" + customerKey),
+                        redisRateLimitPerCustomerMax,
+                        safeWindowSeconds
+                );
+                if (customer.enforced() && !customer.allowed()) {
+                    logger.warn(
+                            "[Billing Gemini] Limite por cliente Redis atingido para {} (remaining={}, reset={}s).",
+                            customerKey,
+                            customer.remaining(),
+                            customer.resetSeconds()
+                    );
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private RateLimitDecision consumeRateLimit(String key, int max, int windowSeconds) {
+        try {
+            @SuppressWarnings("unchecked")
+            List<Object> raw = (List<Object>) redisTemplate.execute(
+                    rateLimitScript,
+                    Collections.singletonList(key),
+                    String.valueOf(max),
+                    String.valueOf(windowSeconds)
+            );
+
+            if (raw == null || raw.size() < 4) {
+                return new RateLimitDecision(true, max, max, windowSeconds, true);
+            }
+
+            int allowedFlag = asInt(raw.get(0), 1);
+            int responseMax = asInt(raw.get(1), max);
+            int responseRemaining = asInt(raw.get(2), max);
+            int responseTtl = asInt(raw.get(3), windowSeconds);
+            int safeTtl = Math.max(0, responseTtl);
+
+            return new RateLimitDecision(
+                    allowedFlag == 1,
+                    responseMax,
+                    Math.max(0, responseRemaining),
+                    safeTtl,
+                    true
+            );
+        } catch (Exception exception) {
+            redisLimiterAvailable = false;
+            logger.warn(
+                    "[Billing Gemini] Redis indisponivel para rate limit. Modo fail-open habilitado.",
+                    exception
+            );
+            return new RateLimitDecision(true, max, max, windowSeconds, false);
+        }
+    }
+
+    private int asInt(Object value, int fallback) {
+        if (value == null) return fallback;
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private String buildRateLimitKey(String scope) {
+        String prefix = redisRateLimitPrefix == null || redisRateLimitPrefix.isBlank()
+                ? "rl:gemini"
+                : redisRateLimitPrefix.trim();
+        return prefix + ":" + scope;
+    }
+
+    private String normalizeKeySegment(String raw) {
+        if (raw == null) return "";
+        return raw.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9:_-]", "");
+    }
+
+    private boolean isProviderRateLimitResponse(int statusCode, String body) {
+        if (statusCode == 429) return true;
+        if (statusCode == 403 && body != null) {
+            String normalized = body.toUpperCase(Locale.ROOT);
+            return normalized.contains("RATE_LIMIT");
+        }
+        return false;
     }
 
     private String buildPrompt(BillingGeminiInput input) {
@@ -238,6 +415,7 @@ public class GeminiBillingIntelligenceService {
             Integer remindersCount,
             String customerSegment,
             Integer internalScore,
+            String customerKey,
             String maskedDocument
     ) {
     }
@@ -260,6 +438,15 @@ public class GeminiBillingIntelligenceService {
             String recommended_channel,
             String alert_reason,
             String suggested_message
+    ) {
+    }
+
+    private record RateLimitDecision(
+            boolean allowed,
+            int max,
+            int remaining,
+            int resetSeconds,
+            boolean enforced
     ) {
     }
 }

@@ -159,7 +159,13 @@ Response:
 - `GEMINI_API_KEY`: chave para uso da IA Gemini.
 - `BILLING_INTELLIGENCE_CACHE_TTL_HOURS`: TTL do cache de insights (padrao `6`).
 - `BILLING_INTELLIGENCE_ALERT_COOLDOWN_HOURS`: janela anti-spam por cliente (padrao `6`).
+- `BILLING_INTELLIGENCE_ALERT_REFRESH_LIMIT`: limite de titulos avaliados por refresh para gerar alertas (padrao `300`).
 - `BILLING_INTELLIGENCE_HIGH_VALUE_THRESHOLD`: limiar de valor para severidade atencao (padrao `5000`).
+- `BILLING_INTELLIGENCE_GEMINI_RATE_LIMIT_ENABLED`: habilita rate limit distribuido com Redis.
+- `BILLING_INTELLIGENCE_GEMINI_RATE_LIMIT_GLOBAL_MAX`: limite global por janela (padrao `50`).
+- `BILLING_INTELLIGENCE_GEMINI_RATE_LIMIT_PER_CUSTOMER_MAX`: limite por cliente por janela (padrao `5`).
+- `BILLING_INTELLIGENCE_GEMINI_RATE_LIMIT_WINDOW_SECONDS`: janela em segundos (padrao `60`).
+- `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`: conexao Redis para rate limit.
 
 ---
 
