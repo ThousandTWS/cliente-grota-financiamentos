@@ -141,3 +141,17 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 export function unauthorizedResponse() {
   return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 }
+
+const BILLING_ALLOWED_ROLES = new Set(["ADMIN", "COBRANCA", "FINANCEIRO"]);
+
+export function hasBillingPermission(session: AdminSession | null): boolean {
+  const role = `${session?.role ?? ""}`.trim().toUpperCase();
+  return BILLING_ALLOWED_ROLES.has(role);
+}
+
+export function billingForbiddenResponse() {
+  return NextResponse.json(
+    { error: "Acesso negado. Requer perfil de cobranca, financeiro ou admin." },
+    { status: 403 },
+  );
+}

@@ -279,6 +279,7 @@ public class UserService {
 
         boolean hasDealerAssociation = switch (role) {
             case ADMIN -> true;
+            case COBRANCA, FINANCEIRO -> true;
             case LOJISTA -> user.getDealer() != null;
             case GESTOR -> user.getManager() != null && user.getManager().getDealer() != null;
             case OPERADOR -> user.getOperator() != null &&

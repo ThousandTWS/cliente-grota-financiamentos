@@ -4,6 +4,8 @@ import org.springframework.security.core.GrantedAuthority;
 
 public enum UserRole implements GrantedAuthority {
     ADMIN,
+    COBRANCA,
+    FINANCEIRO,
     LOJISTA,
     VENDEDOR,
     GESTOR,
@@ -14,5 +16,4 @@ public enum UserRole implements GrantedAuthority {
         return "ROLE_" + this.name();
     }
 }
-
 

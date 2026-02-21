@@ -10,6 +10,7 @@ import {
   FileText,
   Receipt,
   PlusCircle,
+  Bot,
   Car,
   Megaphone,
   Users,
@@ -94,6 +95,12 @@ export const navItems: NavItem[] = [
         path: "/cobrancas",
         pro: false,
         icon: <PlusCircle size={16} />
+      },
+      {
+        name: "Inteligência",
+        path: "/cobrancas/inteligencia",
+        pro: false,
+        icon: <Bot size={16} />
       },
     ],
   },

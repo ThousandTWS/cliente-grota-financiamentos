@@ -12,7 +12,8 @@ import {
     MessageSquare,
     DollarSign,
     BarChart3,
-    Files
+    Files,
+    Bot
 } from "lucide-react";
 import { SearchItem } from "../SearchItem";
 
@@ -88,6 +89,15 @@ export const searchItems: SearchItem[] = [
         href: "/cobrancas",
         group: "Financeiro",
         keywords: ["cobranca", "fatura", "pagamento", "boleto"]
+    },
+    {
+        id: "cobrancas-inteligencia",
+        title: "Cobranças - Inteligência",
+        description: "Controle inteligente com alertas e risco IA",
+        icon: <Bot className="size-4" />,
+        href: "/cobrancas/inteligencia",
+        group: "Financeiro",
+        keywords: ["cobranca", "inteligencia", "ia", "aging", "alerta", "risco"]
     },
     {
         id: "comissoes",

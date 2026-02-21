@@ -15,6 +15,7 @@ public interface BillingContractRepository extends JpaRepository<BillingContract
     Optional<BillingContract> findByProposalId(Long proposalId);
 
     List<BillingContract> findByCustomerDocumentAndContractNumberNot(String customerDocument, String contractNumber);
-}
 
+    List<BillingContract> findByCustomerDocument(String customerDocument);
+}
 

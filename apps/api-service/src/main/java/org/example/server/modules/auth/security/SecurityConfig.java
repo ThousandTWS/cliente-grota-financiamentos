@@ -81,6 +81,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/grota-financiamentos/documents/*/review").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/logo").hasRole("LOJISTA")
 
+                        // Cobrancas - acesso restrito ao financeiro/backoffice
+                        .requestMatchers("/api/v1/grota-financiamentos/billing/**").hasAnyRole("ADMIN", "COBRANCA", "FINANCEIRO")
+
                         // Operadores - ADMIN cria/edita; OPERADOR pode ler
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/operators").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/operators/**").hasAnyRole("ADMIN", "OPERADOR")
@@ -118,4 +121,3 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-

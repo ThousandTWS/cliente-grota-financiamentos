@@ -99,6 +99,68 @@ Sempre que uma proposta é criada ou tem seu status alterado:
 
 O sistema possui um fluxo de upload direto pelo lojista e análise pelo backoffice (Admin). Os documentos passam por estados de "Pendente", "Em Análise", "Aprovado" ou "Recusado" com feedback visual imediato.
 
+### 4. Gestão de Cobranças - Controle Inteligente (Gemini)
+
+Novo modulo de monitoramento em `admin-console` com rota `/cobrancas/inteligencia`, focado em:
+
+- KPIs de carteira (total em aberto, aging, forecast de recuperacao).
+- Priorizacao de titulos por risco + valor + atraso.
+- Alertas por severidade (`info`, `atencao`, `critico`) com anti-spam por cliente.
+- Analise IA (Gemini) com cache TTL de 6h por titulo/cliente.
+- Fallback automatico quando IA indisponivel.
+
+#### Endpoints BFF (admin-console)
+
+- `GET /api/cobrancas/inteligencia`
+- `GET /api/cobrancas/alerts`
+- `POST /api/cobrancas/ia/analisar`
+
+#### Endpoints Core (api-service)
+
+- `GET /api/v1/grota-financiamentos/billing/intelligence`
+- `GET /api/v1/grota-financiamentos/billing/alerts`
+- `POST /api/v1/grota-financiamentos/billing/ia/analisar`
+
+#### Exemplo - analisar titulo via IA
+
+Request:
+
+```json
+{
+  "contractId": 125,
+  "installmentNumber": 3,
+  "forceRefresh": true
+}
+```
+
+Response:
+
+```json
+{
+  "contractId": 125,
+  "installmentNumber": 3,
+  "riskLevel": "alto",
+  "riskScore": 82,
+  "recommendedNextAction": "Contato imediato e proposta de negociacao com prazo curto.",
+  "recommendedChannel": "whatsapp",
+  "alertReason": "Atraso relevante e indicios de reincidencia.",
+  "suggestedMessage": "Identificamos atraso no seu titulo. Podemos negociar hoje para evitar agravamento.",
+  "source": "gemini",
+  "createdAt": "2026-02-21T11:15:00"
+}
+```
+
+#### Exemplo - filtros de inteligencia
+
+`GET /api/cobrancas/inteligencia?client=joao&periodFrom=2026-01-01&periodTo=2026-02-21&status=EM_ATRASO&aging=16-30&minValue=500&risk=alto`
+
+#### Variaveis de ambiente
+
+- `GEMINI_API_KEY`: chave para uso da IA Gemini.
+- `BILLING_INTELLIGENCE_CACHE_TTL_HOURS`: TTL do cache de insights (padrao `6`).
+- `BILLING_INTELLIGENCE_ALERT_COOLDOWN_HOURS`: janela anti-spam por cliente (padrao `6`).
+- `BILLING_INTELLIGENCE_HIGH_VALUE_THRESHOLD`: limiar de valor para severidade atencao (padrao `5000`).
+
 ---
 
 ## 🛠️ Como Executar

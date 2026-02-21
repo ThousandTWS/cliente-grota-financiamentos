@@ -142,6 +142,9 @@ public class DocumentService {
 
         org.example.server.modules.dealer.model.Dealer dealer = null;
         switch (user.getRole()) {
+            case ADMIN, COBRANCA, FINANCEIRO -> {
+                // Perfis internos sem dealer direto para gestao documental.
+            }
             case LOJISTA -> dealer = user.getDealer();
             case VENDEDOR -> {
                 if (user.getSeller() != null)

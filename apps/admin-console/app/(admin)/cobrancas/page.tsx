@@ -395,6 +395,11 @@ export default function CobrancasPage() {
             Pesquise pelo nome do cliente, CPF ou CNPJ para localizar contratos
             que ja foram pagos no CRM e agora precisam de acompanhamento.
           </Typography.Paragraph>
+          <div className="mt-3">
+            <Link href="/cobrancas/inteligencia">
+              <Button type="default">Abrir Controle Inteligente</Button>
+            </Link>
+          </div>
         </div>
 
         <Card>

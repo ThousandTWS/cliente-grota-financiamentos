@@ -160,3 +160,101 @@ export type BillingVehicleUpdatePayload = {
 export type BillingInstallmentDueDateUpdatePayload = {
   dueDate: string;
 };
+
+export type BillingRiskLevel = "baixo" | "medio" | "alto";
+
+export type BillingAlertSeverity = "info" | "atencao" | "critico";
+
+export type BillingAgingBucket = "0-7" | "8-15" | "16-30" | "31-60" | "61+";
+
+export type BillingIntelligenceKpis = {
+  totalOpenAmount: number;
+  totalTitles: number;
+  overduePercentage: number;
+  forecastRecoveryAmount: number;
+  forecastRecoveryPercentage: number;
+};
+
+export type BillingIntelligenceAging = {
+  bucket0To7: number;
+  bucket8To15: number;
+  bucket16To30: number;
+  bucket31To60: number;
+  bucket61Plus: number;
+};
+
+export type BillingIntelligenceTitle = {
+  contractId: number;
+  contractNumber: string;
+  installmentNumber: number;
+  dueDate: string;
+  amount: number;
+  daysLate: number;
+  status: "PAGO" | "EM_ABERTO" | "EM_ATRASO";
+  customerName: string;
+  customerId: string;
+  customerDocumentMasked: string;
+  customerSegment: string;
+  lastContactDate?: string | null;
+  remindersCount: number;
+  recurrence90Days: number;
+  riskLevel: BillingRiskLevel;
+  riskScore: number;
+  recommendedNextAction: string;
+  recommendedChannel: string;
+  alertReason: string;
+  suggestedMessage: string;
+  severity: BillingAlertSeverity;
+};
+
+export type BillingIntelligenceSummary = {
+  generatedAt: string;
+  kpis: BillingIntelligenceKpis;
+  aging: BillingIntelligenceAging;
+  titles: BillingIntelligenceTitle[];
+};
+
+export type BillingIntelligenceAlert = {
+  id: number;
+  customerId: string;
+  customerName: string;
+  severity: BillingAlertSeverity;
+  reason: string;
+  recommendedAction: string;
+  recommendedChannel: string;
+  contractId: number;
+  installmentNumber: number;
+  amount?: number;
+  daysLate?: number;
+  createdAt: string;
+};
+
+export type BillingIntelligenceFilters = {
+  client?: string;
+  periodFrom?: string;
+  periodTo?: string;
+  status?: "PAGO" | "EM_ABERTO" | "EM_ATRASO";
+  aging?: BillingAgingBucket;
+  minValue?: number;
+  maxValue?: number;
+  risk?: BillingRiskLevel;
+};
+
+export type BillingAiAnalyzePayload = {
+  contractId: number;
+  installmentNumber: number;
+  forceRefresh?: boolean;
+};
+
+export type BillingAiAnalyzeResponse = {
+  contractId: number;
+  installmentNumber: number;
+  riskLevel: BillingRiskLevel;
+  riskScore: number;
+  recommendedNextAction: string;
+  recommendedChannel: string;
+  alertReason: string;
+  suggestedMessage: string;
+  source: "gemini" | "fallback";
+  createdAt: string;
+};
