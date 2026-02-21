@@ -1,8 +1,8 @@
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Button, Card, Input, Modal, Select, Skeleton, Typography } from "antd";
+import { Button, Card, Checkbox, Input, Modal, Select, Skeleton, Typography } from "antd";
 import { StatusBadge } from "../../logista/components/status-badge";
 import { Clock3, Eye, StickyNote, Trash2, CheckCircle2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTime } from "../utils/date";
 
@@ -20,12 +20,14 @@ type ProposalsTableProps = {
   onConfirmArrival?: (proposalId: number) => void;
   onStatusChange: (proposal: Proposal, status: ProposalStatus) => void;
   onDelete: (proposal: Proposal) => Promise<void> | void;
+  onBulkDelete?: (proposals: Proposal[]) => Promise<void> | void;
   onNoteChange: (proposalId: number, value: string) => void;
   onNoteSave: (proposal: Proposal) => Promise<boolean> | boolean;
   dealersById?: Record<number, { name: string; enterprise?: string }>;
   sellersById?: Record<number, string>;
   // Índice de operadores por dealerId - permite encontrar o operador responsável pela loja
   operatorsByDealerId?: Record<number, string>;
+  isBulkDeleting?: boolean;
 };
 
 const proposalStatusLabels: Record<ProposalStatus, string> = {
@@ -98,6 +100,7 @@ export function ProposalsTable({
   recentIds = {},
   onStatusChange,
   onDelete,
+  onBulkDelete,
   onNoteChange,
   onNoteSave,
   dealersById = {},
@@ -105,12 +108,15 @@ export function ProposalsTable({
   operatorsByDealerId = {},
   unconfirmedIds = {},
   onConfirmArrival,
+  isBulkDeleting = false,
 }: ProposalsTableProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
   const [messageOpen, setMessageOpen] = useState(false);
   const [messageTarget, setMessageTarget] = useState<Proposal | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const handleOpenDelete = (proposal: Proposal) => {
     setDeleteTarget(proposal);
@@ -145,6 +151,11 @@ export function ProposalsTable({
     }
   };
 
+  useEffect(() => {
+    const available = new Set(proposals.map((proposal) => proposal.id));
+    setSelectedIds((current) => current.filter((id) => available.has(id)));
+  }, [proposals]);
+
   const cards = useMemo(() => {
     return proposals.map((proposal) => {
       const dealerLabel = proposal.dealerId
@@ -175,6 +186,40 @@ export function ProposalsTable({
     });
   }, [dealersById, proposals, sellersById, operatorsByDealerId]);
 
+  const selectedProposals = useMemo(() => {
+    if (selectedIds.length === 0) return [];
+    const selectedSet = new Set(selectedIds);
+    return cards.filter((proposal) => selectedSet.has(proposal.id));
+  }, [cards, selectedIds]);
+
+  const allChecked =
+    cards.length > 0 && cards.every((proposal) => selectedIds.includes(proposal.id));
+  const someChecked = cards.some((proposal) => selectedIds.includes(proposal.id));
+
+  const handleSelectAll = (checked: boolean) => {
+    if (!checked) {
+      setSelectedIds([]);
+      return;
+    }
+    setSelectedIds(cards.map((proposal) => proposal.id));
+  };
+
+  const handleToggleSelection = (proposalId: number, checked: boolean) => {
+    setSelectedIds((current) => {
+      if (checked) {
+        if (current.includes(proposalId)) return current;
+        return [...current, proposalId];
+      }
+      return current.filter((id) => id !== proposalId);
+    });
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (!onBulkDelete || selectedProposals.length === 0) return;
+    await Promise.resolve(onBulkDelete(selectedProposals));
+    setBulkDeleteOpen(false);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -199,6 +244,39 @@ export function ProposalsTable({
 
   return (
     <div>
+      {onBulkDelete ? (
+        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <Checkbox
+              checked={allChecked}
+              indeterminate={someChecked && !allChecked}
+              onChange={(event) => handleSelectAll(event.target.checked)}
+              disabled={cards.length === 0 || isBulkDeleting}
+            >
+              Selecionar todas
+            </Checkbox>
+            <Text className="text-xs text-muted-foreground">
+              {selectedIds.length} selecionada(s)
+            </Text>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => setSelectedIds([])}
+              disabled={selectedIds.length === 0 || isBulkDeleting}
+            >
+              Limpar selecao
+            </Button>
+            <Button
+              danger
+              icon={<Trash2 className="size-4" />}
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={selectedIds.length === 0 || isBulkDeleting}
+            >
+              Excluir em massa
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {cards.map((proposal) => (
         <Card
           key={proposal.id}
@@ -206,11 +284,23 @@ export function ProposalsTable({
           styles={{ body: { padding: 24 } }}
         >
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
+            <div className="flex items-start gap-3">
+              {onBulkDelete ? (
+                <Checkbox
+                  checked={selectedIds.includes(proposal.id)}
+                  onChange={(event) =>
+                    handleToggleSelection(proposal.id, event.target.checked)
+                  }
+                  disabled={isBulkDeleting}
+                  aria-label={`Selecionar proposta de ${proposal.customerName}`}
+                />
+              ) : null}
+              <div>
               <Text className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
                 {proposal.customerCpf ? maskCpf(proposal.customerCpf) : "CPF nao informado"}
               </Text>
               <p className="text-lg font-semibold text-[#134B73]">{proposal.customerName}</p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               
@@ -269,7 +359,7 @@ export function ProposalsTable({
               <Select
                 value={proposal.status}
                 onChange={(value) => onStatusChange(proposal, value as ProposalStatus)}
-                disabled={updatingId === proposal.id}
+                disabled={updatingId === proposal.id || isBulkDeleting}
                 style={{ width: "100%", minWidth: "200px" }}
                 options={statusOptions.map((status) => ({
                   value: status,
@@ -280,6 +370,7 @@ export function ProposalsTable({
                 className="w-full mt-2"
                 onClick={() => handleOpenMessage(proposal)}
                 icon={<StickyNote className="size-4" />}
+                disabled={isBulkDeleting}
               >
                 Mensagem da analise
               </Button>
@@ -290,6 +381,7 @@ export function ProposalsTable({
                     router.push(`/esteira-de-propostas/${proposal.id}/historico`)
                   }
                   icon={<Eye className="size-4" />}
+                  disabled={isBulkDeleting}
                 >
                   Ver historico
                 </Button>
@@ -297,7 +389,7 @@ export function ProposalsTable({
                   danger
                   className="w-full"
                   onClick={() => handleOpenDelete(proposal)}
-                  disabled={deletingId === proposal.id}
+                  disabled={deletingId === proposal.id || isBulkDeleting}
                   icon={<Trash2 className="size-4" />}
                 >
                   Excluir proposta
@@ -354,6 +446,24 @@ export function ProposalsTable({
         <Text>
           Tem certeza que deseja excluir a proposta de {" "}
           <Text strong>{deleteTarget?.customerName ?? "--"}</Text>? Esta acao nao pode ser desfeita.
+        </Text>
+      </Modal>
+      <Modal
+        open={bulkDeleteOpen}
+        onCancel={() => setBulkDeleteOpen(false)}
+        title="Confirmar exclusao em massa"
+        okText={isBulkDeleting ? "Excluindo..." : "Excluir selecionadas"}
+        okButtonProps={{
+          danger: true,
+          disabled: selectedProposals.length === 0 || isBulkDeleting,
+        }}
+        cancelText="Cancelar"
+        cancelButtonProps={{ disabled: isBulkDeleting }}
+        onOk={handleConfirmBulkDelete}
+      >
+        <Text>
+          Tem certeza que deseja excluir <Text strong>{selectedProposals.length}</Text> proposta(s)?
+          Esta acao nao pode ser desfeita.
         </Text>
       </Modal>
       <style jsx global>{`

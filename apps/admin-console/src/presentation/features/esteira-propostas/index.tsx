@@ -154,6 +154,7 @@ export default function EsteiraDePropostasFeature() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
@@ -855,6 +856,74 @@ export default function EsteiraDePropostasFeature() {
     }
   };
 
+  const handleBulkDeleteProposals = async (targets: Proposal[]) => {
+    if (targets.length === 0) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const results = await Promise.allSettled(
+        targets.map((proposal) => deleteProposal(proposal.id)),
+      );
+
+      const succeeded: Proposal[] = [];
+      const failed: { proposal: Proposal; message: string }[] = [];
+
+      results.forEach((result, index) => {
+        const proposal = targets[index];
+        if (result.status === "fulfilled") {
+          succeeded.push(proposal);
+          return;
+        }
+        const reason = result.reason;
+        failed.push({
+          proposal,
+          message:
+            reason instanceof Error
+              ? reason.message
+              : "Nao foi possivel excluir a proposta.",
+        });
+      });
+
+      if (succeeded.length > 0) {
+        const succeededIds = new Set(succeeded.map((proposal) => proposal.id));
+        setProposals((current) =>
+          current.filter((item) => !succeededIds.has(item.id)),
+        );
+
+        toast({
+          title: "Propostas excluidas",
+          description: `${succeeded.length} proposta(s) removida(s) com sucesso.`,
+          variant: "destructive",
+        });
+
+        dispatchBridgeEvent(
+          sendMessage,
+          REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST,
+          {
+            source: ADMIN_PROPOSALS_IDENTITY,
+            reason: "admin-bulk-delete",
+            count: succeeded.length,
+          },
+        );
+      }
+
+      if (failed.length > 0) {
+        const detail =
+          failed.length === 1
+            ? `${failed[0].proposal.customerName}: ${failed[0].message}`
+            : `${failed.length} proposta(s) nao puderam ser removidas.`;
+
+        toast({
+          title: "Falha na exclusao em massa",
+          description: detail,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const handleCreate = () => {
     toast({
       title: "Fluxo de cadastro em desenvolvimento",
@@ -894,12 +963,14 @@ export default function EsteiraDePropostasFeature() {
         isLoading={isLoading}
         onStatusChange={handleStatusUpdate}
         onDelete={handleDeleteProposal}
+        onBulkDelete={handleBulkDeleteProposals}
         noteDrafts={noteDrafts}
         onNoteChange={handleNoteChange}
         onNoteSave={handleNoteSave}
         savingNoteId={savingNoteId}
         updatingId={updatingId}
         deletingId={deletingId}
+        isBulkDeleting={isBulkDeleting}
         dealersById={dealerIndex}
         sellersById={sellerIndex}
         operatorsByDealerId={operatorByDealerIndex}
