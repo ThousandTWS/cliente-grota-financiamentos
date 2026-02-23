@@ -2,6 +2,7 @@ package org.example.server.modules.proposal.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.server.core.exception.generic.DataAlreadyExistsException;
 import org.example.server.modules.billing.service.BillingService;
 import org.example.server.modules.proposal.dto.ProposalEventResponseDTO;
 import org.example.server.modules.proposal.dto.ProposalRequestDTO;
@@ -114,6 +115,50 @@ public class ProposalService {
             proposals = proposalRepository.findAll();
         }
         return proposals.stream().map(this::toResponse).toList();
+    }
+
+    @SuppressWarnings("null")
+    @Transactional
+    public ProposalResponseDTO updateProposal(Long id, ProposalRequestDTO dto, String originIp, String actor) {
+        @SuppressWarnings("null")
+        Proposal proposal = proposalRepository.findById(id)
+                .orElseThrow(() -> new RecordNotFoundException("Proposta nao encontrada"));
+
+        if (proposal.getStatus() != ProposalStatus.SUBMITTED) {
+            throw new DataAlreadyExistsException(
+                    "Somente fichas com status Enviada podem ser editadas.");
+        }
+
+        applyRequestData(proposal, dto);
+        Proposal saved = proposalRepository.save(proposal);
+        String normalizedActor = normalizeActor(actor);
+        String payload = buildPayload(dto.metadata(), originIp, normalizedActor);
+
+        appendEvent(
+                saved,
+                "UPDATED",
+                saved.getStatus(),
+                saved.getStatus(),
+                normalizedActor,
+                dto.notes(),
+                payload);
+
+        Map<String, Object> updatedPayload = new HashMap<>();
+        updatedPayload.put("proposal", toResponse(saved));
+        if (normalizedActor != null) {
+            updatedPayload.put("source", normalizedActor);
+        }
+        publishRealtime("PROPOSAL_STATUS_UPDATED", updatedPayload);
+
+        Map<String, Object> refreshPayload = new HashMap<>();
+        refreshPayload.put("proposalId", saved.getId());
+        refreshPayload.put("reason", "proposal-updated");
+        if (normalizedActor != null) {
+            refreshPayload.put("source", normalizedActor);
+        }
+        publishRealtime("PROPOSALS_REFRESH_REQUEST", refreshPayload);
+
+        return toResponse(saved);
     }
 
     /**

@@ -1,8 +1,8 @@
 package org.example.server.modules.proposal.controller;
 
 import jakarta.validation.Valid;
-import org.example.server.modules.proposal.dto.ProposalEventResponseDTO;
 import org.example.server.modules.proposal.dto.ProposalRequestDTO;
+import org.example.server.modules.proposal.dto.ProposalEventResponseDTO;
 import org.example.server.modules.proposal.dto.ProposalResponseDTO;
 import org.example.server.modules.proposal.dto.ProposalStatusUpdateDTO;
 import org.example.server.modules.proposal.model.ProposalStatus;
@@ -42,6 +42,18 @@ public class ProposalController {
         return ResponseEntity.ok(proposalService.listProposals(Optional.ofNullable(dealerId), Optional.ofNullable(status)));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ProposalResponseDTO> update(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Actor", required = false) String actor,
+            @Valid @RequestBody ProposalRequestDTO dto,
+            jakarta.servlet.http.HttpServletRequest request
+    ) {
+        return ResponseEntity.ok(
+                proposalService.updateProposal(id, dto, request.getRemoteAddr(), actor)
+        );
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<ProposalResponseDTO> updateStatus(
             @PathVariable Long id,
@@ -64,5 +76,4 @@ public class ProposalController {
         return ResponseEntity.noContent().build();
     }
 }
-
 

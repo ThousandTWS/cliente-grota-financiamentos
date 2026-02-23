@@ -175,6 +175,24 @@ export const createProposal = async (
   return ProposalSchema.parse(payloadResponse);
 };
 
+export const updateProposal = async (
+  proposalId: number,
+  payload: CreateProposalPayload,
+): Promise<Proposal> => {
+  const response = await fetch(`${PROPOSALS_ENDPOINT}/${proposalId}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+
+  const payloadResponse = await handleResponse<unknown>(response);
+  return ProposalSchema.parse(payloadResponse);
+};
+
 export const updateProposalStatus = async (
   proposalId: number,
   payload: UpdateProposalStatusPayload,
