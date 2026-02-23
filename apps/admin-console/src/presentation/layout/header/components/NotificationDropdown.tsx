@@ -3,7 +3,6 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSubscription } from "@refinedev/core";
-import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import {
   clearNotifications,
   deleteNotification,
@@ -53,6 +52,7 @@ export default function NotificationDropdown() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const notifiedIdsRef = useRef(new Set<number>());
 
   const unreadCount = useMemo(
@@ -81,6 +81,27 @@ export default function NotificationDropdown() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      const toggle = (event.target as HTMLElement | null)?.closest(
+        ".notification-dropdown-toggle",
+      );
+
+      if (toggle) return;
+      if (dropdownRef.current && target && !dropdownRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   useSubscription({
     channel: ADMIN_LIVE_CHANNELS.NOTIFICATIONS,
@@ -302,7 +323,7 @@ export default function NotificationDropdown() {
   return (
     <div className="relative">
       <button
-        className="dropdown-toggle relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-all hover:bg-white/20 hover:shadow-[0_0_0_4px_rgba(255,255,255,0.12)]"
+        className="notification-dropdown-toggle relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-all hover:bg-white/20 hover:shadow-[0_0_0_4px_rgba(255,255,255,0.12)]"
         onClick={handleClick}
       >
         <Badge
@@ -314,68 +335,69 @@ export default function NotificationDropdown() {
           <Bell className="h-[18px] w-[18px]" color="#FFFFFF" />
         </Badge>
       </button>
-      <Dropdown
-        isOpen={isOpen}
-        onClose={closeDropdown}
-        className="absolute -right-[230px] mt-[14px] flex w-[390px] max-w-[calc(100vw-20px)] flex-col overflow-hidden rounded-2xl border border-[#0f3c5a]/20 bg-white p-0 shadow-[0_24px_64px_rgba(10,30,48,0.25)] sm:-right-[250px] lg:right-0"
-      >
-        <div className="bg-[linear-gradient(130deg,#134B73_0%,#1F7AB7_100%)] px-4 py-4 text-white">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.08em] text-white/75">
-                Central de Alertas
-              </p>
-              <h5 className="text-base font-semibold leading-tight">
-                Notificações Grota
-              </h5>
+      {isOpen ? (
+        <div
+          ref={dropdownRef}
+          className="absolute -right-[230px] mt-[14px] flex w-[390px] max-w-[calc(100vw-20px)] flex-col overflow-hidden rounded-2xl border border-[#0f3c5a]/20 bg-white p-0 shadow-[0_24px_64px_rgba(10,30,48,0.25)] sm:-right-[250px] lg:right-0"
+        >
+          <div className="bg-[linear-gradient(130deg,#134B73_0%,#1F7AB7_100%)] px-4 py-4 text-white">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.08em] text-white/75">
+                  Central de Alertas
+                </p>
+                <h5 className="text-base font-semibold leading-tight">
+                  Notificações Grota
+                </h5>
+              </div>
+              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
+                {unreadCount} não lida{unreadCount === 1 ? "" : "s"}
+              </span>
             </div>
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
-              {unreadCount} não lida{unreadCount === 1 ? "" : "s"}
-            </span>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between border-b border-[#d9e7f2] bg-[#f4f9fd] px-3 py-2">
-          <Button
-            size="small"
-            icon={<CheckCheck className="h-4 w-4" />}
-            onClick={() => void handleMarkAllAsRead()}
-            loading={isMarkingAll}
-            disabled={unreadCount === 0}
-          >
-            Marcar lidas
-          </Button>
-          <div className="flex items-center gap-2">
-            <Popconfirm
-              title="Apagar todas as notificações?"
-              description="Essa ação não pode ser desfeita."
-              okText="Apagar tudo"
-              cancelText="Cancelar"
-              okButtonProps={{ danger: true }}
-              onConfirm={() => void handleClearAll()}
-            >
-              <Button
-                size="small"
-                danger
-                loading={isClearing}
-                disabled={!items.length}
-              >
-                Apagar tudo
-              </Button>
-            </Popconfirm>
+          <div className="flex items-center justify-between border-b border-[#d9e7f2] bg-[#f4f9fd] px-3 py-2">
             <Button
               size="small"
-              type="primary"
-              icon={<List className="h-4 w-4" />}
-              onClick={handleOpenModal}
+              icon={<CheckCheck className="h-4 w-4" />}
+              onClick={() => void handleMarkAllAsRead()}
+              loading={isMarkingAll}
+              disabled={unreadCount === 0}
             >
-              Ver todas
+              Marcar lidas
             </Button>
+            <div className="flex items-center gap-2">
+              <Popconfirm
+                title="Apagar todas as notificações?"
+                description="Essa ação não pode ser desfeita."
+                okText="Apagar tudo"
+                cancelText="Cancelar"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => void handleClearAll()}
+              >
+                <Button
+                  size="small"
+                  danger
+                  loading={isClearing}
+                  disabled={!items.length}
+                >
+                  Apagar tudo
+                </Button>
+              </Popconfirm>
+              <Button
+                size="small"
+                type="primary"
+                icon={<List className="h-4 w-4" />}
+                onClick={handleOpenModal}
+              >
+                Ver todas
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {renderContent()}
-      </Dropdown>
+          {renderContent()}
+        </div>
+      ) : null}
 
       <Modal
         open={isModalOpen}
