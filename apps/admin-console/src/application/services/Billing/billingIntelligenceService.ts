@@ -9,7 +9,11 @@ import {
 const INTELLIGENCE_ENDPOINT = "/api/cobrancas/inteligencia";
 const ALERTS_ENDPOINT = "/api/cobrancas/alerts";
 const IA_ANALYZE_ENDPOINT = "/api/cobrancas/ia/analisar";
-const REQUEST_TIMEOUT_MS = 15000;
+const parsedRequestTimeout = Number(process.env.NEXT_PUBLIC_BILLING_INTELLIGENCE_TIMEOUT_MS);
+const REQUEST_TIMEOUT_MS =
+  Number.isFinite(parsedRequestTimeout) && parsedRequestTimeout >= 5000
+    ? parsedRequestTimeout
+    : 45000;
 
 function toQueryString(filters: BillingIntelligenceFilters = {}) {
   const params = new URLSearchParams();

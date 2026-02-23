@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 @Service
 public class BillingIntelligenceService {
 
+    private static final int INSIGHT_CACHE_BATCH_SIZE = 500;
+
     private final BillingContractRepository contractRepository;
     private final BillingInstallmentRepository installmentRepository;
     private final BillingOccurrenceRepository occurrenceRepository;
@@ -75,10 +77,18 @@ public class BillingIntelligenceService {
     ) {
         LocalDate today = LocalDate.now();
         List<TitleContext> contexts = buildTitleContexts(today);
-
-        List<BillingIntelligenceTitleDTO> titles = contexts.stream()
+        List<TitleContext> filteredContexts = contexts.stream()
                 .filter(ctx -> matchesFilters(ctx, client, periodFrom, periodTo, status, aging, minValue, maxValue))
-                .map(ctx -> toTitleDto(ctx, resolveInsight(ctx, false, false, false)))
+                .toList();
+
+        LocalDateTime ttlBoundary = LocalDateTime.now().minusHours(Math.max(1, cacheTtlHours));
+        Map<InsightCacheKey, BillingAiInsight> cachedInsights = loadRecentInsights(filteredContexts, ttlBoundary);
+
+        List<BillingIntelligenceTitleDTO> titles = filteredContexts.stream()
+                .map(ctx -> toTitleDto(
+                        ctx,
+                        resolveInsight(ctx, false, false, false, cachedInsights, ttlBoundary)
+                ))
                 .filter(dto -> matchesRisk(dto, risk))
                 .sorted(priorityComparator())
                 .toList();
@@ -105,6 +115,49 @@ public class BillingIntelligenceService {
                 .limit(targetLimit)
                 .map(this::toAlertDto)
                 .toList();
+    }
+
+    private Map<InsightCacheKey, BillingAiInsight> loadRecentInsights(
+            List<TitleContext> contexts,
+            LocalDateTime ttlBoundary
+    ) {
+        if (contexts.isEmpty()) {
+            return Map.of();
+        }
+
+        Set<InsightCacheKey> expectedKeys = contexts.stream()
+                .map(ctx -> new InsightCacheKey(ctx.titleId(), ctx.customerId()))
+                .collect(Collectors.toSet());
+        if (expectedKeys.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> titleIds = contexts.stream()
+                .map(TitleContext::titleId)
+                .distinct()
+                .toList();
+
+        Map<InsightCacheKey, BillingAiInsight> latestByKey = new HashMap<>();
+        for (int offset = 0; offset < titleIds.size(); offset += INSIGHT_CACHE_BATCH_SIZE) {
+            int end = Math.min(offset + INSIGHT_CACHE_BATCH_SIZE, titleIds.size());
+            List<String> batchTitleIds = titleIds.subList(offset, end);
+
+            List<BillingAiInsight> batchInsights =
+                    insightRepository.findByTitleIdInAndCreatedAtAfterOrderByCreatedAtDesc(
+                            batchTitleIds,
+                            ttlBoundary
+                    );
+
+            for (BillingAiInsight insight : batchInsights) {
+                InsightCacheKey key = new InsightCacheKey(insight.getTitleId(), insight.getCustomerId());
+                if (!expectedKeys.contains(key)) {
+                    continue;
+                }
+                latestByKey.putIfAbsent(key, insight);
+            }
+        }
+
+        return latestByKey;
     }
 
     @Transactional
@@ -396,15 +449,41 @@ public class BillingIntelligenceService {
             boolean persistFallback
     ) {
         LocalDateTime ttlBoundary = LocalDateTime.now().minusHours(Math.max(1, cacheTtlHours));
+        return resolveInsight(
+                context,
+                forceGemini,
+                allowGeminiRequest,
+                persistFallback,
+                null,
+                ttlBoundary
+        );
+    }
+
+    private ResolvedInsight resolveInsight(
+            TitleContext context,
+            boolean forceGemini,
+            boolean allowGeminiRequest,
+            boolean persistFallback,
+            Map<InsightCacheKey, BillingAiInsight> cachedInsights,
+            LocalDateTime ttlBoundary
+    ) {
         if (!forceGemini) {
-            Optional<BillingAiInsight> cached = insightRepository
-                    .findFirstByTitleIdAndCustomerIdAndCreatedAtAfterOrderByCreatedAtDesc(
-                            context.titleId(),
-                            context.customerId(),
-                            ttlBoundary
-                    );
-            if (cached.isPresent()) {
-                return toResolvedInsight(cached.get());
+            if (cachedInsights != null) {
+                BillingAiInsight cachedInsight =
+                        cachedInsights.get(new InsightCacheKey(context.titleId(), context.customerId()));
+                if (cachedInsight != null) {
+                    return toResolvedInsight(cachedInsight);
+                }
+            } else {
+                Optional<BillingAiInsight> cached = insightRepository
+                        .findFirstByTitleIdAndCustomerIdAndCreatedAtAfterOrderByCreatedAtDesc(
+                                context.titleId(),
+                                context.customerId(),
+                                ttlBoundary
+                        );
+                if (cached.isPresent()) {
+                    return toResolvedInsight(cached.get());
+                }
             }
         }
 
@@ -605,13 +684,36 @@ public class BillingIntelligenceService {
             targetTitles = titles.subList(0, alertRefreshLimit);
         }
 
+        Set<String> customerIds = targetTitles.stream()
+                .map(BillingIntelligenceTitleDTO::customerId)
+                .filter(Objects::nonNull)
+                .filter(customerId -> !customerId.isBlank())
+                .collect(Collectors.toSet());
+
+        Map<String, BillingIntelligenceAlert> latestByCustomerId = customerIds.isEmpty()
+                ? Map.of()
+                : alertRepository.findLatestByCustomerIds(customerIds).stream()
+                .collect(Collectors.toMap(
+                        BillingIntelligenceAlert::getCustomerId,
+                        item -> item,
+                        (first, ignored) -> first
+                ));
+
+        Set<String> visitedCustomers = new HashSet<>();
+        List<BillingIntelligenceAlert> alertsToPersist = new ArrayList<>();
+
         for (BillingIntelligenceTitleDTO title : targetTitles) {
             String customerId = title.customerId();
-            Optional<BillingIntelligenceAlert> latest = alertRepository
-                    .findTopByCustomerIdOrderByCreatedAtDesc(customerId);
+            if (customerId == null || customerId.isBlank()) {
+                continue;
+            }
+            if (!visitedCustomers.add(customerId)) {
+                continue;
+            }
 
-            if (latest.isPresent() && latest.get().getCreatedAt() != null
-                    && latest.get().getCreatedAt().isAfter(cooldownBoundary)) {
+            BillingIntelligenceAlert latest = latestByCustomerId.get(customerId);
+            if (latest != null && latest.getCreatedAt() != null
+                    && latest.getCreatedAt().isAfter(cooldownBoundary)) {
                 continue;
             }
 
@@ -627,7 +729,11 @@ public class BillingIntelligenceService {
             alert.setAmount(title.amount());
             alert.setDaysLate(title.daysLate());
 
-            alertRepository.save(alert);
+            alertsToPersist.add(alert);
+        }
+
+        if (!alertsToPersist.isEmpty()) {
+            alertRepository.saveAll(alertsToPersist);
         }
     }
 
@@ -731,6 +837,12 @@ public class BillingIntelligenceService {
             String suggestedMessage,
             String provider,
             LocalDateTime createdAt
+    ) {
+    }
+
+    private record InsightCacheKey(
+            String titleId,
+            String customerId
     ) {
     }
 }

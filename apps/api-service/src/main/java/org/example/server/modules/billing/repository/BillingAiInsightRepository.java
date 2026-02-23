@@ -4,6 +4,8 @@ import org.example.server.modules.billing.model.BillingAiInsight;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface BillingAiInsightRepository extends JpaRepository<BillingAiInsight, Long> {
@@ -17,5 +19,10 @@ public interface BillingAiInsightRepository extends JpaRepository<BillingAiInsig
     Optional<BillingAiInsight> findTopByTitleIdAndCustomerIdOrderByCreatedAtDesc(
             String titleId,
             String customerId
+    );
+
+    List<BillingAiInsight> findByTitleIdInAndCreatedAtAfterOrderByCreatedAtDesc(
+            Collection<String> titleIds,
+            LocalDateTime createdAt
     );
 }
