@@ -124,7 +124,7 @@ export declare function NotificationProvider(props: {
   identity?: string;
   children: React.ReactNode;
   historyLimit?: number;
-}): React.ReactElement;
+}): JSX.Element;
 
 export declare function useNotificationBus(): NotificationBusValue;
 

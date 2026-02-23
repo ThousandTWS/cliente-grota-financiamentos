@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "mvnw clean install -DskipTests",
-    "test": "mvnw test",
+    "build": "./mvnw clean install -DskipTests",
+    "test": "./mvnw test",
     "lint": "echo 'No lint script for Java'",
-    "run-java": "mvnw spring-boot:run"
+    "run-java": "./mvnw spring-boot:run"
   }
 }
