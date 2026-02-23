@@ -27,7 +27,6 @@ Este repositório contém o ecossistema completo do **Grota Financiamentos de Ve
 
 O sistema utiliza o padrão **BFF (Backend For Frontend)** em seus painéis para garantir segurança, isolamento de sessões e facilidade de integração.
 
-```mermaid
 graph TD
     PS[public-site] -- HTTP --> DP[dealer-portal BFF]
     DP -- HTTP REST --> AS[api-service Spring Boot]
