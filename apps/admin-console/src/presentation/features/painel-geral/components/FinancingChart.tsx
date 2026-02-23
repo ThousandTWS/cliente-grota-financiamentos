@@ -195,7 +195,7 @@ export function FinancingChart() {
           </Spin>
         </div>
       ) : error ? (
-        <Alert message={error} type="error" showIcon />
+        <Alert title={error} type="error" showIcon />
       ) : hasData ? (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="h-[320px]">

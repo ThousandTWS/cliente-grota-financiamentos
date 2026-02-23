@@ -305,7 +305,7 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
           <div className="px-6 py-6">
             <Alert
               type="error"
-              message={error}
+              title={error}
               description="Tente atualizar em instantes."
               showIcon
             />

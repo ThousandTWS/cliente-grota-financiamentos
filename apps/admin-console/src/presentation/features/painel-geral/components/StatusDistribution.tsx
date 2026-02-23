@@ -169,7 +169,7 @@ export function StatusDistribution() {
              </Spin>
           </div>
         ) : hasError ? (
-          <Alert message="Erro ao carregar dados" type="error" showIcon />
+          <Alert title="Erro ao carregar dados" type="error" showIcon />
         ) : total === 0 ? (
           <div className="flex h-full items-center justify-center">
             <Empty description="Nenhuma proposta encontrada" />
@@ -181,4 +181,3 @@ export function StatusDistribution() {
     </Card>
   );
 }
-

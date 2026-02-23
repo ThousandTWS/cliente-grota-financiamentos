@@ -3,8 +3,9 @@ import "./globals.css";
 import { SidebarProvider } from "@/application/core/context/SidebarContext";
 import { ThemeProvider } from "@/application/core/context/ThemeContext";
 import { Metadata } from "next";
-import { ToasterProvider } from "@/presentation/layout/components/toasterProvider";
-import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { RefineNotificationProvider } from "@/application/core/notifications/refine-notification-provider";
+import { RefineRealtimeProvider } from "@/application/core/realtime/refine-realtime-provider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -25,14 +26,15 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${outfit.className}`}>
         {/* Loader Global */}
-          <ThemeProvider>
-            <SidebarProvider>
-              <AntdRegistry>
-                {children}
-              </AntdRegistry>
-              <ToasterProvider />
-            </SidebarProvider>
-          </ThemeProvider>
+        <ThemeProvider>
+          <SidebarProvider>
+            <AntdRegistry>
+              <RefineRealtimeProvider>
+                <RefineNotificationProvider>{children}</RefineNotificationProvider>
+              </RefineRealtimeProvider>
+            </AntdRegistry>
+          </SidebarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

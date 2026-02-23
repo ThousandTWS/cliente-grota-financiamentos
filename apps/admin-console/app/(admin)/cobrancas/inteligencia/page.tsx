@@ -18,7 +18,7 @@ import {
   FloatButton,
   Input,
   InputNumber,
-  List,
+  Pagination,
   Progress,
   Row,
   Segmented,
@@ -66,6 +66,7 @@ const { Title, Text, Paragraph } = Typography;
 const allowedRoles = new Set(["ADMIN", "COBRANCA", "FINANCEIRO"]);
 const REALTIME_REFRESH_INTERVAL_MS = 30_000;
 const REALTIME_BUTTON_LABEL = "Atualizacao Realtime (30s)";
+const ALERTS_PAGE_SIZE = 6;
 const realtimeButtonStyle = {
   background: "#e6f4ff",
   color: "#1677ff",
@@ -183,6 +184,7 @@ export default function CobrancasInteligenciaPage() {
   const [alertsSortBy, setAlertsSortBy] = useState<"recent" | "oldest" | "severity" | "amount">(
     "recent",
   );
+  const [alertsPage, setAlertsPage] = useState(1);
   const [agingViewMode, setAgingViewMode] = useState<"lista" | "cards">("lista");
   const [agingSortBy, setAgingSortBy] = useState<"default" | "desc" | "asc">("default");
   const [activeAgingBucketKey, setActiveAgingBucketKey] = useState<AgingSummaryKey | null>(null);
@@ -384,6 +386,22 @@ export default function CobrancasInteligenciaPage() {
     });
   }, [alerts, alertsFilter, alertsSearch, alertsSortBy]);
 
+  const paginatedAlerts = useMemo(() => {
+    const start = (alertsPage - 1) * ALERTS_PAGE_SIZE;
+    return filteredAlerts.slice(start, start + ALERTS_PAGE_SIZE);
+  }, [alertsPage, filteredAlerts]);
+
+  useEffect(() => {
+    setAlertsPage(1);
+  }, [alertsFilter, alertsSearch, alertsSortBy]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredAlerts.length / ALERTS_PAGE_SIZE));
+    if (alertsPage > totalPages) {
+      setAlertsPage(totalPages);
+    }
+  }, [alertsPage, filteredAlerts.length]);
+
   const clearAlertControls = useCallback(() => {
     setAlertsFilter("all");
     setAlertsSearch("");
@@ -523,7 +541,7 @@ export default function CobrancasInteligenciaPage() {
     return (
       <div style={{ minHeight: "100vh", background: token.colorBgLayout, padding: 16 }}>
         <div style={{ maxWidth: 1440, margin: "0 auto" }}>
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={16} style={{ width: "100%" }}>
             <Skeleton active paragraph={{ rows: 3 }} />
             <Row gutter={[16, 16]}>
               {Array.from({ length: 4 }).map((_, index) => (
@@ -550,7 +568,7 @@ export default function CobrancasInteligenciaPage() {
           <Alert
             type="error"
             showIcon
-            message="Acesso negado"
+            title="Acesso negado"
             description="Este modulo requer perfil ADMIN, COBRANCA ou FINANCEIRO."
           />
         </div>
@@ -570,7 +588,7 @@ export default function CobrancasInteligenciaPage() {
           color={topRiskTitle?.riskLevel === "alto" ? "red" : "blue"}
         >
           <Card>
-            <Space direction="vertical" size={14} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={14} style={{ width: "100%" }}>
               <Breadcrumb
                 items={[
                   { title: <Link href="/cobrancas">Cobrancas</Link> },
@@ -580,7 +598,7 @@ export default function CobrancasInteligenciaPage() {
 
               <Row justify="space-between" align="middle" gutter={[16, 16]}>
                 <Col xs={24} lg={16}>
-                  <Space direction="vertical" size={4}>
+                  <Space orientation="vertical" size={4}>
                     <Title level={2} className="!mb-0">
                       Central de inteligencia de cobranca
                     </Title>
@@ -690,7 +708,7 @@ export default function CobrancasInteligenciaPage() {
                   </Text>
                 ),
                 children: (
-                  <Space direction="vertical" size={14} style={{ width: "100%" }}>
+                  <Space orientation="vertical" size={14} style={{ width: "100%" }}>
                     <Space wrap>
                       <Text type="secondary">Atalho de risco:</Text>
                       <Segmented
@@ -898,12 +916,12 @@ export default function CobrancasInteligenciaPage() {
             </Space>
           }
         >
-          <Space direction="vertical" size={14} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={14} style={{ width: "100%" }}>
             {alertsBySeverity.critico.length > 0 ? (
               <Alert
                 type="error"
                 showIcon
-                message={`Acao imediata: ${alertsBySeverity.critico.length} alerta(s) critico(s) ativos`}
+                title={`Acao imediata: ${alertsBySeverity.critico.length} alerta(s) critico(s) ativos`}
                 description={
                   <Space wrap size={10}>
                     <Text type="secondary" className="text-xs">
@@ -935,7 +953,7 @@ export default function CobrancasInteligenciaPage() {
               <Alert
                 type="success"
                 showIcon
-                message="Nenhum alerta critico no momento"
+                title="Nenhum alerta critico no momento"
                 description="Monitoramento estavel. Use os filtros abaixo para aprofundar a analise."
               />
             )}
@@ -1080,19 +1098,15 @@ export default function CobrancasInteligenciaPage() {
                 description="Nenhum alerta para os filtros selecionados."
               />
             ) : (
-              <List
-                itemLayout="vertical"
-                size="small"
-                dataSource={filteredAlerts}
-                pagination={{ pageSize: 6, hideOnSinglePage: true }}
-                renderItem={(alertItem) => (
-                  <List.Item
+              <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                {paginatedAlerts.map((alertItem) => (
+                  <Card
                     key={alertItem.id}
+                    size="small"
                     style={{
                       border: `1px solid ${token.colorBorderSecondary}`,
                       borderRadius: 12,
-                      padding: 12,
-                      marginBottom: 8,
+                      padding: 0,
                       borderLeft: `4px solid ${severityMeta[alertItem.severity].color}`,
                       background:
                         alertItem.severity === "critico"
@@ -1105,30 +1119,29 @@ export default function CobrancasInteligenciaPage() {
                           ? "0 0 0 1px #ffccc7 inset"
                           : "none",
                     }}
-                    actions={[
-                      <Link key="contract" href={`/cobrancas/${alertItem.contractId}`}>
-                        Ver contrato
-                      </Link>,
-                    ]}
+                    styles={{ body: { padding: 12 } }}
                   >
-                    <List.Item.Meta
-                      avatar={
-                        <Avatar
-                          icon={<AlertOutlined />}
-                          style={{ backgroundColor: severityMeta[alertItem.severity].color }}
-                        />
-                      }
-                      title={
-                        <Space size={8} wrap>
-                          <Text strong>{alertItem.customerName}</Text>
-                          <Badge status={severityMeta[alertItem.severity].badgeStatus} />
-                          <Text type="secondary" className="text-xs">
-                            {severityMeta[alertItem.severity].label}
-                          </Text>
-                        </Space>
-                      }
-                      description={
-                        <Space size={8} split={<Divider type="vertical" />} wrap>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <Avatar
+                        icon={<AlertOutlined />}
+                        style={{ backgroundColor: severityMeta[alertItem.severity].color }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="mb-1">
+                          <Space size={8} wrap>
+                            <Text strong>{alertItem.customerName}</Text>
+                            <Badge status={severityMeta[alertItem.severity].badgeStatus} />
+                            <Text type="secondary" className="text-xs">
+                              {severityMeta[alertItem.severity].label}
+                            </Text>
+                          </Space>
+                        </div>
+
+                        <Space
+                          size={8}
+                          separator={<Divider orientation="vertical" />}
+                          wrap
+                        >
                           <Text type="secondary" className="text-xs">
                             Contrato #{alertItem.contractId}
                           </Text>
@@ -1149,23 +1162,38 @@ export default function CobrancasInteligenciaPage() {
                             </Text>
                           ) : null}
                         </Space>
-                      }
-                    />
 
-                    <Paragraph className="!mb-1 !mt-1 text-sm">{alertItem.reason}</Paragraph>
-                    <Text type="secondary" className="text-xs">
-                      Recomendacao: {alertItem.recommendedAction}
-                    </Text>
-                    {alertItem.severity === "critico" ? (
-                      <div style={{ marginTop: 8 }}>
-                        <Tag color="error" className="!mr-0">
-                          Prioridade maxima
-                        </Tag>
+                        <Paragraph className="!mb-1 !mt-2 text-sm">{alertItem.reason}</Paragraph>
+                        <Text type="secondary" className="text-xs">
+                          Recomendacao: {alertItem.recommendedAction}
+                        </Text>
+
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                          {alertItem.severity === "critico" ? (
+                            <Tag color="error" className="!mr-0">
+                              Prioridade maxima
+                            </Tag>
+                          ) : (
+                            <span />
+                          )}
+                          <Link href={`/cobrancas/${alertItem.contractId}`}>Ver contrato</Link>
+                        </div>
                       </div>
-                    ) : null}
-                  </List.Item>
-                )}
-              />
+                    </div>
+                  </Card>
+                ))}
+
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Pagination
+                    size="small"
+                    current={alertsPage}
+                    pageSize={ALERTS_PAGE_SIZE}
+                    total={filteredAlerts.length}
+                    hideOnSinglePage
+                    onChange={(page) => setAlertsPage(page)}
+                  />
+                </div>
+              </Space>
             )}
           </Space>
         </Card>
@@ -1185,7 +1213,7 @@ export default function CobrancasInteligenciaPage() {
               {topActionTitles.map((item) => (
                 <Col xs={24} md={12} xl={8} key={`${item.contractId}-${item.installmentNumber}`}>
                   <Card size="small">
-                    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                    <Space orientation="vertical" size={8} style={{ width: "100%" }}>
                       <Space size={6} wrap>
                         <Tag color={riskColor[item.riskLevel]} className="!mr-0">
                           {item.riskLevel.toUpperCase()} ({item.riskScore})
@@ -1236,7 +1264,7 @@ export default function CobrancasInteligenciaPage() {
 
         <Card
           title={
-            <Space direction="vertical" size={0}>
+            <Space orientation="vertical" size={0}>
               <Text strong>Distribuicao de aging</Text>
               <Text type="secondary" className="text-xs">
                 Explore as faixas de atraso e aplique filtros rapidos
@@ -1267,7 +1295,7 @@ export default function CobrancasInteligenciaPage() {
             </Space>
           }
         >
-          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={12} style={{ width: "100%" }}>
             <Space size={8} wrap>
               <Tag color="default" className="!mr-0">
                 Total monitorado: {kpis?.totalTitles ?? 0}
@@ -1288,7 +1316,7 @@ export default function CobrancasInteligenciaPage() {
             ) : agingViewMode === "lista" ? (
               <Row gutter={[12, 12]}>
                 <Col xs={24} xl={15}>
-                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                  <Space orientation="vertical" size={8} style={{ width: "100%" }}>
                     {agingData.map((bucket) => {
                       const isActive = activeAgingBucketKey === bucket.key;
                       return (
@@ -1327,7 +1355,7 @@ export default function CobrancasInteligenciaPage() {
                             percent={Number(bucket.percent.toFixed(2))}
                             showInfo={false}
                             strokeColor={bucket.color}
-                            trailColor={token.colorFillSecondary}
+                            railColor={token.colorFillSecondary}
                           />
                         </button>
                       );
@@ -1346,7 +1374,7 @@ export default function CobrancasInteligenciaPage() {
                     }}
                   >
                     {activeAgingBucket ? (
-                      <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                      <Space orientation="vertical" size={10} style={{ width: "100%" }}>
                         <div>
                           <Text strong>{activeAgingBucket.label}</Text>
                           <div>
@@ -1406,7 +1434,7 @@ export default function CobrancasInteligenciaPage() {
                           background: isActive ? token.colorFillAlter : token.colorBgContainer,
                         }}
                       >
-                        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                        <Space orientation="vertical" size={8} style={{ width: "100%" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                             <Text strong>{bucket.label}</Text>
                             <Tag color="default" className="!mr-0">

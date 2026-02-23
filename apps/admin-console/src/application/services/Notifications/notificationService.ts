@@ -57,6 +57,18 @@ export const markNotificationAsRead = async (id: number): Promise<void> => {
   });
 };
 
+export const deleteNotification = async (id: number): Promise<void> => {
+  await request(`/api/notifications?id=${id}`, {
+    method: "DELETE",
+  });
+};
+
+export const clearNotifications = async (): Promise<void> => {
+  await request("/api/notifications", {
+    method: "DELETE",
+  });
+};
+
 export type CreateNotificationPayload = {
   title: string;
   description?: string;

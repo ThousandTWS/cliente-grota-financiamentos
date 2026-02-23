@@ -157,3 +157,47 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await resolveSession();
+    if (!session) {
+      return unauthorized();
+    }
+
+    const id = request.nextUrl.searchParams.get("id");
+    const targetId = request.nextUrl.searchParams.get("targetId");
+
+    const upstreamUrl = id
+      ? `${API_BASE_URL}/notifications/${id}`
+      : `${API_BASE_URL}/notifications?targetType=ADMIN${targetId ? `&targetId=${targetId}` : ""}`;
+
+    const upstreamResponse = await fetch(upstreamUrl, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (upstreamResponse.status === 204 || upstreamResponse.ok) {
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    const payload = await upstreamResponse.json().catch(() => null);
+    const message =
+      (payload as { message?: string; error?: string })?.error ??
+      (payload as { message?: string; error?: string })?.message ??
+      "Não foi possível excluir notificação.";
+
+    return NextResponse.json({ error: message }, {
+      status: upstreamResponse.status,
+    });
+  } catch (error) {
+    console.error("[admin][notifications] Falha ao excluir notificação", error);
+    return NextResponse.json(
+      { error: "Erro interno ao excluir notificação." },
+      { status: 500 },
+    );
+  }
+}

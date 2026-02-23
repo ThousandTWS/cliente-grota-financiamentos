@@ -204,7 +204,7 @@ export function ConversionFunnel() {
           </Spin>
         </div>
       ) : error ? (
-        <Alert message={error} type="error" showIcon />
+        <Alert title={error} type="error" showIcon />
       ) : proposals.length === 0 ? (
         <div className="flex h-[360px] items-center justify-center">
           <Empty description="Nenhum dado encontrado" />

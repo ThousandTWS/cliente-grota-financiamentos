@@ -40,6 +40,9 @@
       ],
       "@shared/*": [
         "./src/shared/*"
+      ],
+      "sonner": [
+        "./src/application/core/notifications/sonner-shim.tsx"
       ]
     }
   },

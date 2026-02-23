@@ -1,16 +1,14 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSubscription } from "@refinedev/core";
 import { Button, Divider, Modal, Skeleton, Typography } from "antd";
 import { Proposal, ProposalEvent, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { fetchProposalTimeline } from "@/application/services/Proposals/proposalService";
 import { Clock3, History } from "lucide-react";
 import {
-  REALTIME_CHANNELS,
-  REALTIME_EVENT_TYPES,
-  parseBridgeEvent,
-  useRealtimeChannel,
-} from "@/lib/realtime-client";
-import { getRealtimeUrl } from "@/application/config/realtime";
+  ADMIN_LIVE_CHANNELS,
+  ADMIN_LIVE_EVENT_TYPES,
+} from "@/application/core/realtime/refine-live-provider";
 import { formatDateTime } from "../utils/date";
 
 const { Text, Title } = Typography;
@@ -50,17 +48,10 @@ const maskCpf = (cpf?: string) => {
 };
 
 export function ProposalTimelineSheet({ proposalId, proposal, dealerName, sellerName }: ProposalTimelineSheetProps) {
-  const identity = `admin-timeline-${proposalId}`;
-  const processedRealtimeIds = useRef<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
   const [events, setEvents] = useState<ProposalEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { messages } = useRealtimeChannel({
-    channel: REALTIME_CHANNELS.PROPOSALS,
-    identity,
-    url: getRealtimeUrl(),
-  });
 
   const loadTimeline = useCallback(async () => {
     try {
@@ -84,20 +75,29 @@ export function ProposalTimelineSheet({ proposalId, proposal, dealerName, seller
     void loadTimeline();
   }, [loadTimeline, open]);
 
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const latest = messages[messages.length - 1];
-    if (processedRealtimeIds.current.has(latest.id)) return;
-    processedRealtimeIds.current.add(latest.id);
-    const parsed = parseBridgeEvent(latest);
+  const loadTimelineRef = useRef(loadTimeline);
 
-    if (parsed?.event === REALTIME_EVENT_TYPES.PROPOSAL_EVENT_APPENDED) {
-      const payload = parsed.payload as { proposalId?: number };
-      if (payload?.proposalId === proposalId) {
-        void loadTimeline();
-      }
-    }
-  }, [messages, open, proposalId, loadTimeline, identity]);
+  useEffect(() => {
+    loadTimelineRef.current = loadTimeline;
+  }, [loadTimeline]);
+
+  useSubscription({
+    channel: ADMIN_LIVE_CHANNELS.PROPOSALS,
+    types: ["*"],
+    enabled: open,
+    onLiveEvent: (event) => {
+      const payload = (event.payload ?? {}) as {
+        proposalId?: number;
+        eventType?: string;
+      };
+      const eventType =
+        typeof payload.eventType === "string" ? payload.eventType : String(event.type);
+
+      if (eventType !== ADMIN_LIVE_EVENT_TYPES.PROPOSAL_EVENT_APPENDED) return;
+      if (payload.proposalId !== proposalId) return;
+      void loadTimelineRef.current();
+    },
+  });
 
   return (
     <>

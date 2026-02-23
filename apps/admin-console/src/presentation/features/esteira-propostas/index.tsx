@@ -2,13 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  REALTIME_CHANNELS,
-  REALTIME_EVENT_TYPES,
-  dispatchBridgeEvent,
-  parseBridgeEvent,
-  useRealtimeChannel,
-} from "@/lib/realtime-client";
+import { usePublish, useSubscription } from "@refinedev/core";
 import {
   Proposal,
   ProposalFilters,
@@ -31,7 +25,10 @@ import { Alert, Modal, Input, InputNumber, DatePicker, Row, Col } from "antd";
 import { getAllLogistics } from "@/application/services/Logista/logisticService";
 import { getAllSellers } from "@/application/services/Seller/sellerService";
 import { getAllOperators } from "@/application/services/Operator/operatorService";
-import { getRealtimeUrl } from "@/application/config/realtime";
+import {
+  ADMIN_LIVE_CHANNELS,
+  ADMIN_LIVE_EVENT_TYPES,
+} from "@/application/core/realtime/refine-live-provider";
 
 const ADMIN_PROPOSALS_IDENTITY = "admin-esteira";
 
@@ -187,14 +184,7 @@ export default function EsteiraDePropostasFeature() {
   const [unconfirmedIds, setUnconfirmedIds] = useState<Record<number, boolean>>({});
   const recentTimeouts = useRef<Record<number, number>>({});
   const audioContextRef = useRef<AudioContext | null>(null);
-
-  const { messages, sendMessage } = useRealtimeChannel({
-    channel: REALTIME_CHANNELS.PROPOSALS,
-    identity: ADMIN_PROPOSALS_IDENTITY,
-    url: getRealtimeUrl(),
-  });
-
-  const lastProcessedIndexRef = useRef(0);
+  const publish = usePublish();
 
   const ensureAudioContext = useCallback(async () => {
     if (audioContextRef.current) {
@@ -439,30 +429,46 @@ export default function EsteiraDePropostasFeature() {
     loadNames();
   }, []);
 
+  const applyRealtimeSnapshotRef = useRef(applyRealtimeSnapshot);
+  const markRecentRef = useRef(markRecent);
+  const loadProposalsRef = useRef(loadProposals);
+  const toastRef = useRef(toast);
+
   useEffect(() => {
-    if (messages.length <= lastProcessedIndexRef.current) return;
+    applyRealtimeSnapshotRef.current = applyRealtimeSnapshot;
+  }, [applyRealtimeSnapshot]);
 
-    const newMessages = messages.slice(lastProcessedIndexRef.current);
-    lastProcessedIndexRef.current = messages.length;
+  useEffect(() => {
+    markRecentRef.current = markRecent;
+  }, [markRecent]);
 
-    newMessages.forEach((msg) => {
-      const parsed = parseBridgeEvent(msg);
-      console.log("[Admin Esteira] Processando evento:", parsed?.event, parsed);
-      if (!parsed) return;
+  useEffect(() => {
+    loadProposalsRef.current = loadProposals;
+  }, [loadProposals]);
 
-      const payload = (parsed.payload ?? {}) as {
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
+  useSubscription({
+    channel: ADMIN_LIVE_CHANNELS.PROPOSALS,
+    types: ["*"],
+    onLiveEvent: (event) => {
+      const payload = (event.payload ?? {}) as {
         proposal?: Proposal;
         source?: string;
+        eventType?: string;
       };
+      const eventType =
+        typeof payload.eventType === "string" ? payload.eventType : String(event.type);
 
       if (
-        parsed.event === REALTIME_EVENT_TYPES.PROPOSAL_CREATED &&
+        eventType === ADMIN_LIVE_EVENT_TYPES.PROPOSAL_CREATED &&
         payload.proposal
       ) {
-        console.log("[Admin Esteira] Nova proposta recebida via realtime:", payload.proposal.id);
-        applyRealtimeSnapshot(payload.proposal);
-        markRecent(payload.proposal.id);
-        toast({
+        applyRealtimeSnapshotRef.current(payload.proposal);
+        markRecentRef.current(payload.proposal.id);
+        toastRef.current({
           title: "Nova ficha do lojista",
           description: `${payload.proposal.customerName} aguardando analise.`,
         });
@@ -470,25 +476,19 @@ export default function EsteiraDePropostasFeature() {
       }
 
       if (
-        parsed.event === REALTIME_EVENT_TYPES.PROPOSAL_STATUS_UPDATED &&
+        eventType === ADMIN_LIVE_EVENT_TYPES.PROPOSAL_STATUS_UPDATED &&
         payload.proposal &&
         payload.source !== ADMIN_PROPOSALS_IDENTITY
       ) {
-        applyRealtimeSnapshot(payload.proposal);
+        applyRealtimeSnapshotRef.current(payload.proposal);
         return;
       }
 
-      if (parsed.event === REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST) {
-        loadProposals({ silent: true });
+      if (eventType === ADMIN_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST) {
+        void loadProposalsRef.current({ silent: true });
       }
-    });
-  }, [
-    messages,
-    applyRealtimeSnapshot,
-    markRecent,
-    loadProposals,
-    toast,
-  ]);
+    },
+  });
 
   const filteredProposals = useMemo(() => {
     return proposals.filter((proposal) => {
@@ -632,9 +632,21 @@ export default function EsteiraDePropostasFeature() {
     }
   };
 
+  const publishBridgeEvent = useCallback(
+    (eventType: string, payload: Record<string, unknown>) => {
+      publish?.({
+        channel: ADMIN_LIVE_CHANNELS.PROPOSALS,
+        type: eventType,
+        payload,
+        date: new Date(),
+      });
+    },
+    [publish],
+  );
+
   const handleRefresh = () => {
     loadProposals();
-    dispatchBridgeEvent(sendMessage, REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
+    publishBridgeEvent(ADMIN_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
       source: ADMIN_PROPOSALS_IDENTITY,
       reason: "admin-manual-refresh",
     });
@@ -716,7 +728,7 @@ export default function EsteiraDePropostasFeature() {
         }));
       }
       
-      dispatchBridgeEvent(sendMessage, REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
+      publishBridgeEvent(ADMIN_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
         source: ADMIN_PROPOSALS_IDENTITY,
         reason: "admin-note-update",
         proposalId: updated.id,
@@ -838,7 +850,7 @@ export default function EsteiraDePropostasFeature() {
         description: `A proposta de ${proposal.customerName} foi removida.`,
         variant: "destructive",
       });
-      dispatchBridgeEvent(sendMessage, REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
+      publishBridgeEvent(ADMIN_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
         source: ADMIN_PROPOSALS_IDENTITY,
         reason: "admin-delete",
       });
@@ -896,15 +908,11 @@ export default function EsteiraDePropostasFeature() {
           variant: "destructive",
         });
 
-        dispatchBridgeEvent(
-          sendMessage,
-          REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST,
-          {
-            source: ADMIN_PROPOSALS_IDENTITY,
-            reason: "admin-bulk-delete",
-            count: succeeded.length,
-          },
-        );
+        publishBridgeEvent(ADMIN_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
+          source: ADMIN_PROPOSALS_IDENTITY,
+          reason: "admin-bulk-delete",
+          count: succeeded.length,
+        });
       }
 
       if (failed.length > 0) {

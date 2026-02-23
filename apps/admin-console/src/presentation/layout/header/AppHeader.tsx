@@ -4,7 +4,7 @@ import { Layout, Button, Flex } from "antd";
 import { MenuUnfoldOutlined, MenuFoldOutlined } from "@ant-design/icons";
 import { useSidebar } from "@/application/core/context/SidebarContext";
 import { GlobalSearch } from "@/application/core/context/GlobalSearch";
-import NotificationInbox from "@/presentation/layout/header/components/NotificationInbox";
+import NotificationDropdown from "@/presentation/layout/header/components/NotificationDropdown";
 import UserDropdown from "@/presentation/layout/header/components/UserDropdown";
 import Image from "next/image";
 import Link from "next/link";
@@ -76,7 +76,7 @@ const AppHeader = () => {
 
       <Flex align="center" gap={20}>
         <div className="flex items-center gap-4">
-          <NotificationInbox />
+          <NotificationDropdown />
           <UserDropdown />
         </div>
       </Flex>
@@ -85,4 +85,3 @@ const AppHeader = () => {
 };
 
 export default AppHeader;
-
