@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useSubscription } from "@refinedev/core";
+import { useSubscription } from "@/application/core/realtime/live-hooks";
 import {
   clearNotifications,
   deleteNotification,
@@ -107,9 +107,8 @@ export default function NotificationDropdown() {
     channel: ADMIN_LIVE_CHANNELS.NOTIFICATIONS,
     types: ["created"],
     onLiveEvent: (event) => {
-      const notificationPayload = event.payload?.notification as
-        | NotificationItem
-        | undefined;
+      const payload = (event.payload ?? {}) as { notification?: NotificationItem };
+      const notificationPayload = payload.notification;
 
       if (!notificationPayload) return;
 

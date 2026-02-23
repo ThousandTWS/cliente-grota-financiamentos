@@ -2,7 +2,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePublish, useSubscription } from "@refinedev/core";
+import {
+  usePublish,
+  useSubscription,
+} from "@/application/core/realtime/live-hooks";
 import {
   Proposal,
   ProposalFilters,

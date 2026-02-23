@@ -1,5 +1,5 @@
-import type { LiveEvent, LiveProvider } from "@refinedev/core";
 import { getRealtimeUrl } from "@/application/config/realtime";
+import type { LiveEvent, LiveProvider } from "./live-types";
 
 type NotificationLike = {
   id?: number | string;

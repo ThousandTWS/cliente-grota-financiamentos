@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSubscription } from "@refinedev/core";
+import { useSubscription } from "@/application/core/realtime/live-hooks";
 import { Button, Divider, Modal, Skeleton, Typography } from "antd";
 import { Proposal, ProposalEvent, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { fetchProposalTimeline } from "@/application/services/Proposals/proposalService";

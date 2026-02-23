@@ -1,8 +1,5 @@
 import { notification as staticNotification } from "antd";
-import type {
-  NotificationProvider,
-  OpenNotificationParams,
-} from "@refinedev/core";
+import type { NotificationProvider, OpenNotificationParams } from "./types";
 
 const fallbackProvider: NotificationProvider = {
   open: ({ key, message, description, type }) => {
@@ -33,4 +30,3 @@ export const openRefineNotification = (params: OpenNotificationParams) => {
 export const closeRefineNotification = (key: string) => {
   activeProvider.close(key);
 };
-
