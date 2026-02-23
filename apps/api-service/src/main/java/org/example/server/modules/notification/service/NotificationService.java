@@ -52,7 +52,21 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
-}
+    @Transactional
+    public void delete(Long id) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new RecordNotFoundException("Notificação não encontrada"));
+        notificationRepository.delete(notification);
+    }
 
+    @Transactional
+    public long clearByTarget(String targetType, Long targetId) {
+        if (targetId != null) {
+            return notificationRepository.deleteByTargetTypeAndTargetId(targetType, targetId);
+        }
+        return notificationRepository.deleteByTargetType(targetType);
+    }
+
+}
 
 

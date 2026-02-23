@@ -749,7 +749,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
                 ))}
               </div>
             ) : error ? (
-              <Alert type="error" message={error} />
+              <Alert type="error" title={error} />
             ) : timeline.length === 0 ? (
               <Empty description="Nenhum evento registrado para esta ficha." />
             ) : (

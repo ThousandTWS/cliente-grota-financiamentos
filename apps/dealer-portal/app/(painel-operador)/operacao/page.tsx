@@ -8,7 +8,6 @@ import {
   Card,
   Empty,
   Layout,
-  List,
   Progress,
   Row,
   Col,
@@ -761,39 +760,35 @@ function PainelOperadorContent() {
                       ) : recentProposals.length === 0 ? (
                         <Empty description="Nenhuma proposta registrada." />
                       ) : (
-                        <List
-                          itemLayout="horizontal"
-                          dataSource={recentProposals}
-                          renderItem={(proposal) => (
-                            <List.Item className="rounded-xl border border-slate-100 px-3 py-2 transition hover:-translate-y-0.5 hover:shadow-sm">
-                              <List.Item.Meta
-                                title={
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-semibold text-slate-800">
-                                      {proposal.customerName ?? "Sem nome"}
-                                    </span>
-                                    <Tag color={statusTagColor[proposal.status]}>
-                                      {statusLabel[proposal.status]}
-                                    </Tag>
-                                  </div>
-                                }
-                                description={
-                                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                                    <span>#{proposal.id}</span>
-                                    <span>•</span>
-                                    <span>{formatDateTime(proposal.createdAt)}</span>
-                                    {proposal.dealerId && (
-                                      <span className="inline-flex items-center gap-1">
-                                        <Store className="size-3" />
-                                        {dealerIndex[proposal.dealerId] ?? `Loja #${proposal.dealerId}`}
-                                      </span>
-                                    )}
-                                  </div>
-                                }
-                              />
-                            </List.Item>
-                          )}
-                        />
+                        <div className="space-y-2">
+                          {recentProposals.map((proposal) => (
+                            <div
+                              key={proposal.id}
+                              className="rounded-xl border border-slate-100 px-3 py-2 transition hover:-translate-y-0.5 hover:shadow-sm"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="font-semibold text-slate-800">
+                                  {proposal.customerName ?? "Sem nome"}
+                                </span>
+                                <Tag color={statusTagColor[proposal.status]}>
+                                  {statusLabel[proposal.status]}
+                                </Tag>
+                              </div>
+
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <span>#{proposal.id}</span>
+                                <span>•</span>
+                                <span>{formatDateTime(proposal.createdAt)}</span>
+                                {proposal.dealerId && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Store className="size-3" />
+                                    {dealerIndex[proposal.dealerId] ?? `Loja #${proposal.dealerId}`}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </Card>
                   </Col>
@@ -814,31 +809,25 @@ function PainelOperadorContent() {
                       ) : dealerSummaries.length === 0 ? (
                         <Empty description="Nenhuma loja vinculada." />
                       ) : (
-                        <List
-                          dataSource={dealerSummaries.slice(0, 5)}
-                          renderItem={(dealer, index) => (
-                            <List.Item>
-                              <List.Item.Meta
-                                avatar={
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 text-purple-700 font-semibold">
-                                    {index + 1}
-                                  </div>
-                                }
-                                title={
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-semibold text-slate-800">{dealer.name}</span>
-                                    <Tag color="purple">{dealer.proposals} propostas</Tag>
-                                  </div>
-                                }
-                                description={
-                                  <div className="text-xs text-slate-500">
-                                    {dealer.sellers} vendedor{dealer.sellers !== 1 ? "es" : ""}
-                                  </div>
-                                }
-                              />
-                            </List.Item>
-                          )}
-                        />
+                        <div className="space-y-3">
+                          {dealerSummaries.slice(0, 5).map((dealer, index) => (
+                            <div key={dealer.id} className="flex items-start gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-50 font-semibold text-purple-700">
+                                {index + 1}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="truncate font-semibold text-slate-800">{dealer.name}</span>
+                                  <Tag color="purple">{dealer.proposals} propostas</Tag>
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {dealer.sellers} vendedor{dealer.sellers !== 1 ? "es" : ""}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </Card>
                   </Col>

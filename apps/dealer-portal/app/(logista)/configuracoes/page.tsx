@@ -499,7 +499,7 @@ function ConfiguracoesPage() {
         <Card variant="borderless">
           <Row gutter={[24, 24]}>
             <Col xs={24} md={12}>
-              <Space direction="vertical" size="large" style={{ width: "100%" }}>
+              <Space orientation="vertical" size="large" style={{ width: "100%" }}>
                 <div>
                   <Title level={5} style={{ color: "#134B73" }}>
                     <UploadOutlined /> Logomarca do Painel
@@ -587,7 +587,7 @@ function ConfiguracoesPage() {
                 }
                 style={{ background: "#f6f8fa" }}
               >
-                <Space direction="vertical" size="middle">
+                <Space orientation="vertical" size="middle">
                   <div style={{ display: "flex", gap: 8 }}>
                     <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
                     <Text>Prefira logos em fundo transparente para melhor contraste</Text>
@@ -697,7 +697,7 @@ function ConfiguracoesPage() {
               variant="borderless"
               style={{ background: "#f6f8fa" }}
             >
-              <Space direction="vertical" size="middle">
+              <Space orientation="vertical" size="middle">
                 <div style={{ display: "flex", gap: 8 }}>
                   <CheckCircleOutlined style={{ color: "#52c41a", marginTop: 4 }} />
                   <Text>Use um e-mail corporativo válido para notificações</Text>
@@ -733,7 +733,7 @@ function ConfiguracoesPage() {
       ),
       children: (
         <Card variant="borderless" loading={loadingProfile}>
-          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+          <Space orientation="vertical" size="large" style={{ width: "100%" }}>
             <div style={{ textAlign: "center", paddingBottom: 16 }}>
               <Avatar
                 size={80}

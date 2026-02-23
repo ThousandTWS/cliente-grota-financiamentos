@@ -40,6 +40,21 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        notificationService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> clearByTarget(
+            @RequestParam String targetType,
+            @RequestParam(required = false) Long targetId
+    ) {
+        notificationService.clearByTarget(targetType, targetId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping(value = "/stream", produces = "text/event-stream")
     public SseEmitter stream(
             @RequestParam String targetType,
@@ -48,5 +63,4 @@ public class NotificationController {
         return notificationStreamService.register(targetType, targetId);
     }
 }
-
 
