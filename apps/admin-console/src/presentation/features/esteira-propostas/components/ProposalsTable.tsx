@@ -90,6 +90,38 @@ const getOperatorName = (metadata: Proposal["metadata"]) => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
+const getDealerName = (metadata: Proposal["metadata"]) => {
+  const parsed = parseMetadata(metadata);
+  if (!parsed) return null;
+  const candidates = [
+    parsed.dealerName,
+    parsed.lojaName,
+    parsed.storeName,
+    parsed.dealer,
+    parsed.loja,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      if (trimmed) return trimmed;
+    }
+    if (candidate && typeof candidate === "object") {
+      const record = candidate as Record<string, unknown>;
+      const nested =
+        record.enterprise ??
+        record.name ??
+        record.fullName ??
+        record.nome;
+      if (typeof nested === "string" && nested.trim()) {
+        return nested.trim();
+      }
+    }
+  }
+
+  return null;
+};
+
 export function ProposalsTable({
   proposals,
   isLoading,
@@ -158,11 +190,13 @@ export function ProposalsTable({
 
   const cards = useMemo(() => {
     return proposals.map((proposal) => {
-      const dealerLabel = proposal.dealerId
-        ? dealersById[proposal.dealerId]?.enterprise ??
-          dealersById[proposal.dealerId]?.name ??
-          `Lojista #${proposal.dealerId}`
-        : "Lojista nao informado";
+      const dealerFromMetadata = getDealerName(proposal.metadata);
+      const dealerLabel = dealerFromMetadata ??
+        (proposal.dealerId
+          ? dealersById[proposal.dealerId]?.enterprise ??
+            dealersById[proposal.dealerId]?.name ??
+            `Lojista #${proposal.dealerId}`
+          : "Lojista nao informado");
       const sellerLabel = proposal.sellerId
         ? sellersById[proposal.sellerId] ?? `Responsavel #${proposal.sellerId}`
         : "Responsavel nao informado";
