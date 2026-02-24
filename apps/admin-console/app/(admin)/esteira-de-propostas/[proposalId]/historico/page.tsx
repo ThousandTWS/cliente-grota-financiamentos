@@ -240,6 +240,35 @@ const extractSellerName = (metadata: Record<string, unknown> | null) => {
   return null;
 };
 
+const extractDealerName = (metadata: Record<string, unknown> | null) => {
+  if (!metadata) return null;
+  const candidates = [
+    metadata.dealerName,
+    metadata.lojaName,
+    metadata.storeName,
+    metadata.dealer,
+    metadata.loja,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      if (trimmed) return trimmed;
+    }
+    if (candidate && typeof candidate === "object") {
+      const record = candidate as Record<string, unknown>;
+      const nested =
+        record.enterprise ??
+        record.name ??
+        record.fullName ??
+        record.nome;
+      if (typeof nested === "string" && nested.trim()) {
+        return nested.trim();
+      }
+    }
+  }
+  return null;
+};
+
 const extractSellerId = (metadata: Record<string, unknown> | null) => {
   if (!metadata) return null;
   const candidate = metadata.sellerId;
@@ -267,6 +296,7 @@ type EditMode = "edit" | "complete";
 
 type ProposalFormValues = {
   dealerId?: number | null;
+  dealerName?: string;
   sellerId?: number | null;
   customerName: string;
   customerCpf: string;
@@ -401,6 +431,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   const metadata = useMemo(() => parseMetadata(proposal?.metadata), [proposal?.metadata]);
   const motherName = useMemo(() => extractMotherName(metadata), [metadata]);
   const professionalData = useMemo(() => extractProfessionalData(metadata), [metadata]);
+  const dealerNameFromMetadata = useMemo(() => extractDealerName(metadata), [metadata]);
   const sellerNameFromMetadata = useMemo(() => extractSellerName(metadata), [metadata]);
   const sellerIdFromMetadata = useMemo(() => extractSellerId(metadata), [metadata]);
   const createdByActor = useMemo(() => {
@@ -410,10 +441,11 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   const sellerNameFromActor = useMemo(() => extractActorName(createdByActor), [createdByActor]);
 
   const dealerLabel = useMemo(() => {
+    if (dealerNameFromMetadata) return dealerNameFromMetadata;
     if (!proposal?.dealerId) return "Loja nao informada";
     const dealer = dealerIndex[proposal.dealerId];
     return dealer?.enterprise ?? dealer?.name ?? `Lojista #${proposal.dealerId}`;
-  }, [dealerIndex, proposal?.dealerId]);
+  }, [dealerIndex, dealerNameFromMetadata, proposal?.dealerId]);
 
   const sellerLabel = useMemo(() => {
     if (proposal?.sellerId) {
@@ -448,6 +480,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
     };
 
     appendIfMissing("Data de nascimento", proposal.customerBirthDate);
+    appendIfMissing("Nome da loja", dealerNameFromMetadata ?? "");
     appendIfMissing("Nome da mae", motherName === "--" ? "" : motherName);
     appendIfMissing("Telefone", proposal.customerPhone);
     appendIfMissing("E-mail", proposal.customerEmail);
@@ -466,7 +499,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
     appendIfMissing("Renda", proposal.income);
 
     return missing;
-  }, [motherName, professionalData.admissionDate, professionalData.enterprise, professionalData.enterpriseFunction, proposal]);
+  }, [dealerNameFromMetadata, motherName, professionalData.admissionDate, professionalData.enterprise, professionalData.enterpriseFunction, proposal]);
 
   const timelineItems = useMemo(
     () =>
@@ -589,6 +622,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
       if (!proposal) return;
       form.setFieldsValue({
         dealerId: proposal.dealerId ?? null,
+        dealerName: dealerNameFromMetadata ?? "",
         sellerId: proposal.sellerId ?? null,
         customerName: proposal.customerName,
         customerCpf: proposal.customerCpf,
@@ -625,7 +659,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
       });
       setEditModalState({ open: true, mode });
     },
-    [form, motherName, professionalData.admissionDate, professionalData.enterprise, professionalData.enterpriseFunction, proposal],
+    [dealerNameFromMetadata, form, motherName, professionalData.admissionDate, professionalData.enterprise, professionalData.enterpriseFunction, proposal],
   );
 
   const closeEditModal = useCallback(() => {
@@ -650,9 +684,20 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
           : {};
 
       const nextMotherName = trimOrUndefined(values.motherName);
+      const nextDealerName = trimOrUndefined(values.dealerName);
       const nextEnterprise = trimOrUndefined(values.enterprise);
       const nextEnterpriseFunction = trimOrUndefined(values.enterpriseFunction);
       const nextAdmissionDate = values.admissionDate?.format("YYYY-MM-DD");
+
+      if (nextDealerName) {
+        nextMetadata.dealerName = nextDealerName;
+        nextMetadata.lojaName = nextDealerName;
+        nextMetadata.storeName = nextDealerName;
+      } else {
+        delete nextMetadata.dealerName;
+        delete nextMetadata.lojaName;
+        delete nextMetadata.storeName;
+      }
 
       if (nextMotherName) {
         nextMetadata.motherName = nextMotherName;
@@ -1236,6 +1281,11 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
               <Col xs={24} sm={12}>
                 <Form.Item label="Nome da mae" name="motherName">
                   <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Nome da loja" name="dealerName">
+                  <Input placeholder="Ex.: Grota Financiamentos" />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={6}>
