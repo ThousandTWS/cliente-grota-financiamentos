@@ -20,6 +20,9 @@ import org.example.server.modules.proposal.repository.ProposalEventRepository;
 import org.example.server.modules.proposal.repository.ProposalRepository;
 import org.example.server.modules.seller.repository.SellerRepository;
 import org.example.server.modules.proposal.factory.ProposalEventFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.example.server.modules.notification.service.NotificationService;
@@ -124,9 +127,9 @@ public class ProposalService {
         Proposal proposal = proposalRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("Proposta nao encontrada"));
 
-        if (proposal.getStatus() != ProposalStatus.SUBMITTED) {
+        if (proposal.getStatus() != ProposalStatus.SUBMITTED && !isAuthenticatedAdmin()) {
             throw new DataAlreadyExistsException(
-                    "Somente fichas com status Enviada podem ser editadas.");
+                    "Somente fichas com status Enviada podem ser editadas por este perfil.");
         }
 
         applyRequestData(proposal, dto);
@@ -159,6 +162,17 @@ public class ProposalService {
         publishRealtime("PROPOSALS_REFRESH_REQUEST", refreshPayload);
 
         return toResponse(saved);
+    }
+
+    private boolean isAuthenticatedAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
     }
 
     /**

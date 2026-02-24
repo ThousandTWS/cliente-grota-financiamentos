@@ -1,0 +1,11 @@
+target
+.idea
+.vscode
+.turbo
+node_modules
+*.iml
+*.log
+.env
+.env.*
+Dockerfile*
+docker-compose*.yml

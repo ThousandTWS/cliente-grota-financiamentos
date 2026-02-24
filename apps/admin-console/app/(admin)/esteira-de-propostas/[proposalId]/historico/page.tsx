@@ -2,11 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, StickyNote } from "lucide-react";
-import { Proposal, ProposalEvent, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
+import { ArrowLeft, Pencil, StickyNote } from "lucide-react";
+import dayjs, { type Dayjs } from "dayjs";
+import {
+  CreateProposalPayload,
+  Proposal,
+  ProposalEvent,
+  ProposalStatus,
+} from "@/application/core/@types/Proposals/Proposal";
 import {
   fetchProposalTimeline,
   fetchProposals,
+  updateProposal,
   updateProposalStatus,
 } from "@/application/services/Proposals/proposalService";
 import { getAllLogistics } from "@/application/services/Logista/logisticService";
@@ -21,6 +28,7 @@ import {
   Descriptions,
   Divider,
   Empty,
+  Form,
   Input,
   InputNumber,
   Modal,
@@ -29,6 +37,7 @@ import {
   Skeleton,
   Space,
   Statistic,
+  Switch,
   Tag,
   Timeline,
   Typography,
@@ -89,7 +98,7 @@ const formatDate = (value?: string | null) => {
     return Number.isNaN(date.getTime()) ? "--" : DATE_FORMATTER.format(date);
   }
 
-  const brMatch = trimmed.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/);
+  const brMatch = trimmed.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
   if (brMatch) {
     const date = new Date(
       Number(brMatch[3]),
@@ -254,6 +263,99 @@ const extractActorName = (actor?: string | null) => {
   return name || trimmed;
 };
 
+type EditMode = "edit" | "complete";
+
+type ProposalFormValues = {
+  dealerId?: number | null;
+  sellerId?: number | null;
+  customerName: string;
+  customerCpf: string;
+  customerBirthDate?: Dayjs | null;
+  customerEmail: string;
+  customerPhone: string;
+  motherName?: string;
+  cnhCategory?: string;
+  hasCnh: boolean;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleYear?: number | null;
+  vehiclePlate?: string;
+  fipeCode?: string;
+  fipeValue?: number | null;
+  downPaymentValue?: number | null;
+  financedValue?: number | null;
+  termMonths?: number | null;
+  vehicle0km?: boolean;
+  maritalStatus?: string;
+  cep?: string;
+  address?: string;
+  addressNumber?: string;
+  addressComplement?: string;
+  neighborhood?: string;
+  uf?: string;
+  city?: string;
+  enterprise?: string;
+  enterpriseFunction?: string;
+  admissionDate?: Dayjs | null;
+  income?: number | null;
+  otherIncomes?: number | null;
+  notes?: string;
+};
+
+const parseDateToDate = (value?: string | null) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const date = new Date(
+      Number(isoMatch[1]),
+      Number(isoMatch[2]) - 1,
+      Number(isoMatch[3]),
+    );
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const brMatch = trimmed.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (brMatch) {
+    const date = new Date(
+      Number(brMatch[3]),
+      Number(brMatch[2]) - 1,
+      Number(brMatch[1]),
+    );
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (/^\d{10,13}$/.test(trimmed)) {
+    const timestamp = Number(trimmed);
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const parseDateToDayjs = (value?: string | null) => {
+  const parsed = parseDateToDate(value);
+  return parsed ? dayjs(parsed) : null;
+};
+
+const trimOrUndefined = (value?: string | null) => {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+};
+
+const numberOrUndefined = (value?: number | null) =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+const formatMissingFieldList = (labels: string[]) => {
+  if (labels.length === 0) return "Nenhum campo faltante identificado.";
+  return labels.join(", ");
+};
+
 export default function ProposalHistoryPage({ params }: { params: Params }) {
   const resolvedParams = use(params);
   const proposalId = Number(resolvedParams.proposalId);
@@ -264,12 +366,18 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   const [timeline, setTimeline] = useState<ProposalEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [form] = Form.useForm<ProposalFormValues>();
   const [noteDraft, setNoteDraft] = useState("");
   const [messageOpen, setMessageOpen] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isSavingProposalData, setIsSavingProposalData] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [dealerIndex, setDealerIndex] = useState<Record<number, { name: string; enterprise?: string }>>({});
   const [sellerIndex, setSellerIndex] = useState<Record<number, string>>({});
+  const [editModalState, setEditModalState] = useState<{ open: boolean; mode: EditMode }>({
+    open: false,
+    mode: "edit",
+  });
   const [contractNumberModal, setContractNumberModal] = useState<{
     open: boolean;
     nextStatus: ProposalStatus | null;
@@ -322,6 +430,43 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
     }
     return sellerIdFromMetadata ?? "--";
   }, [proposal?.sellerId, sellerIdFromMetadata]);
+
+  const missingFieldLabels = useMemo(() => {
+    if (!proposal) return [];
+    const missing: string[] = [];
+
+    const hasValue = (value: unknown) => {
+      if (typeof value === "string") return value.trim().length > 0;
+      if (typeof value === "number") return Number.isFinite(value);
+      return value !== null && value !== undefined;
+    };
+
+    const appendIfMissing = (label: string, value: unknown) => {
+      if (!hasValue(value)) {
+        missing.push(label);
+      }
+    };
+
+    appendIfMissing("Data de nascimento", proposal.customerBirthDate);
+    appendIfMissing("Nome da mae", motherName === "--" ? "" : motherName);
+    appendIfMissing("Telefone", proposal.customerPhone);
+    appendIfMissing("E-mail", proposal.customerEmail);
+    appendIfMissing("Marca do veiculo", proposal.vehicleBrand);
+    appendIfMissing("Modelo do veiculo", proposal.vehicleModel);
+    appendIfMissing("Ano do veiculo", proposal.vehicleYear);
+    appendIfMissing("Endereco", proposal.address);
+    appendIfMissing("Numero", proposal.addressNumber);
+    appendIfMissing("Bairro", proposal.neighborhood);
+    appendIfMissing("Cidade", proposal.city);
+    appendIfMissing("UF", proposal.uf);
+    appendIfMissing("CEP", proposal.cep);
+    appendIfMissing("Empresa", professionalData.enterprise);
+    appendIfMissing("Funcao", professionalData.enterpriseFunction);
+    appendIfMissing("Data de admissao", professionalData.admissionDate);
+    appendIfMissing("Renda", proposal.income);
+
+    return missing;
+  }, [motherName, professionalData.admissionDate, professionalData.enterprise, professionalData.enterpriseFunction, proposal]);
 
   const timelineItems = useMemo(
     () =>
@@ -421,7 +566,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   useEffect(() => {
     if (!proposal) return;
     setNoteDraft(proposal.notes ?? "");
-  }, [proposal?.id, proposal?.notes]);
+  }, [proposal]);
 
   const reloadTimeline = useCallback(async () => {
     if (!isValidId) return;
@@ -438,6 +583,198 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
       setIsLoading(false);
     }
   }, [isValidId, proposalId]);
+
+  const openEditModal = useCallback(
+    (mode: EditMode) => {
+      if (!proposal) return;
+      form.setFieldsValue({
+        dealerId: proposal.dealerId ?? null,
+        sellerId: proposal.sellerId ?? null,
+        customerName: proposal.customerName,
+        customerCpf: proposal.customerCpf,
+        customerBirthDate: parseDateToDayjs(proposal.customerBirthDate),
+        customerEmail: proposal.customerEmail,
+        customerPhone: proposal.customerPhone,
+        motherName: motherName === "--" ? "" : motherName,
+        cnhCategory: proposal.cnhCategory ?? "",
+        hasCnh: proposal.hasCnh,
+        vehicleBrand: proposal.vehicleBrand,
+        vehicleModel: proposal.vehicleModel,
+        vehicleYear: proposal.vehicleYear,
+        vehiclePlate: proposal.vehiclePlate,
+        fipeCode: proposal.fipeCode,
+        fipeValue: proposal.fipeValue,
+        downPaymentValue: proposal.downPaymentValue,
+        financedValue: proposal.financedValue,
+        termMonths: proposal.termMonths ?? null,
+        vehicle0km: proposal.vehicle0km ?? false,
+        maritalStatus: proposal.maritalStatus ?? "",
+        cep: proposal.cep ?? "",
+        address: proposal.address ?? "",
+        addressNumber: proposal.addressNumber ?? "",
+        addressComplement: proposal.addressComplement ?? "",
+        neighborhood: proposal.neighborhood ?? "",
+        uf: proposal.uf ?? "",
+        city: proposal.city ?? "",
+        enterprise: professionalData.enterprise ?? "",
+        enterpriseFunction: professionalData.enterpriseFunction ?? "",
+        admissionDate: parseDateToDayjs(professionalData.admissionDate),
+        income: proposal.income ?? null,
+        otherIncomes: proposal.otherIncomes ?? null,
+        notes: proposal.notes ?? "",
+      });
+      setEditModalState({ open: true, mode });
+    },
+    [form, motherName, professionalData.admissionDate, professionalData.enterprise, professionalData.enterpriseFunction, proposal],
+  );
+
+  const closeEditModal = useCallback(() => {
+    setEditModalState((previous) => ({ ...previous, open: false }));
+    form.resetFields();
+  }, [form]);
+
+  const handleSaveProposalData = useCallback(async () => {
+    if (!proposal) return;
+    try {
+      const values = await form.validateFields();
+      setIsSavingProposalData(true);
+
+      const nextMetadata: Record<string, unknown> = { ...(metadata ?? {}) };
+      const personalRecord =
+        nextMetadata.personal && typeof nextMetadata.personal === "object"
+          ? { ...(nextMetadata.personal as Record<string, unknown>) }
+          : {};
+      const professionalRecord =
+        nextMetadata.professional && typeof nextMetadata.professional === "object"
+          ? { ...(nextMetadata.professional as Record<string, unknown>) }
+          : {};
+
+      const nextMotherName = trimOrUndefined(values.motherName);
+      const nextEnterprise = trimOrUndefined(values.enterprise);
+      const nextEnterpriseFunction = trimOrUndefined(values.enterpriseFunction);
+      const nextAdmissionDate = values.admissionDate?.format("YYYY-MM-DD");
+
+      if (nextMotherName) {
+        nextMetadata.motherName = nextMotherName;
+        personalRecord.motherName = nextMotherName;
+      } else {
+        delete nextMetadata.motherName;
+        delete personalRecord.motherName;
+      }
+
+      if (nextEnterprise) {
+        nextMetadata.enterprise = nextEnterprise;
+        professionalRecord.enterprise = nextEnterprise;
+      } else {
+        delete nextMetadata.enterprise;
+        delete professionalRecord.enterprise;
+      }
+
+      if (nextEnterpriseFunction) {
+        nextMetadata.enterpriseFunction = nextEnterpriseFunction;
+        professionalRecord.enterpriseFunction = nextEnterpriseFunction;
+      } else {
+        delete nextMetadata.enterpriseFunction;
+        delete professionalRecord.enterpriseFunction;
+      }
+
+      if (nextAdmissionDate) {
+        nextMetadata.admissionDate = nextAdmissionDate;
+        professionalRecord.admissionDate = nextAdmissionDate;
+      } else {
+        delete nextMetadata.admissionDate;
+        delete professionalRecord.admissionDate;
+      }
+
+      if (Object.keys(personalRecord).length > 0) {
+        nextMetadata.personal = personalRecord;
+      } else {
+        delete nextMetadata.personal;
+      }
+
+      if (Object.keys(professionalRecord).length > 0) {
+        nextMetadata.professional = professionalRecord;
+      } else {
+        delete nextMetadata.professional;
+      }
+
+      const sellerId = numberOrUndefined(values.sellerId);
+      if (typeof sellerId === "number") {
+        nextMetadata.sellerId = sellerId;
+      } else {
+        delete nextMetadata.sellerId;
+      }
+
+      const payload: CreateProposalPayload = {
+        dealerId: numberOrUndefined(values.dealerId),
+        sellerId,
+        customerName: values.customerName.trim(),
+        customerCpf: values.customerCpf.trim(),
+        customerBirthDate: values.customerBirthDate?.format("YYYY-MM-DD") ?? null,
+        customerEmail: values.customerEmail.trim(),
+        customerPhone: values.customerPhone.trim(),
+        cnhCategory: trimOrUndefined(values.cnhCategory) ?? "",
+        hasCnh: values.hasCnh,
+        vehiclePlate: trimOrUndefined(values.vehiclePlate) ?? "",
+        fipeCode: trimOrUndefined(values.fipeCode) ?? "",
+        fipeValue: values.fipeValue ?? proposal.fipeValue,
+        vehicleBrand: values.vehicleBrand.trim(),
+        vehicleModel: values.vehicleModel.trim(),
+        vehicleYear: values.vehicleYear ?? proposal.vehicleYear,
+        downPaymentValue: values.downPaymentValue ?? proposal.downPaymentValue,
+        financedValue: values.financedValue ?? proposal.financedValue,
+        termMonths: numberOrUndefined(values.termMonths),
+        vehicle0km: values.vehicle0km ?? proposal.vehicle0km ?? false,
+        maritalStatus: trimOrUndefined(values.maritalStatus),
+        cep: trimOrUndefined(values.cep),
+        address: trimOrUndefined(values.address),
+        addressNumber: trimOrUndefined(values.addressNumber),
+        addressComplement: trimOrUndefined(values.addressComplement),
+        neighborhood: trimOrUndefined(values.neighborhood),
+        uf: trimOrUndefined(values.uf),
+        city: trimOrUndefined(values.city),
+        income: numberOrUndefined(values.income),
+        otherIncomes: numberOrUndefined(values.otherIncomes),
+        metadata: JSON.stringify(nextMetadata),
+        notes: trimOrUndefined(values.notes),
+      };
+
+      const updated = await updateProposal(proposal.id, payload);
+      setProposal(updated);
+      setNoteDraft(updated.notes ?? "");
+      setEditModalState((previous) => ({ ...previous, open: false }));
+      form.resetFields();
+      toast({
+        title: "Ficha atualizada",
+        description: "Dados da ficha salvos com sucesso.",
+      });
+      await reloadTimeline();
+    } catch (err) {
+      const hasValidationErrors =
+        typeof err === "object" &&
+        err !== null &&
+        "errorFields" in err;
+
+      if (hasValidationErrors) {
+        toast({
+          title: "Campos obrigatorios pendentes",
+          description: "Preencha os campos obrigatorios antes de salvar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const message =
+        err instanceof Error ? err.message : "Nao foi possivel atualizar a ficha.";
+      toast({
+        title: "Erro ao salvar ficha",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingProposalData(false);
+    }
+  }, [form, metadata, proposal, reloadTimeline, toast]);
 
   const performStatusUpdate = useCallback(
     async (nextStatus: ProposalStatus, contractData?: {
@@ -615,6 +952,19 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
             </div>
 
             <Space wrap>
+              <Button
+                icon={<Pencil className="size-4" />}
+                onClick={() => openEditModal("edit")}
+                disabled={!proposal || isSavingProposalData}
+              >
+                Editar ficha completa
+              </Button>
+              <Button
+                onClick={() => openEditModal("complete")}
+                disabled={!proposal || isSavingProposalData}
+              >
+                Completar dados
+              </Button>
               <Select
                 value={proposal?.status}
                 onChange={(value) => handleStatusChange(value as ProposalStatus)}
@@ -812,6 +1162,258 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
           </Card>
         </div>
       </main>
+
+      <Modal
+        title={editModalState.mode === "edit" ? "Editar ficha completa" : "Completar dados da ficha"}
+        open={editModalState.open}
+        onCancel={closeEditModal}
+        onOk={() => void handleSaveProposalData()}
+        okText={isSavingProposalData ? "Salvando..." : "Salvar dados"}
+        cancelText="Cancelar"
+        okButtonProps={{ loading: isSavingProposalData, disabled: isSavingProposalData }}
+        cancelButtonProps={{ disabled: isSavingProposalData }}
+        width={980}
+        destroyOnClose
+      >
+        <div className="max-h-[70vh] overflow-y-auto pr-2">
+          {editModalState.mode === "complete" ? (
+            <Alert
+              type={missingFieldLabels.length > 0 ? "warning" : "success"}
+              title={
+                missingFieldLabels.length > 0
+                  ? "Campos com preenchimento pendente"
+                  : "Todos os campos principais ja estao preenchidos"
+              }
+              description={formatMissingFieldList(missingFieldLabels)}
+              className="mb-4"
+            />
+          ) : null}
+
+          <Form form={form} layout="vertical" requiredMark={false}>
+            <Divider>Cliente</Divider>
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  label="Nome do cliente"
+                  name="customerName"
+                  rules={[{ required: true, message: "Informe o nome do cliente." }]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  label="CPF"
+                  name="customerCpf"
+                  rules={[{ required: true, message: "Informe o CPF." }]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item label="Nascimento" name="customerBirthDate">
+                  <DatePicker className="w-full" format="DD/MM/YYYY" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item
+                  label="Telefone"
+                  name="customerPhone"
+                  rules={[{ required: true, message: "Informe o telefone." }]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item
+                  label="E-mail"
+                  name="customerEmail"
+                  rules={[{ required: true, message: "Informe o e-mail." }]}
+                >
+                  <Input type="email" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Nome da mae" name="motherName">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="ID loja" name="dealerId">
+                  <InputNumber className="w-full" min={1} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="ID vendedor" name="sellerId">
+                  <InputNumber className="w-full" min={1} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="Possui CNH" name="hasCnh" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="Categoria CNH" name="cnhCategory">
+                  <Input />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Divider>Veiculo e Valores</Divider>
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={8}>
+                <Form.Item
+                  label="Marca"
+                  name="vehicleBrand"
+                  rules={[{ required: true, message: "Informe a marca." }]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item
+                  label="Modelo"
+                  name="vehicleModel"
+                  rules={[{ required: true, message: "Informe o modelo." }]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item
+                  label="Ano"
+                  name="vehicleYear"
+                  rules={[{ required: true, message: "Informe o ano." }]}
+                >
+                  <InputNumber className="w-full" min={1900} max={2100} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item label="Placa" name="vehiclePlate">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item label="Codigo FIPE" name="fipeCode">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item
+                  label="Valor FIPE (R$)"
+                  name="fipeValue"
+                  rules={[{ required: true, message: "Informe o valor FIPE." }]}
+                >
+                  <InputNumber className="w-full" min={0} precision={2} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item
+                  label="Entrada (R$)"
+                  name="downPaymentValue"
+                  rules={[{ required: true, message: "Informe o valor de entrada." }]}
+                >
+                  <InputNumber className="w-full" min={0} precision={2} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item
+                  label="Valor financiado (R$)"
+                  name="financedValue"
+                  rules={[{ required: true, message: "Informe o valor financiado." }]}
+                >
+                  <InputNumber className="w-full" min={0} precision={2} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item label="Parcelas" name="termMonths">
+                  <InputNumber className="w-full" min={1} max={120} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item label="Veiculo 0km" name="vehicle0km" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Divider>Endereco e Renda</Divider>
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={8}>
+                <Form.Item label="CEP" name="cep">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item label="Cidade" name="city">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item label="UF" name="uf">
+                  <Input maxLength={2} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Endereco" name="address">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="Numero" name="addressNumber">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="Complemento" name="addressComplement">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Bairro" name="neighborhood">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="Estado civil" name="maritalStatus">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="Renda (R$)" name="income">
+                  <InputNumber className="w-full" min={0} precision={2} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="Outras rendas (R$)" name="otherIncomes">
+                  <InputNumber className="w-full" min={0} precision={2} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={10}>
+                <Form.Item label="Empresa" name="enterprise">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item label="Funcao" name="enterpriseFunction">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={6}>
+                <Form.Item label="Admissao" name="admissionDate">
+                  <DatePicker className="w-full" format="DD/MM/YYYY" />
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <Form.Item label="Observacoes" name="notes">
+                  <Input.TextArea autoSize={{ minRows: 3, maxRows: 5 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
+        </div>
+      </Modal>
 
       <Modal
         open={messageOpen}
