@@ -18,7 +18,7 @@ export const gestorNavItems: NavItem[] = [
         path: "/dashboard",
     },
     {
-        name: "Minha Loja",
+        name: "Lojas",
         icon: <Store />,
         path: "/loja",
     },

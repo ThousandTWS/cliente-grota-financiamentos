@@ -86,7 +86,7 @@ export default function PainelGestorPage() {
             <div className="p-6">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-slate-800">Painel do Gestor</h1>
-                    <p className="text-sm text-slate-500">Vendedores da sua loja</p>
+                    <p className="text-sm text-slate-500">Vendedores de todas as lojas</p>
                 </div>
                 <div className="space-y-3">
                     {Array.from({ length: 3 }).map((_, index) => (
@@ -104,7 +104,7 @@ export default function PainelGestorPage() {
             <div className="p-6">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-slate-800">Painel do Gestor</h1>
-                    <p className="text-sm text-slate-500">Vendedores da sua loja</p>
+                    <p className="text-sm text-slate-500">Vendedores de todas as lojas</p>
                 </div>
                 <Card>
                     <Empty
@@ -121,7 +121,7 @@ export default function PainelGestorPage() {
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Painel do Gestor</h1>
-                    <p className="text-sm text-slate-500">Vendedores da sua loja</p>
+                    <p className="text-sm text-slate-500">Vendedores de todas as lojas</p>
                 </div>
                 <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
                     <Users className="size-4" />
@@ -131,7 +131,7 @@ export default function PainelGestorPage() {
 
             {sellers.length === 0 ? (
                 <Card>
-                    <Empty description="Nenhum vendedor encontrado na sua loja." />
+                    <Empty description="Nenhum vendedor encontrado." />
                 </Card>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

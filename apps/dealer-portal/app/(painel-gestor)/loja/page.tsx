@@ -1,22 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Empty, Skeleton, Typography } from "antd";
 import { Building2, Mail, MapPin, Phone, BadgeCheck } from "lucide-react";
 
 const { Text } = Typography;
 
-type DealerAddress = {
-  street?: string;
-  number?: string;
-  complement?: string;
-  neighborhood?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-};
-
-type DealerDetails = {
+type DealerSummary = {
+  id?: number;
   enterprise?: string;
   fullNameEnterprise?: string;
   fullName?: string;
@@ -27,36 +18,23 @@ type DealerDetails = {
   status?: string;
   phone?: string;
   email?: string;
-  address?: DealerAddress;
+  city?: string;
+  state?: string;
 };
 
-const getDealerName = (dealer: DealerDetails | null) => {
-  if (!dealer) return "Minha loja";
+const getDealerName = (dealer: DealerSummary) => {
   return (
     dealer.fullNameEnterprise ||
     dealer.enterprise ||
     dealer.fullName ||
     dealer.razaoSocial ||
     dealer.nomeFantasia ||
-    "Minha loja"
+    "Loja sem nome"
   );
 };
 
-const formatAddress = (address?: DealerAddress) => {
-  if (!address) return "--";
-  const street = address.street || "";
-  const number = address.number ? `, ${address.number}` : "";
-  const complement = address.complement ? ` - ${address.complement}` : "";
-  const neighborhood = address.neighborhood ? `, ${address.neighborhood}` : "";
-  const city = address.city ? `, ${address.city}` : "";
-  const state = address.state ? `/${address.state}` : "";
-  const zip = address.zipCode ? ` - CEP ${address.zipCode}` : "";
-  const formatted = `${street}${number}${complement}${neighborhood}${city}${state}${zip}`.trim();
-  return formatted.length > 0 ? formatted : "--";
-};
-
 export default function GestorLojaPage() {
-  const [dealer, setDealer] = useState<DealerDetails | null>(null);
+  const [dealers, setDealers] = useState<DealerSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,19 +44,18 @@ export default function GestorLojaPage() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch("/api/dealers/details", { cache: "no-store" });
+        const response = await fetch("/api/dealers", { cache: "no-store" });
         const payload = await response.json().catch(() => null);
         if (!response.ok) {
-          const message =
-            (payload as { error?: string })?.error ?? "Falha ao carregar loja.";
+          const message = (payload as { error?: string })?.error ?? "Falha ao carregar lojas.";
           throw new Error(message);
         }
         if (mounted) {
-          setDealer((payload ?? {}) as DealerDetails);
+          setDealers(Array.isArray(payload) ? (payload as DealerSummary[]) : []);
         }
       } catch (err) {
         if (!mounted) return;
-        setError(err instanceof Error ? err.message : "Erro ao carregar loja.");
+        setError(err instanceof Error ? err.message : "Erro ao carregar lojas.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -88,8 +65,6 @@ export default function GestorLojaPage() {
       mounted = false;
     };
   }, []);
-
-  const dealerName = useMemo(() => getDealerName(dealer), [dealer]);
 
   if (loading) {
     return (
@@ -119,91 +94,87 @@ export default function GestorLojaPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-slate-800">Minha Loja</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Lojas</h1>
         <p className="text-sm text-slate-500">
-          Informacoes gerais da loja vinculada ao gestor.
+          Informacoes gerais de todas as lojas visiveis para o gestor.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Loja
+                Total de lojas
               </Text>
-              <p className="text-xl font-semibold text-slate-800">{dealerName}</p>
-              <Text className="text-xs text-slate-500">
-                Codigo ref.: {dealer?.referenceCode || "--"}
-              </Text>
+              <p className="text-2xl font-semibold text-slate-800">{dealers.length}</p>
             </div>
             <div className="rounded-full bg-sky-100 p-3 text-sky-600">
               <Building2 className="size-5" />
             </div>
           </div>
         </Card>
-
-        <Card className="shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Status
-              </Text>
-              <p className="text-xl font-semibold text-slate-800">
-                {dealer?.status || "PENDENTE"}
-              </p>
-              <Text className="text-xs text-slate-500">
-                CNPJ: {dealer?.cnpj || "--"}
-              </Text>
-            </div>
-            <div className="rounded-full bg-emerald-100 p-3 text-emerald-600">
-              <BadgeCheck className="size-5" />
-            </div>
-          </div>
-        </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-slate-100 p-2 text-slate-600">
-              <MapPin className="size-4" />
-            </div>
-            <div>
-              <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Endereco
-              </Text>
-              <p className="text-sm text-slate-700">
-                {formatAddress(dealer?.address)}
-              </p>
-            </div>
-          </div>
+      {dealers.length === 0 ? (
+        <Card>
+          <Empty description="Nenhuma loja encontrada." image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </Card>
-        <Card className="shadow-sm space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-slate-100 p-2 text-slate-600">
-              <Phone className="size-4" />
-            </div>
-            <div>
-              <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Telefone
-              </Text>
-              <p className="text-sm text-slate-700">{dealer?.phone || "--"}</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-slate-100 p-2 text-slate-600">
-              <Mail className="size-4" />
-            </div>
-            <div>
-              <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Email
-              </Text>
-              <p className="text-sm text-slate-700">{dealer?.email || "--"}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {dealers.map((dealer, index) => (
+            <Card
+              key={`${dealer.id ?? "dealer"}-${index}`}
+              className="shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300"
+              style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
+            >
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <Text className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                      Loja
+                    </Text>
+                    <p className="text-lg font-semibold text-slate-800">{getDealerName(dealer)}</p>
+                    <Text className="text-xs text-slate-500">
+                      Codigo ref.: {dealer.referenceCode || "--"}
+                    </Text>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      dealer.status === "ATIVO"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {dealer.status || "PENDENTE"}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <BadgeCheck className="size-4 text-slate-400" />
+                    <span>CNPJ: {dealer.cnpj || "--"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="size-4 text-slate-400" />
+                    <span>{dealer.phone || "--"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="size-4 text-slate-400" />
+                    <span className="truncate">{dealer.email || "--"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="size-4 text-slate-400" />
+                    <span>
+                      {[dealer.city, dealer.state].filter(Boolean).join(" / ") || "--"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -15,10 +15,10 @@ export default function GestorPropostasPage() {
             level={1}
             className="!m-0 text-3xl font-bold tracking-tight !text-white"
           >
-            Esteira da Loja
+            Esteira das Lojas
           </Typography.Title>
           <Typography.Paragraph className="!m-0 !text-white/80">
-            Veja todas as fichas enviadas pelos vendedores da sua loja.
+            Veja todas as fichas enviadas pelos vendedores de todas as lojas.
           </Typography.Paragraph>
         </div>
 

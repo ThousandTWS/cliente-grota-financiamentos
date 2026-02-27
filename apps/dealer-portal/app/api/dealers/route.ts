@@ -64,6 +64,35 @@ export async function GET() {
       return NextResponse.json(list);
     }
 
+    if (role === "GESTOR") {
+      const upstreamResponse = await fetch(`${API_BASE_URL}/dealers`, {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        cache: "no-store",
+      });
+
+      const payload = await upstreamResponse.json().catch(() => null);
+
+      if (!upstreamResponse.ok) {
+        const message =
+          (payload as { message?: string; error?: string })?.message ??
+          (payload as { message?: string; error?: string })?.error ??
+          "Não foi possível carregar os lojistas.";
+        return NextResponse.json({ error: message }, {
+          status: upstreamResponse.status,
+        });
+      }
+
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { content?: unknown[] })?.content)
+          ? (payload as { content: unknown[] }).content
+          : [];
+
+      return NextResponse.json(list);
+    }
+
     const dealerId = await resolveDealerId(session);
     if (!dealerId) {
       return NextResponse.json([]);

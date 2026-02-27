@@ -159,6 +159,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(Array.from(merged.values()));
     }
 
+    if (role === "GESTOR") {
+      const query = baseQuery.toString();
+      const upstreamResponse = await fetch(
+        `${API_BASE_URL}/proposals${query ? `?${query}` : ""}`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+          cache: "no-store",
+        },
+      );
+
+      const payload = await upstreamResponse.json().catch(() => null);
+
+      if (!upstreamResponse.ok) {
+        const message =
+          (payload as { message?: string; error?: string })?.message ??
+          (payload as { message?: string; error?: string })?.error ??
+          "Nao foi possivel carregar suas propostas.";
+        return NextResponse.json({ error: message }, {
+          status: upstreamResponse.status,
+        });
+      }
+
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { content?: unknown[] })?.content)
+          ? (payload as { content: unknown[] }).content
+          : [];
+
+      return NextResponse.json(list);
+    }
+
     const resolvedDealerId = await resolveDealerId(session);
     const { sellerId: matchedSellerId, dealerId: sellerDealerId } =
       await resolveSeller(session);

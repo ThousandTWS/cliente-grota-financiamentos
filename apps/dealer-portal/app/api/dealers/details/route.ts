@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
           { status: 403 },
         );
       }
-    } else if (role !== "ADMIN") {
+    } else if (role !== "ADMIN" && role !== "GESTOR") {
       const ownDealerId = await resolveDealerId(session);
       if (!ownDealerId || requestedDealerId !== ownDealerId) {
         return NextResponse.json(

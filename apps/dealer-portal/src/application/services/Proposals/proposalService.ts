@@ -1,5 +1,4 @@
 import { z } from "zod";
-import api from "../server/api";
 import {
   CreateProposalPayload,
   Proposal,
@@ -9,7 +8,6 @@ import {
 } from "@/application/core/@types/Proposals/Proposal";
 
 const PROPOSALS_ENDPOINT = "/api/proposals";
-const DIRECT_ENDPOINT = "/proposals";
 
 const statusSchema = z.enum(
   ["SUBMITTED", "PENDING", "ANALYSIS", "APPROVED", "APPROVED_DEDUCTED", "CONTRACT_ISSUED", "PAID", "REJECTED", "WITHDRAWN"] satisfies ProposalStatus[],
@@ -165,11 +163,35 @@ export const updateProposalStatus = async (
   proposalId: number,
   payload: UpdateProposalStatusPayload,
 ): Promise<Proposal> => {
-  const response = await api.patch(
-    `${DIRECT_ENDPOINT}/${proposalId}/status`,
-    payload,
-  );
-  return ProposalSchema.parse(response.data);
+  const request = () =>
+    fetch(`${PROPOSALS_ENDPOINT}/${proposalId}/status`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+
+  let response = await request();
+  if (response.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      response = await request();
+    }
+  }
+
+  const payloadResponse = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (payloadResponse as { error?: string })?.error ??
+      "Não foi possível atualizar a proposta.";
+    throw new Error(message);
+  }
+
+  return ProposalSchema.parse(payloadResponse);
 };
 
 export const fetchProposalTimeline = async (

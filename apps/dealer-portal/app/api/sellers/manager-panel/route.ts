@@ -9,10 +9,9 @@ const API_BASE_URL = getLogistaApiBaseUrl();
 
 /**
  * GET /api/sellers/manager-panel
- * 
+ *
  * Lists sellers for manager panel.
- * Managers can only see sellers from their own store.
- * Admin can see all sellers.
+ * Managers and admin can see all sellers.
  */
 export async function GET() {
     try {
@@ -21,7 +20,7 @@ export async function GET() {
             return unauthorizedResponse();
         }
 
-        const upstreamResponse = await fetch(`${API_BASE_URL}/sellers/manager-panel`, {
+        const upstreamResponse = await fetch(`${API_BASE_URL}/sellers`, {
             headers: {
                 Authorization: `Bearer ${session.accessToken}`,
             },

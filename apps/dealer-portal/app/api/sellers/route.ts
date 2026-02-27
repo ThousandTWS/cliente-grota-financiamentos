@@ -55,6 +55,41 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(list);
     }
 
+    if (role === "GESTOR") {
+      const searchParams = hasRequestedDealerId
+        ? `?dealerId=${requestedDealerId}`
+        : "";
+      const upstreamResponse = await fetch(
+        `${API_BASE_URL}/sellers${searchParams}`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+          cache: "no-store",
+        },
+      );
+
+      const payload = await upstreamResponse.json().catch(() => null);
+
+      if (!upstreamResponse.ok) {
+        const message =
+          (payload as { message?: string; error?: string })?.message ??
+          (payload as { message?: string; error?: string })?.error ??
+          "Nao foi possivel carregar os vendedores.";
+        return NextResponse.json({ error: message }, {
+          status: upstreamResponse.status,
+        });
+      }
+
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { content?: unknown[] })?.content)
+          ? (payload as { content: unknown[] }).content
+          : [];
+
+      return NextResponse.json(list);
+    }
+
     const resolvedDealerId = await resolveDealerId(session);
     const dealerId = hasRequestedDealerId ? requestedDealerId : resolvedDealerId;
 

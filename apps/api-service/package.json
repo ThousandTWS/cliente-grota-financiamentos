@@ -6,6 +6,12 @@
     "build": "./mvnw clean install -DskipTests",
     "test": "./mvnw test",
     "lint": "echo 'No lint script for Java'",
-    "run-java": "./mvnw spring-boot:run"
+    "run-java": "./mvnw spring-boot:run",
+    "docker:build": "docker build -t grota/api-service:local .",
+    "docker:run": "docker run --rm --name grota_api_service -p 8080:8080 grota/api-service:local",
+    "docker:compose:up": "docker compose up -d --build",
+    "docker:compose:down": "docker compose down",
+    "docker:compose:logs": "docker compose logs -f api-service",
+    "docker:publish": "sh -c 'test -n \"$IMAGE_REF\" || (echo \"IMAGE_REF is required. Example: docker.io/<user>/grota-api-service:latest\" && exit 1); docker build -t \"$IMAGE_REF\" . && docker push \"$IMAGE_REF\"'"
   }
 }

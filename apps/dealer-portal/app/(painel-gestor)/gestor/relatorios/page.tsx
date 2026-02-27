@@ -86,7 +86,7 @@ export default function GestorRelatoriosPage() {
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-slate-800">Relatorios</h1>
         <p className="text-sm text-slate-500">
-          Gere relatorios das propostas da sua loja.
+          Gere relatorios das propostas de todas as lojas.
         </p>
       </div>
 
