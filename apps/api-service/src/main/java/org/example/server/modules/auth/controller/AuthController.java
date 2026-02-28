@@ -1,20 +1,24 @@
 package org.example.server.modules.auth.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
+import java.time.Duration;
+import java.time.Instant;
+
 import org.example.server.core.web.Api_Response;
+import org.example.server.modules.auth.dto.AuthRequest;
+import org.example.server.modules.auth.dto.AuthResponseDTO;
+import org.example.server.modules.auth.dto.ChangePasswordDTO;
+import org.example.server.modules.auth.dto.EmailResponseDTO;
+import org.example.server.modules.auth.dto.PasswordResetConfirmRequestDTO;
+import org.example.server.modules.auth.dto.PasswordResetRequestDTO;
 import org.example.server.modules.auth.dto.UserResponseDTO;
-import org.example.server.modules.auth.dto.*;
-import org.example.server.modules.dealer.dto.DealerRegistrationRequestDTO;
-import org.example.server.modules.dealer.dto.DealerRegistrationResponseDTO;
+import org.example.server.modules.auth.dto.VerificationCodeRequestDTO;
 import org.example.server.modules.auth.model.RefreshToken;
-import org.example.server.modules.user.model.User;
-import org.example.server.modules.dealer.service.DealerService;
 import org.example.server.modules.auth.service.JwtService;
 import org.example.server.modules.auth.service.RefreshTokenService;
+import org.example.server.modules.dealer.dto.DealerRegistrationRequestDTO;
+import org.example.server.modules.dealer.dto.DealerRegistrationResponseDTO;
+import org.example.server.modules.dealer.service.DealerService;
+import org.example.server.modules.user.model.User;
 import org.example.server.modules.user.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -24,10 +28,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Duration;
-import java.time.Instant;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/grota-financiamentos/auth")
