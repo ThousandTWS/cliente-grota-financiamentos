@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/dealers").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/admin-register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
 
                         // Documentos
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/documents").hasAnyRole("ADMIN", "LOJISTA", "VENDEDOR", "OPERADOR", "GESTOR")

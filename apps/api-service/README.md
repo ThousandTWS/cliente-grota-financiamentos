@@ -14,13 +14,14 @@ Run only the backend container:
 pnpm --filter grota-api-service docker:run
 ```
 
-Start full local stack (`api-service + postgres + redis`):
+Start backend with Docker Compose (API only):
 
 ```bash
 cd apps/api-service
-cp .env.docker.example .env
 docker compose up -d --build
 ```
+
+`docker-compose.yml` does not create PostgreSQL. The API uses the datasource configured in `src/main/resources/application-prod.properties` unless `SPRING_DATASOURCE_*` is provided at runtime.
 
 Stop stack:
 
