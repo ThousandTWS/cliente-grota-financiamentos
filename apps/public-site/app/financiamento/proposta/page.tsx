@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "@/src/presentation/layout/navbar/hooks/useTheme";
 import { useScrollDetection } from "@/src/presentation/layout/navbar/hooks/useScrollDetection";
@@ -22,7 +22,7 @@ function parseCondition(value: string | null) {
   return value === "novo" ? "novo" : "usado";
 }
 
-export default function PropostaFinanciamentoPage() {
+function PropostaFinanciamentoContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isScrolled = useScrollDetection(100);
   const searchParams = useSearchParams();
@@ -59,5 +59,17 @@ export default function PropostaFinanciamentoPage() {
 
       <Footer />
     </div>
+  );
+}
+
+function PropostaFinanciamentoFallback() {
+  return <div className="min-h-screen w-full bg-[#F3F4F6]" />;
+}
+
+export default function PropostaFinanciamentoPage() {
+  return (
+    <Suspense fallback={<PropostaFinanciamentoFallback />}>
+      <PropostaFinanciamentoContent />
+    </Suspense>
   );
 }
