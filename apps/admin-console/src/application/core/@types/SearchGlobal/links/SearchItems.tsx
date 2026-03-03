@@ -13,7 +13,8 @@ import {
     DollarSign,
     BarChart3,
     Files,
-    Bot
+    Bot,
+    Link2
 } from "lucide-react";
 import { SearchItem } from "../SearchItem";
 
@@ -44,6 +45,15 @@ export const searchItems: SearchItem[] = [
         href: "/simulacao/novo",
         group: "Propostas",
         keywords: ["simulacao", "calculo", "novo", "financiamento"]
+    },
+    {
+        id: "link-cliente-proposta",
+        title: "Link de Proposta para Cliente",
+        description: "Gerar link para preenchimento externo",
+        icon: <Link2 className="size-4" />,
+        href: "/propostas/link-cliente",
+        group: "Propostas",
+        keywords: ["link", "cliente", "proposta", "externo", "formulario"]
     },
     {
         id: "vendedores",

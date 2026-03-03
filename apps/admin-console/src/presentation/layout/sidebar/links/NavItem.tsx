@@ -17,6 +17,7 @@ import {
   Calculator,
   BarChart3,
   Settings,
+  Link2,
 } from "lucide-react";
 
 export const navItems: NavItem[] = [
@@ -47,6 +48,12 @@ export const navItems: NavItem[] = [
         path: "/simulacao/novo",
         pro: false,
         icon: <FileText size={16} />
+      },
+      {
+        name: "Link para Cliente",
+        path: "/propostas/link-cliente",
+        pro: false,
+        icon: <Link2 size={16} />
       },
     ],
   },
