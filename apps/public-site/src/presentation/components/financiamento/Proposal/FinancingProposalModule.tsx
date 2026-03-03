@@ -574,11 +574,6 @@ export default function FinancingProposalModule({
       return;
     }
 
-    if (!dealerId) {
-      setSubmitError("Link invalido: loja nao vinculada. Solicite um novo link ao consultor.");
-      return;
-    }
-
     const vehicleValue = parseCurrency(formData.vehicleValue || "R$ 0,00");
     const downPayment = parseCurrency(formData.downPayment || "R$ 0,00");
     const financedValue = Math.max(0, vehicleValue - downPayment);
@@ -591,7 +586,7 @@ export default function FinancingProposalModule({
     }
 
     const payload = {
-      dealerId,
+      dealerId: dealerId ?? undefined,
       sellerId: sellerId ?? undefined,
       customerName: formData.fullName,
       customerCpf: onlyDigits(formData.cpf),

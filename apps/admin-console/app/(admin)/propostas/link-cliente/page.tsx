@@ -89,16 +89,12 @@ export default function ProposalLinkGeneratorPage() {
   }, []);
 
   const canGenerate = useMemo(() => {
-    return (
-      config.publicSiteBaseUrl.trim().length > 0 &&
-      Number(config.validDays) > 0 &&
-      Number(config.dealerId) > 0
-    );
-  }, [config.publicSiteBaseUrl, config.validDays, config.dealerId]);
+    return config.publicSiteBaseUrl.trim().length > 0 && Number(config.validDays) > 0;
+  }, [config.publicSiteBaseUrl, config.validDays]);
 
   const selectedDealerLabel = useMemo(() => {
     const id = Number(config.dealerId);
-    if (!id) return "-";
+    if (!id) return "Nao vinculada (opcional)";
     const dealer = dealers.find((item) => item.id === id);
     if (!dealer) return `Loja #${id}`;
     const base = dealer.enterprise || dealer.fullName;
@@ -107,7 +103,7 @@ export default function ProposalLinkGeneratorPage() {
 
   const selectedSellerLabel = useMemo(() => {
     const id = Number(config.sellerId);
-    if (!id) return "Nao vinculado";
+    if (!id) return "Nao vinculado (opcional)";
     const seller = sellers.find((item) => item.id === id);
     return seller?.fullName || seller?.email || `Vendedor #${id}`;
   }, [config.sellerId, sellers]);
@@ -137,7 +133,7 @@ export default function ProposalLinkGeneratorPage() {
 
   const generateLink = () => {
     if (!canGenerate) {
-      toast.error("Preencha URL, loja e validade para gerar o link.");
+      toast.error("Preencha URL e validade. Loja e vendedor sao opcionais.");
       return;
     }
 
@@ -163,12 +159,12 @@ export default function ProposalLinkGeneratorPage() {
       condition: config.condition,
       ref,
       token,
-      dealerId: String(dealerId),
       expiresAt: expiry.toISOString(),
     });
 
     if (config.customerName.trim()) params.set("customer", config.customerName.trim());
     if (config.notes.trim()) params.set("notes", config.notes.trim());
+    if (dealerId > 0) params.set("dealerId", String(dealerId));
     if (sellerId > 0) params.set("sellerId", String(sellerId));
 
     const link = `${baseUrl}/financiamento/proposta?${params.toString()}`;
@@ -250,7 +246,7 @@ export default function ProposalLinkGeneratorPage() {
                 />
               </AdminField>
 
-              <AdminField label="Loja vinculada (obrigatorio)">
+              <AdminField label="Loja vinculada (opcional)">
                 <select
                   value={config.dealerId}
                   onChange={(e) => void handleDealerChange(e.target.value)}
@@ -294,6 +290,9 @@ export default function ProposalLinkGeneratorPage() {
                     </option>
                   ))}
                 </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Loja e vendedor sao opcionais. Se nao selecionar, a proposta sera criada sem vinculos.
+                </p>
               </AdminField>
 
               <AdminField label="Nome do cliente (opcional)">
