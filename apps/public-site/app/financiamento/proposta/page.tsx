@@ -46,7 +46,7 @@ export default function PropostaFinanciamentoPage() {
       <MobileHeader isMobileMenuOpen={isMobileMenuOpen} onMenuToggle={toggleMobileMenu} />
       <MobileMenu isOpen={isMobileMenuOpen} />
 
-      <main className="pt-20">
+      <main>
         <FinancingProposalModule
           initialMode={mode}
           initialVehicleType={vehicleType}
