@@ -1,8 +1,10 @@
 "use client";
 
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Copy, ExternalLink, Link2, RefreshCcw, Send } from "lucide-react";
 import { toast } from "sonner";
+import { type Dealer, getAllLogistics } from "@/application/services/Logista/logisticService";
+import { type Seller, getAllSellers } from "@/application/services/Seller/sellerService";
 
 type FlowMode = "simulacao" | "proposta";
 type VehicleType = "leves" | "duas-rodas";
@@ -12,6 +14,8 @@ interface LinkConfig {
   publicSiteBaseUrl: string;
   customerName: string;
   internalReference: string;
+  dealerId: string;
+  sellerId: string;
   mode: FlowMode;
   vehicleType: VehicleType;
   condition: VehicleCondition;
@@ -26,6 +30,13 @@ function normalizeBaseUrl(url: string) {
   return url.trim().replace(/\/+$/, "");
 }
 
+function normalizeKnownHostTypos(url: string) {
+  const typoHost = "grotafinaciamentos.com.br";
+  const officialHost = "grotafinanciamentos.com.br";
+  if (!url.includes(typoHost)) return url;
+  return url.replace(typoHost, officialHost);
+}
+
 function createToken() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -38,25 +49,95 @@ export default function ProposalLinkGeneratorPage() {
     publicSiteBaseUrl: DEFAULT_PUBLIC_SITE_URL,
     customerName: "",
     internalReference: "",
+    dealerId: "",
+    sellerId: "",
     mode: "proposta",
     vehicleType: "leves",
     condition: "usado",
     validDays: "7",
     notes: "",
   });
+  const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [dealersLoading, setDealersLoading] = useState(false);
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [sellersLoading, setSellersLoading] = useState(false);
 
   const [generatedLink, setGeneratedLink] = useState("");
   const [generatedToken, setGeneratedToken] = useState("");
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadDealers = async () => {
+      try {
+        setDealersLoading(true);
+        const data = await getAllLogistics();
+        if (!mounted) return;
+        setDealers(data);
+      } catch (error) {
+        console.error("[admin][proposal-link] dealers", error);
+        toast.error("Nao foi possivel carregar as lojas.");
+      } finally {
+        if (mounted) setDealersLoading(false);
+      }
+    };
+    void loadDealers();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const canGenerate = useMemo(() => {
-    return config.publicSiteBaseUrl.trim().length > 0 && Number(config.validDays) > 0;
-  }, [config.publicSiteBaseUrl, config.validDays]);
+    return (
+      config.publicSiteBaseUrl.trim().length > 0 &&
+      Number(config.validDays) > 0 &&
+      Number(config.dealerId) > 0
+    );
+  }, [config.publicSiteBaseUrl, config.validDays, config.dealerId]);
+
+  const selectedDealerLabel = useMemo(() => {
+    const id = Number(config.dealerId);
+    if (!id) return "-";
+    const dealer = dealers.find((item) => item.id === id);
+    if (!dealer) return `Loja #${id}`;
+    const base = dealer.enterprise || dealer.fullName;
+    return dealer.referenceCode ? `${base} - ${dealer.referenceCode}` : base;
+  }, [config.dealerId, dealers]);
+
+  const selectedSellerLabel = useMemo(() => {
+    const id = Number(config.sellerId);
+    if (!id) return "Nao vinculado";
+    const seller = sellers.find((item) => item.id === id);
+    return seller?.fullName || seller?.email || `Vendedor #${id}`;
+  }, [config.sellerId, sellers]);
+
+  const handleDealerChange = async (dealerId: string) => {
+    setConfig((prev) => ({
+      ...prev,
+      dealerId,
+      sellerId: "",
+    }));
+    setSellers([]);
+
+    const numericDealerId = Number(dealerId);
+    if (!numericDealerId) return;
+
+    try {
+      setSellersLoading(true);
+      const data = await getAllSellers(numericDealerId);
+      setSellers(data);
+    } catch (error) {
+      console.error("[admin][proposal-link] sellers", error);
+      toast.error("Nao foi possivel carregar vendedores da loja.");
+    } finally {
+      setSellersLoading(false);
+    }
+  };
 
   const generateLink = () => {
     if (!canGenerate) {
-      toast.error("Preencha URL publica e validade em dias para gerar o link.");
+      toast.error("Preencha URL, loja e validade para gerar o link.");
       return;
     }
 
@@ -65,7 +146,15 @@ export default function ProposalLinkGeneratorPage() {
     const expiry = new Date(now.getTime() + validDaysNumber * 24 * 60 * 60 * 1000);
     const token = createToken();
     const ref = config.internalReference.trim() || token.slice(0, 8).toUpperCase();
-    const baseUrl = normalizeBaseUrl(config.publicSiteBaseUrl);
+    const normalizedInput = normalizeKnownHostTypos(config.publicSiteBaseUrl);
+    const baseUrl = normalizeBaseUrl(normalizedInput);
+    const dealerId = Number(config.dealerId);
+    const sellerId = Number(config.sellerId);
+
+    if (normalizedInput !== config.publicSiteBaseUrl) {
+      setConfig((prev) => ({ ...prev, publicSiteBaseUrl: normalizedInput }));
+      toast.info("Dominio ajustado automaticamente para o oficial.");
+    }
 
     const params = new URLSearchParams({
       source: "admin-console",
@@ -74,11 +163,13 @@ export default function ProposalLinkGeneratorPage() {
       condition: config.condition,
       ref,
       token,
+      dealerId: String(dealerId),
       expiresAt: expiry.toISOString(),
     });
 
     if (config.customerName.trim()) params.set("customer", config.customerName.trim());
     if (config.notes.trim()) params.set("notes", config.notes.trim());
+    if (sellerId > 0) params.set("sellerId", String(sellerId));
 
     const link = `${baseUrl}/financiamento/proposta?${params.toString()}`;
 
@@ -109,12 +200,15 @@ export default function ProposalLinkGeneratorPage() {
       publicSiteBaseUrl: DEFAULT_PUBLIC_SITE_URL,
       customerName: "",
       internalReference: "",
+      dealerId: "",
+      sellerId: "",
       mode: "proposta",
       vehicleType: "leves",
       condition: "usado",
       validDays: "7",
       notes: "",
     });
+    setSellers([]);
     setGeneratedLink("");
     setGeneratedToken("");
     setGeneratedAt(null);
@@ -154,6 +248,52 @@ export default function ProposalLinkGeneratorPage() {
                   className="admin-input"
                   placeholder="Ex: PROP-2026-0041"
                 />
+              </AdminField>
+
+              <AdminField label="Loja vinculada (obrigatorio)">
+                <select
+                  value={config.dealerId}
+                  onChange={(e) => void handleDealerChange(e.target.value)}
+                  className="admin-input"
+                  disabled={dealersLoading}
+                >
+                  <option value="">
+                    {dealersLoading ? "Carregando lojas..." : "Selecione a loja"}
+                  </option>
+                  {dealers.map((dealer) => {
+                    const labelBase = dealer.enterprise || dealer.fullName;
+                    const label = dealer.referenceCode
+                      ? `${labelBase} - ${dealer.referenceCode}`
+                      : labelBase;
+                    return (
+                      <option key={dealer.id} value={String(dealer.id)}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+              </AdminField>
+
+              <AdminField label="Vendedor vinculado (opcional)">
+                <select
+                  value={config.sellerId}
+                  onChange={(e) => setConfig((prev) => ({ ...prev, sellerId: e.target.value }))}
+                  className="admin-input"
+                  disabled={!config.dealerId || sellersLoading}
+                >
+                  <option value="">
+                    {!config.dealerId
+                      ? "Selecione a loja primeiro"
+                      : sellersLoading
+                      ? "Carregando vendedores..."
+                      : "Sem vendedor"}
+                  </option>
+                  {sellers.map((seller) => (
+                    <option key={seller.id} value={String(seller.id)}>
+                      {seller.fullName || seller.email || `Vendedor #${seller.id}`}
+                    </option>
+                  ))}
+                </select>
               </AdminField>
 
               <AdminField label="Nome do cliente (opcional)">
@@ -246,6 +386,8 @@ export default function ProposalLinkGeneratorPage() {
 
             <div className="space-y-3 text-sm">
               <PreviewRow label="Referencia" value={config.internalReference || "Auto"} />
+              <PreviewRow label="Loja" value={selectedDealerLabel} />
+              <PreviewRow label="Vendedor" value={selectedSellerLabel} />
               <PreviewRow
                 label="Fluxo"
                 value={config.mode === "simulacao" ? "Simulacao" : "Preencher proposta"}

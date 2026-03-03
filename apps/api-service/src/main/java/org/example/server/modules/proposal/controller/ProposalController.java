@@ -34,6 +34,18 @@ public class ProposalController {
         );
     }
 
+    @PostMapping("/public")
+    public ResponseEntity<ProposalResponseDTO> createPublic(
+            @RequestHeader(value = "X-Actor", required = false) String actor,
+            @Valid @RequestBody ProposalRequestDTO dto,
+            jakarta.servlet.http.HttpServletRequest request
+    ) {
+        String normalizedActor = actor != null && !actor.isBlank() ? actor : "PUBLIC_SITE_LINK";
+        return ResponseEntity.ok(
+                proposalService.createProposal(dto, request.getRemoteAddr(), normalizedActor)
+        );
+    }
+
     @GetMapping
     public ResponseEntity<List<ProposalResponseDTO>> list(
             @RequestParam(name = "dealerId", required = false) Long dealerId,
@@ -76,4 +88,3 @@ public class ProposalController {
         return ResponseEntity.noContent().build();
     }
 }
-

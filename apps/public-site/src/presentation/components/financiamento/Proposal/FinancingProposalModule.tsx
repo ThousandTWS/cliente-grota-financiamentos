@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   CarFront,
@@ -16,6 +16,15 @@ import {
 import { formatCurrencyInput } from "@/src/application/core/utils/currency/currencyMask";
 import { parseCurrency } from "@/src/application/core/utils/currency/parseCurrency";
 import { formatCurrency } from "@/src/application/core/utils/currency/formatCurrency";
+import {
+  Ano,
+  Marca,
+  Modelo,
+  getAnos,
+  getMarcas,
+  getModelos,
+  getValorVeiculo,
+} from "@/src/application/services/fipe";
 
 type FlowMode = "simulacao" | "proposta";
 type VehicleType = "leves" | "duas-rodas";
@@ -29,6 +38,9 @@ interface FinancingProposalModuleProps {
   initialVehicleType?: VehicleType;
   initialCondition?: VehicleCondition;
   proposalReference?: string;
+  linkToken?: string;
+  dealerId?: number;
+  sellerId?: number;
   expiresAt?: string;
   customerName?: string;
 }
@@ -40,10 +52,14 @@ interface ProposalData {
   hasLicense: YesNo;
   commercialUse: YesNo;
   vehicleCategory: string;
+  vehicleBrandCode: string;
   vehicleBrand: string;
+  vehicleModelCode: string;
   vehicleModel: string;
+  vehicleYearCode: string;
   manufactureYear: string;
   modelYear: string;
+  fipeCode: string;
   fuel: string;
   licenseState: string;
   vehicleValue: string;
@@ -83,8 +99,26 @@ const STEP_ICONS = {
   resultado: CircleCheckBig,
 };
 
-const YEAR_OPTIONS = Array.from({ length: 22 }, (_, i) => String(2010 + i));
 const UF_OPTIONS = ["SP", "RJ", "MG", "PR", "SC", "RS", "GO", "BA", "PE", "CE", "DF"];
+
+function getVehicleTypeId(vehicleCategory: string, vehicleType: VehicleType) {
+  const category = vehicleCategory.trim().toLowerCase();
+  if (category.includes("moto")) return 2;
+  if (category.includes("caminh") || category.includes("pesado")) return 3;
+  if (vehicleType === "duas-rodas") return 2;
+  return 1;
+}
+
+function extractYearFromFipe(yearCode: string, fallbackValue: string) {
+  const codePart = yearCode.split("-")[0]?.trim();
+  if (codePart && /^\d{4}$/.test(codePart)) return codePart;
+  const fallbackMatch = fallbackValue.match(/\d{4}/);
+  return fallbackMatch?.[0] ?? "";
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
 
 function formatCpf(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -143,10 +177,14 @@ function initialFormData(
     hasLicense: "sim",
     commercialUse: "nao",
     vehicleCategory: initialVehicleType === "duas-rodas" ? "Moto" : "Carro",
+    vehicleBrandCode: "",
     vehicleBrand: "",
+    vehicleModelCode: "",
     vehicleModel: "",
+    vehicleYearCode: "",
     manufactureYear: "",
     modelYear: "",
+    fipeCode: "",
     fuel: "",
     licenseState: "",
     vehicleValue: "",
@@ -176,6 +214,9 @@ export default function FinancingProposalModule({
   initialVehicleType = "leves",
   initialCondition = "usado",
   proposalReference,
+  linkToken,
+  dealerId,
+  sellerId,
   expiresAt,
   customerName,
 }: FinancingProposalModuleProps) {
@@ -184,6 +225,23 @@ export default function FinancingProposalModule({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<ProposalData>(() =>
     initialFormData(initialMode, initialVehicleType, initialCondition, customerName)
+  );
+  const [brands, setBrands] = useState<Marca[]>([]);
+  const [models, setModels] = useState<Modelo[]>([]);
+  const [years, setYears] = useState<Ano[]>([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [loadingYears, setLoadingYears] = useState(false);
+  const [loadingFipeValue, setLoadingFipeValue] = useState(false);
+  const [fipeError, setFipeError] = useState("");
+  const [fipeReferenceMonth, setFipeReferenceMonth] = useState("");
+  const [isSubmittingProposal, setIsSubmittingProposal] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submittedProposalId, setSubmittedProposalId] = useState<number | null>(null);
+
+  const vehicleTypeId = useMemo(
+    () => getVehicleTypeId(formData.vehicleCategory, formData.vehicleType),
+    [formData.vehicleCategory, formData.vehicleType]
   );
 
   const totalFinanced = useMemo(() => {
@@ -219,6 +277,214 @@ export default function FinancingProposalModule({
       return next;
     });
   };
+
+  const clearVehicleCascadeData = useCallback(() => {
+    setModels([]);
+    setYears([]);
+    setFipeReferenceMonth("");
+    setFipeError("");
+    setFormData((prev) => ({
+      ...prev,
+      vehicleBrandCode: "",
+      vehicleBrand: "",
+      vehicleModelCode: "",
+      vehicleModel: "",
+      vehicleYearCode: "",
+      manufactureYear: "",
+      modelYear: "",
+      fipeCode: "",
+      fuel: "",
+      vehicleValue: "",
+    }));
+  }, []);
+
+  const handleVehicleTypeSelect = useCallback((type: VehicleType, category: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      vehicleType: type,
+      vehicleCategory: category,
+      vehicleBrandCode: "",
+      vehicleBrand: "",
+      vehicleModelCode: "",
+      vehicleModel: "",
+      vehicleYearCode: "",
+      manufactureYear: "",
+      modelYear: "",
+      fipeCode: "",
+      fuel: "",
+      vehicleValue: "",
+    }));
+    setModels([]);
+    setYears([]);
+    setFipeReferenceMonth("");
+    setFipeError("");
+  }, []);
+
+  const handleVehicleCategoryChange = useCallback((category: string) => {
+    const normalized = category.trim().toLowerCase();
+    const nextType: VehicleType = normalized.includes("moto") ? "duas-rodas" : "leves";
+
+    setFormData((prev) => ({
+      ...prev,
+      vehicleType: nextType,
+      vehicleCategory: category,
+      vehicleBrandCode: "",
+      vehicleBrand: "",
+      vehicleModelCode: "",
+      vehicleModel: "",
+      vehicleYearCode: "",
+      manufactureYear: "",
+      modelYear: "",
+      fipeCode: "",
+      fuel: "",
+      vehicleValue: "",
+    }));
+    setModels([]);
+    setYears([]);
+    setFipeReferenceMonth("");
+    setFipeError("");
+  }, []);
+
+  const handleBrandChange = useCallback(
+    async (brandCode: string) => {
+      const selectedBrand = brands.find((brand) => brand.code === brandCode);
+      if (!selectedBrand) return;
+
+      setFormData((prev) => ({
+        ...prev,
+        vehicleBrandCode: selectedBrand.code,
+        vehicleBrand: selectedBrand.name,
+        vehicleModelCode: "",
+        vehicleModel: "",
+        vehicleYearCode: "",
+        manufactureYear: "",
+        modelYear: "",
+        fipeCode: "",
+        fuel: "",
+        vehicleValue: "",
+      }));
+      setYears([]);
+      setModels([]);
+      setFipeReferenceMonth("");
+      setFipeError("");
+
+      try {
+        setLoadingModels(true);
+        const data = await getModelos(vehicleTypeId, selectedBrand.code);
+        setModels(data);
+      } catch (error) {
+        console.error("[public-site][fipe][models]", error);
+        setFipeError("Nao foi possivel carregar os modelos FIPE.");
+      } finally {
+        setLoadingModels(false);
+      }
+    },
+    [brands, vehicleTypeId]
+  );
+
+  const handleModelChange = useCallback(
+    async (modelCode: string) => {
+      const selectedModel = models.find((model) => model.code === modelCode);
+      if (!selectedModel || !formData.vehicleBrandCode) return;
+
+      setFormData((prev) => ({
+        ...prev,
+        vehicleModelCode: selectedModel.code,
+        vehicleModel: selectedModel.name,
+        vehicleYearCode: "",
+        manufactureYear: "",
+        modelYear: "",
+        fipeCode: "",
+        fuel: "",
+        vehicleValue: "",
+      }));
+      setYears([]);
+      setFipeReferenceMonth("");
+      setFipeError("");
+
+      try {
+        setLoadingYears(true);
+        const data = await getAnos(vehicleTypeId, formData.vehicleBrandCode, selectedModel.code);
+        setYears(data);
+      } catch (error) {
+        console.error("[public-site][fipe][years]", error);
+        setFipeError("Nao foi possivel carregar os anos FIPE.");
+      } finally {
+        setLoadingYears(false);
+      }
+    },
+    [formData.vehicleBrandCode, models, vehicleTypeId]
+  );
+
+  const handleYearChange = useCallback(
+    async (yearCode: string) => {
+      if (!formData.vehicleBrandCode || !formData.vehicleModelCode) return;
+      const selectedYear = years.find((year) => year.code === yearCode);
+      const parsedYear = extractYearFromFipe(yearCode, selectedYear?.name ?? "");
+
+      setFormData((prev) => ({
+        ...prev,
+        vehicleYearCode: yearCode,
+        modelYear: parsedYear,
+        manufactureYear: parsedYear,
+      }));
+      setFipeError("");
+
+      try {
+        setLoadingFipeValue(true);
+        const data = await getValorVeiculo(
+          vehicleTypeId,
+          formData.vehicleBrandCode,
+          formData.vehicleModelCode,
+          yearCode
+        );
+        setFormData((prev) => ({
+          ...prev,
+          fipeCode: data.codeFipe ?? "",
+          fuel: data.fuel ?? "",
+          vehicleValue: formatCurrency(parseCurrency(data.price)),
+          vehicleBrand: data.brand || prev.vehicleBrand,
+          vehicleModel: data.model || prev.vehicleModel,
+        }));
+        setFipeReferenceMonth(data.referenceMonth ?? "");
+      } catch (error) {
+        console.error("[public-site][fipe][value]", error);
+        setFipeError("Nao foi possivel carregar o valor FIPE.");
+      } finally {
+        setLoadingFipeValue(false);
+      }
+    },
+    [formData.vehicleBrandCode, formData.vehicleModelCode, vehicleTypeId, years]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    clearVehicleCascadeData();
+
+    const loadBrands = async () => {
+      try {
+        setLoadingBrands(true);
+        const data = await getMarcas(vehicleTypeId);
+        if (!isMounted) return;
+        setBrands(data);
+      } catch (error) {
+        console.error("[public-site][fipe][brands]", error);
+        if (isMounted) {
+          setBrands([]);
+          setFipeError("Nao foi possivel carregar as marcas FIPE.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingBrands(false);
+        }
+      }
+    };
+
+    void loadBrands();
+    return () => {
+      isMounted = false;
+    };
+  }, [vehicleTypeId, clearVehicleCascadeData]);
 
   const validateCurrentStep = () => {
     const stepErrors: Record<string, string> = {};
@@ -295,10 +561,118 @@ export default function FinancingProposalModule({
     setErrors({});
     setStepIndex(0);
     setSubmittedAt(null);
+    setSubmittedProposalId(null);
+    setSubmitError("");
   };
 
-  const submitProposal = () => {
-    setSubmittedAt(new Date().toISOString());
+  const submitProposal = async () => {
+    if (isSubmittingProposal) return;
+    setSubmitError("");
+
+    if (linkExpired) {
+      setSubmitError("Este link expirou. Solicite um novo link ao consultor.");
+      return;
+    }
+
+    if (!dealerId) {
+      setSubmitError("Link invalido: loja nao vinculada. Solicite um novo link ao consultor.");
+      return;
+    }
+
+    const vehicleValue = parseCurrency(formData.vehicleValue || "R$ 0,00");
+    const downPayment = parseCurrency(formData.downPayment || "R$ 0,00");
+    const financedValue = Math.max(0, vehicleValue - downPayment);
+    const incomeValue = parseCurrency(formData.monthlyIncome || "R$ 0,00");
+    const vehicleYear = Number(formData.modelYear || formData.manufactureYear || "0");
+
+    if (!vehicleYear || Number.isNaN(vehicleYear)) {
+      setSubmitError("Ano do veiculo invalido. Revise os dados FIPE.");
+      return;
+    }
+
+    const payload = {
+      dealerId,
+      sellerId: sellerId ?? undefined,
+      customerName: formData.fullName,
+      customerCpf: onlyDigits(formData.cpf),
+      customerBirthDate: formData.birthDate || null,
+      customerEmail: formData.email,
+      customerPhone: onlyDigits(formData.phone),
+      cnhCategory: "",
+      hasCnh: formData.hasLicense === "sim",
+      vehiclePlate: "",
+      fipeCode: formData.fipeCode || "",
+      fipeValue: vehicleValue,
+      vehicleBrand: formData.vehicleBrand,
+      vehicleModel: formData.vehicleModel,
+      vehicleYear,
+      downPaymentValue: downPayment,
+      financedValue,
+      termMonths: 48,
+      vehicle0km: formData.vehicleCondition === "novo",
+      maritalStatus: formData.maritalStatus || undefined,
+      cep: formData.cep || undefined,
+      address: formData.street || undefined,
+      addressNumber: formData.number || undefined,
+      addressComplement: undefined,
+      neighborhood: formData.district || undefined,
+      uf: formData.state || undefined,
+      city: formData.city || undefined,
+      income: incomeValue || undefined,
+      otherIncomes: 0,
+      metadata: JSON.stringify({
+        source: "PUBLIC_SITE_LINK",
+        mode: formData.mode,
+        dealerId: dealerId ?? null,
+        sellerId: sellerId ?? null,
+        vehicleType: formData.vehicleType,
+        vehicleCategory: formData.vehicleCategory,
+        commercialUse: formData.commercialUse,
+        proposalReference,
+        linkToken,
+        linkExpiresAt: expiresAt ?? null,
+        fipeReferenceMonth,
+        fipeCodes: {
+          brandCode: formData.vehicleBrandCode,
+          modelCode: formData.vehicleModelCode,
+          yearCode: formData.vehicleYearCode,
+        },
+      }),
+      notes: formData.notes || undefined,
+    };
+
+    try {
+      setIsSubmittingProposal(true);
+      const response = await fetch("/api/proposals/public", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const responsePayload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message =
+          (responsePayload as { error?: string; message?: string })?.error ??
+          (responsePayload as { message?: string })?.message ??
+          "Nao foi possivel enviar sua proposta.";
+        throw new Error(message);
+      }
+
+      const createdId =
+        typeof (responsePayload as { id?: unknown }).id === "number"
+          ? (responsePayload as { id: number }).id
+          : null;
+
+      setSubmittedProposalId(createdId);
+      setSubmittedAt(new Date().toISOString());
+    } catch (error) {
+      console.error("[public-site][proposal-submit]", error);
+      setSubmitError(error instanceof Error ? error.message : "Erro ao enviar proposta.");
+    } finally {
+      setIsSubmittingProposal(false);
+    }
   };
 
   return (
@@ -351,10 +725,7 @@ export default function FinancingProposalModule({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               type="button"
-              onClick={() => {
-                updateField("vehicleType", "leves");
-                updateField("vehicleCategory", "Carro");
-              }}
+              onClick={() => handleVehicleTypeSelect("leves", "Carro")}
               className={`relative overflow-hidden rounded-2xl h-44 text-left transition-all ${
                 formData.vehicleType === "leves"
                   ? "ring-2 ring-[#1B4B7C] shadow-md"
@@ -373,10 +744,7 @@ export default function FinancingProposalModule({
 
             <button
               type="button"
-              onClick={() => {
-                updateField("vehicleType", "duas-rodas");
-                updateField("vehicleCategory", "Moto");
-              }}
+              onClick={() => handleVehicleTypeSelect("duas-rodas", "Moto")}
               className={`relative overflow-hidden rounded-2xl h-44 text-left transition-all ${
                 formData.vehicleType === "duas-rodas"
                   ? "ring-2 ring-[#1B4B7C] shadow-md"
@@ -517,7 +885,7 @@ export default function FinancingProposalModule({
                   <FormField label="Tipo de veiculo" error={errors.vehicleCategory}>
                     <select
                       value={formData.vehicleCategory}
-                      onChange={(e) => updateField("vehicleCategory", e.target.value)}
+                      onChange={(e) => handleVehicleCategoryChange(e.target.value)}
                       className="w-full input-control"
                     >
                       <option value="">Selecione</option>
@@ -528,66 +896,83 @@ export default function FinancingProposalModule({
                   </FormField>
 
                   <FormField label="Marca ou montadora" error={errors.vehicleBrand}>
-                    <input
-                      value={formData.vehicleBrand}
-                      onChange={(e) => updateField("vehicleBrand", e.target.value)}
-                      className="w-full input-control"
-                      placeholder="Ex: Fiat"
-                    />
-                  </FormField>
-
-                  <FormField label="Modelo do veiculo" error={errors.vehicleModel}>
-                    <input
-                      value={formData.vehicleModel}
-                      onChange={(e) => updateField("vehicleModel", e.target.value)}
-                      className="w-full input-control"
-                      placeholder="Ex: Argo 1.0"
-                    />
-                  </FormField>
-
-                  <FormField label="Ano de fabricacao" error={errors.manufactureYear}>
                     <select
-                      value={formData.manufactureYear}
-                      onChange={(e) => updateField("manufactureYear", e.target.value)}
+                      value={formData.vehicleBrandCode}
+                      onChange={(e) => void handleBrandChange(e.target.value)}
                       className="w-full input-control"
+                      disabled={loadingBrands || brands.length === 0}
                     >
-                      <option value="">Selecione</option>
-                      {YEAR_OPTIONS.map((year) => (
-                        <option key={`fab-${year}`} value={year}>
-                          {year}
+                      <option value="">
+                        {loadingBrands ? "Carregando marcas..." : "Selecione a marca"}
+                      </option>
+                      {brands.map((brand) => (
+                        <option key={brand.code} value={brand.code}>
+                          {brand.name}
                         </option>
                       ))}
                     </select>
+                  </FormField>
+
+                  <FormField label="Modelo do veiculo" error={errors.vehicleModel}>
+                    <select
+                      value={formData.vehicleModelCode}
+                      onChange={(e) => void handleModelChange(e.target.value)}
+                      className="w-full input-control"
+                      disabled={!formData.vehicleBrandCode || loadingModels || models.length === 0}
+                    >
+                      <option value="">
+                        {!formData.vehicleBrandCode
+                          ? "Selecione a marca primeiro"
+                          : loadingModels
+                          ? "Carregando modelos..."
+                          : "Selecione o modelo"}
+                      </option>
+                      {models.map((model) => (
+                        <option key={model.code} value={model.code}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+
+                  <FormField label="Ano de fabricacao" error={errors.manufactureYear}>
+                    <input
+                      value={formData.manufactureYear}
+                      className="w-full input-control bg-gray-50"
+                      placeholder="Aguardando selecao FIPE"
+                      readOnly
+                    />
                   </FormField>
 
                   <FormField label="Ano do modelo" error={errors.modelYear}>
                     <select
-                      value={formData.modelYear}
-                      onChange={(e) => updateField("modelYear", e.target.value)}
+                      value={formData.vehicleYearCode}
+                      onChange={(e) => void handleYearChange(e.target.value)}
                       className="w-full input-control"
+                      disabled={!formData.vehicleModelCode || loadingYears || years.length === 0}
                     >
-                      <option value="">Selecione</option>
-                      {YEAR_OPTIONS.map((year) => (
-                        <option key={`model-${year}`} value={year}>
-                          {year}
+                      <option value="">
+                        {!formData.vehicleModelCode
+                          ? "Selecione o modelo primeiro"
+                          : loadingYears
+                          ? "Carregando anos..."
+                          : "Selecione o ano"}
+                      </option>
+                      {years.map((year) => (
+                        <option key={year.code} value={year.code}>
+                          {year.name}
                         </option>
                       ))}
                     </select>
                   </FormField>
 
-                  <FormField label="Combustivel" error={errors.fuel}>
-                    <select
+                  <FormField label="Combustivel (FIPE)" error={errors.fuel}>
+                    <input
                       value={formData.fuel}
-                      onChange={(e) => updateField("fuel", e.target.value)}
-                      className="w-full input-control"
-                    >
-                      <option value="">Selecione</option>
-                      <option value="Flex">Flex</option>
-                      <option value="Gasolina">Gasolina</option>
-                      <option value="Diesel">Diesel</option>
-                      <option value="Eletrico">Eletrico</option>
-                      <option value="Hibrido">Hibrido</option>
-                    </select>
+                      className="w-full input-control bg-gray-50"
+                      placeholder={loadingFipeValue ? "Carregando valor FIPE..." : "Aguardando selecao FIPE"}
+                      readOnly
+                    />
                   </FormField>
 
                   <FormField label="UF do licenciamento" error={errors.licenseState}>
@@ -622,7 +1007,22 @@ export default function FinancingProposalModule({
                       placeholder="R$ 0,00"
                     />
                   </FormField>
+
+                  <FormField label="Codigo FIPE">
+                    <input
+                      value={formData.fipeCode}
+                      className="w-full input-control bg-gray-50"
+                      placeholder="Aguardando selecao FIPE"
+                      readOnly
+                    />
+                  </FormField>
                 </div>
+                {fipeReferenceMonth ? (
+                  <p className="mt-3 text-sm text-gray-500">
+                    Referencia FIPE: {fipeReferenceMonth}
+                  </p>
+                ) : null}
+                {fipeError ? <p className="mt-2 text-sm text-red-600">{fipeError}</p> : null}
               </section>
             ) : null}
 
@@ -808,8 +1208,18 @@ export default function FinancingProposalModule({
                         <p className="text-sm text-green-700 mt-1">
                           Recebemos seus dados em {formatDateForHumans(submittedAt)}. Em breve entraremos em contato.
                         </p>
+                        {submittedProposalId ? (
+                          <p className="text-sm text-green-800 font-semibold mt-1">
+                            Numero da proposta: #{submittedProposalId}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
+                  </div>
+                ) : null}
+                {submitError ? (
+                  <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    {submitError}
                   </div>
                 ) : null}
 
@@ -871,9 +1281,10 @@ export default function FinancingProposalModule({
                   <button
                     type="button"
                     onClick={submitProposal}
-                    className="px-5 py-2 rounded-lg bg-[#1B4B7C] text-white hover:bg-[#153a5f]"
+                    disabled={isSubmittingProposal}
+                    className="px-5 py-2 rounded-lg bg-[#1B4B7C] text-white hover:bg-[#153a5f] disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Enviar dados
+                    {isSubmittingProposal ? "Enviando..." : "Enviar dados"}
                   </button>
                 </div>
               )}

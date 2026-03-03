@@ -22,6 +22,12 @@ function parseCondition(value: string | null) {
   return value === "novo" ? "novo" : "usado";
 }
 
+function parseNumericParam(value: string | null) {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function PropostaFinanciamentoContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isScrolled = useScrollDetection(100);
@@ -37,8 +43,11 @@ function PropostaFinanciamentoContent() {
   const vehicleType = parseVehicleType(searchParams.get("vehicleType"));
   const condition = parseCondition(searchParams.get("condition"));
   const proposalReference = searchParams.get("ref") ?? searchParams.get("token") ?? undefined;
+  const linkToken = searchParams.get("token") ?? undefined;
   const expiresAt = searchParams.get("expiresAt") ?? undefined;
   const customerName = searchParams.get("customer") ?? undefined;
+  const dealerId = parseNumericParam(searchParams.get("dealerId"));
+  const sellerId = parseNumericParam(searchParams.get("sellerId"));
 
   return (
     <div className="min-h-screen w-full relative bg-[#F3F4F6]">
@@ -52,6 +61,9 @@ function PropostaFinanciamentoContent() {
           initialVehicleType={vehicleType}
           initialCondition={condition}
           proposalReference={proposalReference}
+          linkToken={linkToken}
+          dealerId={dealerId}
+          sellerId={sellerId}
           expiresAt={expiresAt}
           customerName={customerName}
         />
