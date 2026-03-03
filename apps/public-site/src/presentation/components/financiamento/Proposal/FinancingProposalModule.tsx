@@ -164,6 +164,32 @@ function formatDateForHumans(dateString?: string) {
   });
 }
 
+function pickFirstText(...values: Array<unknown>) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function normalizeBirthDate(value: string) {
+  const normalized = value.trim();
+  if (!normalized) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  const dmyMatch = normalized.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
 function initialFormData(
   initialMode: FlowMode,
   initialVehicleType: VehicleType,
@@ -238,6 +264,10 @@ export default function FinancingProposalModule({
   const [isSubmittingProposal, setIsSubmittingProposal] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submittedProposalId, setSubmittedProposalId] = useState<number | null>(null);
+  const [isSearchingCpf, setIsSearchingCpf] = useState(false);
+  const [cpfLookupInfo, setCpfLookupInfo] = useState("");
+  const [cpfLookupError, setCpfLookupError] = useState("");
+  const [lastCpfLookup, setLastCpfLookup] = useState("");
 
   const vehicleTypeId = useMemo(
     () => getVehicleTypeId(formData.vehicleCategory, formData.vehicleType),
@@ -276,6 +306,88 @@ export default function FinancingProposalModule({
       delete next[field as string];
       return next;
     });
+  };
+
+  const handleCpfChange = (value: string) => {
+    const maskedCpf = formatCpf(value);
+    updateField("cpf", maskedCpf);
+
+    const digits = onlyDigits(maskedCpf);
+    if (digits.length < 11) {
+      setCpfLookupInfo("");
+      setCpfLookupError("");
+      setLastCpfLookup("");
+    }
+  };
+
+  const handleCpfLookup = async () => {
+    const cpfDigits = onlyDigits(formData.cpf);
+    if (cpfDigits.length !== 11) {
+      setCpfLookupInfo("");
+      setCpfLookupError("Informe um CPF valido com 11 digitos.");
+      return;
+    }
+
+    if (isSearchingCpf || cpfDigits === lastCpfLookup) return;
+
+    try {
+      setIsSearchingCpf(true);
+      setCpfLookupInfo("");
+      setCpfLookupError("");
+
+      const response = await fetch("/api/searchCPF", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cpf: cpfDigits }),
+      });
+
+      const responsePayload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!response.ok) {
+        const message =
+          pickFirstText(
+            (responsePayload as { error?: unknown }).error,
+            (responsePayload as { message?: unknown }).message
+          ) || "Nao foi possivel consultar o CPF.";
+        throw new Error(message);
+      }
+
+      const lookupData = (responsePayload.data as Record<string, unknown> | undefined) ?? responsePayload;
+      const content = (lookupData.response as { content?: Record<string, unknown> } | undefined)?.content ?? {};
+      const nomeContainer = (content.nome as { conteudo?: Record<string, unknown> } | undefined)?.conteudo ?? {};
+
+      const nomeCompleto = pickFirstText(
+        nomeContainer.nome,
+        lookupData.nome
+      );
+      const dataNascimento = normalizeBirthDate(
+        pickFirstText(nomeContainer.data_nascimento, lookupData.nascimento)
+      );
+      const statusCpf = pickFirstText(
+        content.situacao_cadastral,
+        content.status,
+        lookupData.situacao_cadastral,
+        lookupData.status
+      );
+
+      if (nomeCompleto || dataNascimento) {
+        setFormData((prev) => ({
+          ...prev,
+          fullName: prev.fullName.trim() ? prev.fullName : nomeCompleto,
+          birthDate: prev.birthDate || dataNascimento,
+        }));
+      }
+
+      setCpfLookupInfo(statusCpf ? `CPF consultado: ${statusCpf}` : "CPF consultado com sucesso.");
+      setLastCpfLookup(cpfDigits);
+    } catch (error) {
+      console.error("[public-site][cpf-lookup]", error);
+      setCpfLookupInfo("");
+      setCpfLookupError(
+        error instanceof Error ? error.message : "Nao foi possivel consultar o CPF."
+      );
+    } finally {
+      setIsSearchingCpf(false);
+    }
   };
 
   const clearVehicleCascadeData = useCallback(() => {
@@ -563,6 +675,9 @@ export default function FinancingProposalModule({
     setSubmittedAt(null);
     setSubmittedProposalId(null);
     setSubmitError("");
+    setCpfLookupInfo("");
+    setCpfLookupError("");
+    setLastCpfLookup("");
   };
 
   const submitProposal = async () => {
@@ -1033,12 +1148,29 @@ export default function FinancingProposalModule({
                     />
                   </FormField>
                   <FormField label="CPF" error={errors.cpf}>
-                    <input
-                      value={formData.cpf}
-                      onChange={(e) => updateField("cpf", formatCpf(e.target.value))}
-                      className="w-full input-control"
-                      placeholder="000.000.000-00"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        value={formData.cpf}
+                        onChange={(e) => handleCpfChange(e.target.value)}
+                        onBlur={() => void handleCpfLookup()}
+                        className="w-full input-control"
+                        placeholder="000.000.000-00"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleCpfLookup()}
+                        disabled={isSearchingCpf || onlyDigits(formData.cpf).length !== 11}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSearchingCpf ? "..." : "Consultar"}
+                      </button>
+                    </div>
+                    {cpfLookupInfo ? (
+                      <p className="mt-1 text-xs text-emerald-700">{cpfLookupInfo}</p>
+                    ) : null}
+                    {cpfLookupError ? (
+                      <p className="mt-1 text-xs text-red-600">{cpfLookupError}</p>
+                    ) : null}
                   </FormField>
                   <FormField label="Data de nascimento" error={errors.birthDate}>
                     <input
