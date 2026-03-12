@@ -46,6 +46,7 @@ public class OperatorMapper {
                 operator.getCanCreate(),
                 operator.getCanUpdate(),
                 operator.getCanDelete(),
+                operator.getCanChangeProposalStatus(),
                 generatedPassword);
     }
 
@@ -62,5 +63,4 @@ public class OperatorMapper {
         return operator;
     }
 }
-
 

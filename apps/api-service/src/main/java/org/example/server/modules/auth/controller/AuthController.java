@@ -176,6 +176,7 @@ public class AuthController {
                 Boolean canCreate = true;
                 Boolean canUpdate = true;
                 Boolean canDelete = true;
+                Boolean canChangeProposalStatus = true;
                 Long dealerId = null;
                 java.util.List<Long> allowedDealerIds = null;
                 Integer allowedDealersCount = null;
@@ -195,6 +196,7 @@ public class AuthController {
                         canCreate = o.getCanCreate();
                         canUpdate = o.getCanUpdate();
                         canDelete = o.getCanDelete();
+                        canChangeProposalStatus = o.getCanChangeProposalStatus();
                         allowedDealerIds = o.getDealerIds();
                         allowedDealersCount = allowedDealerIds != null ? allowedDealerIds.size() : 0;
                 } else if (user.getSeller() != null) {
@@ -215,6 +217,7 @@ public class AuthController {
                                 canCreate,
                                 canUpdate,
                                 canDelete,
+                                canChangeProposalStatus,
                                 dealerId,
                                 allowedDealerIds,
                                 allowedDealersCount);
@@ -318,6 +321,5 @@ public class AuthController {
                                 .build();
         }
 }
-
 
 

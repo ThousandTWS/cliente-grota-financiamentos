@@ -7,6 +7,7 @@ export interface AuthenticatedUser {
   canCreate?: boolean;
   canUpdate?: boolean;
   canDelete?: boolean;
+  canChangeProposalStatus?: boolean;
   allowedDealerIds?: number[];
   allowedDealersCount?: number;
 }

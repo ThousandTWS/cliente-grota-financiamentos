@@ -30,6 +30,7 @@ interface AuthenticatedUser {
   canCreate?: boolean;
   canUpdate?: boolean;
   canDelete?: boolean;
+  canChangeProposalStatus?: boolean;
 }
 
 const API_BASE_URL = getLogistaApiBaseUrl();
@@ -168,6 +169,7 @@ export async function POST(request: NextRequest) {
       canCreate: user.canCreate ?? true,
       canUpdate: user.canUpdate ?? true,
       canDelete: user.canDelete ?? true,
+      canChangeProposalStatus: user.canChangeProposalStatus ?? true,
       scope: LOGISTA_SESSION_SCOPE,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,

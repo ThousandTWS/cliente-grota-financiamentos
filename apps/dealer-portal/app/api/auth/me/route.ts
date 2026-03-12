@@ -117,6 +117,7 @@ export async function GET() {
     canCreate: user?.canCreate ?? true,
     canUpdate: user?.canUpdate ?? true,
     canDelete: user?.canDelete ?? true,
+    canChangeProposalStatus: user?.canChangeProposalStatus ?? true,
   };
 
   const encoded = await encryptSession(activeSession, SESSION_SECRET);

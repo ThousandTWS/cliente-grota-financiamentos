@@ -3,6 +3,7 @@ package org.example.server.modules.operator.service;
 import org.example.server.core.email.EmailService;
 import org.example.server.shared.address.dto.AddressMapper;
 import org.example.server.modules.operator.dto.OperatorMapper;
+import org.example.server.modules.operator.dto.OperatorProposalStatusPermissionUpdateDTO;
 import org.example.server.modules.operator.dto.OperatorRequestDTO;
 import org.example.server.modules.operator.dto.OperatorResponseDTO;
 import org.example.server.modules.user.model.UserRole;
@@ -128,6 +129,7 @@ public class OperatorService {
         operator.setCanCreate(operatorRequestDTO.canCreate() != null ? operatorRequestDTO.canCreate() : true);
         operator.setCanUpdate(operatorRequestDTO.canUpdate() != null ? operatorRequestDTO.canUpdate() : true);
         operator.setCanDelete(operatorRequestDTO.canDelete() != null ? operatorRequestDTO.canDelete() : true);
+        operator.setCanChangeProposalStatus(true);
         operator.setDealer(primaryDealer);
 
         newUser.setOperator(operator);
@@ -226,6 +228,27 @@ public class OperatorService {
         operator.setDealer(dealer);
 
         userRepository.save(operatorUser);
+        operatorRepository.save(operator);
+
+        return operatorMapper.toDTO(operator);
+    }
+
+    public OperatorResponseDTO updateProposalStatusPermission(
+            User requester,
+            Long operatorId,
+            OperatorProposalStatusPermissionUpdateDTO dto) {
+        if (!requester.getRole().equals(UserRole.ADMIN)) {
+            throw new AccessDeniedException("Apenas ADMIN pode atualizar permissoes do operador.");
+        }
+
+        if (dto == null || dto.canChangeProposalStatus() == null) {
+            throw new IllegalArgumentException("A permissao de alterar status e obrigatoria.");
+        }
+
+        Operator operator = operatorRepository.findById(operatorId)
+                .orElseThrow(() -> new RecordNotFoundException(operatorId));
+
+        operator.setCanChangeProposalStatus(dto.canChangeProposalStatus());
         operatorRepository.save(operator);
 
         return operatorMapper.toDTO(operator);

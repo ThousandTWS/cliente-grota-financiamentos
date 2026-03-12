@@ -9,6 +9,7 @@ export interface SessionPayload {
   canCreate?: boolean;
   canUpdate?: boolean;
   canDelete?: boolean;
+  canChangeProposalStatus?: boolean;
   scope: SessionScope;
   accessToken: string;
   refreshToken: string;

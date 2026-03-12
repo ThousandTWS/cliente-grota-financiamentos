@@ -50,6 +50,9 @@ public class Operator {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private Boolean canDelete = true;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private Boolean canChangeProposalStatus = true;
+
     /**
      * @deprecated Use dealerLinks for multi-dealer support. Kept for backwards
      *             compatibility.
@@ -152,6 +155,14 @@ public class Operator {
         this.canDelete = canDelete;
     }
 
+    public Boolean getCanChangeProposalStatus() {
+        return canChangeProposalStatus;
+    }
+
+    public void setCanChangeProposalStatus(Boolean canChangeProposalStatus) {
+        this.canChangeProposalStatus = canChangeProposalStatus;
+    }
+
     public Dealer getDealer() {
         return dealer;
     }
@@ -192,5 +203,4 @@ public class Operator {
         return Objects.hash(id);
     }
 }
-
 

@@ -128,7 +128,14 @@ public class ApplicationControllerAdvice {
                 "Valor invalido para o campo 'status'.");
     }
 
-}
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex) {
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage());
+    }
 
+}
 
 

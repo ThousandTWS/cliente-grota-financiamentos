@@ -7,7 +7,9 @@ import org.example.server.modules.proposal.dto.ProposalResponseDTO;
 import org.example.server.modules.proposal.dto.ProposalStatusUpdateDTO;
 import org.example.server.modules.proposal.model.ProposalStatus;
 import org.example.server.modules.proposal.service.ProposalService;
+import org.example.server.modules.user.model.User;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -69,10 +71,11 @@ public class ProposalController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<ProposalResponseDTO> updateStatus(
             @PathVariable Long id,
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody ProposalStatusUpdateDTO dto,
             jakarta.servlet.http.HttpServletRequest request
     ) {
-        return ResponseEntity.ok(proposalService.updateStatus(id, dto, request.getRemoteAddr()));
+        return ResponseEntity.ok(proposalService.updateStatus(user, id, dto, request.getRemoteAddr()));
     }
 
     @GetMapping("/{id}/events")

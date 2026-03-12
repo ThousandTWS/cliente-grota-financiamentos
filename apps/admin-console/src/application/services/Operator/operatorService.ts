@@ -10,6 +10,7 @@ export type Operator = {
   canCreate?: boolean;
   canUpdate?: boolean;
   canDelete?: boolean;
+  canChangeProposalStatus?: boolean;
 };
 
 export type CreateOperatorPayload = {
@@ -116,3 +117,12 @@ export const deleteOperator = async (operatorId: number): Promise<void> => {
   });
 };
 
+export const updateOperatorProposalStatusPermission = async (
+  operatorId: number,
+  canChangeProposalStatus: boolean,
+): Promise<Operator> => {
+  return request<Operator>(`/api/operators/${operatorId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ canChangeProposalStatus }),
+  });
+};

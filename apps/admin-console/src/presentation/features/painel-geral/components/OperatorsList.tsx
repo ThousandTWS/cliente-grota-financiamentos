@@ -9,12 +9,18 @@ import {
   Input,
   Popconfirm,
   Spin,
+  Switch,
   Table,
   Tooltip,
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { deleteOperator, getAllOperators, Operator } from "@/application/services/Operator/operatorService";
+import {
+  deleteOperator,
+  getAllOperators,
+  Operator,
+  updateOperatorProposalStatusPermission,
+} from "@/application/services/Operator/operatorService";
 import { Inbox, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { StatusBadge } from "../../logista/components/status-badge";
 import { useToast } from "@/application/core/hooks/use-toast";
@@ -40,6 +46,7 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [permissionLoadingId, setPermissionLoadingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -148,6 +155,56 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
     }
   };
 
+  const handlePermissionToggle = async (
+    operatorId: number,
+    checked: boolean,
+  ) => {
+    if (permissionLoadingId) return;
+
+    setPermissionLoadingId(operatorId);
+    try {
+      const updated = await updateOperatorProposalStatusPermission(
+        operatorId,
+        checked,
+      );
+      if (!mountedRef.current) return;
+
+      setOperators((prev) =>
+        prev.map((operator) =>
+          operator.id === operatorId
+            ? {
+                ...operator,
+                canChangeProposalStatus:
+                  updated.canChangeProposalStatus ?? checked,
+              }
+            : operator,
+        ),
+      );
+      toast({
+        title: "Permissao atualizada",
+        description: checked
+          ? "O operador agora pode alterar o status das fichas."
+          : "O operador nao pode mais alterar o status das fichas.",
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Nao foi possivel atualizar a permissao do operador.";
+      if (mountedRef.current) {
+        toast({
+          title: "Erro ao atualizar permissao",
+          description: message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      if (mountedRef.current) {
+        setPermissionLoadingId(null);
+      }
+    }
+  };
+
   const activeOperators = useMemo(
     () => operators.filter((o) => isActive(o.status)),
     [operators],
@@ -217,6 +274,22 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
       dataIndex: "createdAt",
       render: (value: string | undefined) => (
         <Typography.Text type="secondary">{formatDate(value)}</Typography.Text>
+      ),
+    },
+    {
+      key: "proposalStatusPermission",
+      title: "Alterar status da ficha",
+      render: (_: unknown, operator: Operator) => (
+        <div className="flex items-center gap-3">
+          <Switch
+            checked={operator.canChangeProposalStatus ?? true}
+            loading={permissionLoadingId === operator.id}
+            onChange={(checked) => handlePermissionToggle(operator.id, checked)}
+          />
+          <Typography.Text type="secondary" className="text-xs">
+            {operator.canChangeProposalStatus ?? true ? "Permitido" : "Bloqueado"}
+          </Typography.Text>
+        </div>
       ),
     },
     {

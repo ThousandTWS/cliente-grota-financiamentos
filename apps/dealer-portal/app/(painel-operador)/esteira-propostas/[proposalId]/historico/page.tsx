@@ -13,6 +13,7 @@ import {
   fetchProposals,
   updateProposalStatus,
 } from "@/application/services/Proposals/proposalService";
+import userServices from "@/application/services/UserServices/UserServices";
 import { fetchAllDealers } from "@/application/services/DealerServices/dealerService";
 import { fetchAllSellers } from "@/application/services/Sellers/sellerService";
 import {
@@ -278,6 +279,8 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   const [messageOpen, setMessageOpen] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [canChangeProposalStatus, setCanChangeProposalStatus] = useState(true);
+  const [isLoadingPermission, setIsLoadingPermission] = useState(true);
   const [dealerIndex, setDealerIndex] = useState<
     Record<number, { name: string; enterprise?: string }>
   >({});
@@ -404,6 +407,38 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
+    const loadPermission = async () => {
+      try {
+        const user = await userServices.me();
+        if (!mounted) return;
+
+        if ((user.role ?? "").toUpperCase() === "OPERADOR") {
+          setCanChangeProposalStatus(user.canChangeProposalStatus ?? true);
+        } else {
+          setCanChangeProposalStatus(true);
+        }
+      } catch (err) {
+        console.warn(
+          "[Operador Historico] Nao foi possivel carregar permissoes do usuario",
+          err,
+        );
+      } finally {
+        if (mounted) {
+          setIsLoadingPermission(false);
+        }
+      }
+    };
+
+    void loadPermission();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isValidId) return;
     let mounted = true;
     const load = async () => {
@@ -457,6 +492,10 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
   const performStatusUpdate = useCallback(
     async (nextStatus: ProposalStatus, contractNumber?: string) => {
       if (!proposal) return;
+      if (!canChangeProposalStatus) {
+        messageApi.warning("Seu acesso nao permite alterar o status das fichas.");
+        return;
+      }
       setIsUpdatingStatus(true);
       try {
         const note = noteDraft.trim();
@@ -480,12 +519,16 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
         setIsUpdatingStatus(false);
       }
     },
-    [noteDraft, proposal, reloadTimeline, messageApi],
+    [canChangeProposalStatus, noteDraft, proposal, reloadTimeline, messageApi],
   );
 
   const handleStatusChange = useCallback(
     (value: ProposalStatus) => {
       if (!proposal) return;
+      if (!canChangeProposalStatus) {
+        messageApi.warning("Seu acesso nao permite alterar o status das fichas.");
+        return;
+      }
       if (value === "PAID" && proposal.status !== "PAID") {
         setContractNumberModal({
           open: true,
@@ -496,7 +539,7 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
       }
       void performStatusUpdate(value);
     },
-    [performStatusUpdate, proposal],
+    [canChangeProposalStatus, performStatusUpdate, proposal, messageApi],
   );
 
   const handleContractNumberOk = async () => {
@@ -563,10 +606,17 @@ export default function ProposalHistoryPage({ params }: { params: Params }) {
             </div>
 
             <Space wrap>
+              {!canChangeProposalStatus && !isLoadingPermission ? (
+                <Alert
+                  type="warning"
+                  message="Seu perfil nao possui permissao para alterar o status desta ficha."
+                  showIcon
+                />
+              ) : null}
               <Select
                 value={proposal?.status}
                 onChange={(value) => handleStatusChange(value as ProposalStatus)}
-                disabled={!proposal || isUpdatingStatus}
+                disabled={!proposal || isUpdatingStatus || isLoadingPermission || !canChangeProposalStatus}
                 style={{ minWidth: 180 }}
                 options={statusOptions.map((status) => ({
                   value: status,

@@ -3,6 +3,7 @@ package org.example.server.modules.proposal.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.server.core.exception.generic.DataAlreadyExistsException;
+import org.example.server.modules.auth.exception.AccessDeniedException;
 import org.example.server.modules.billing.service.BillingService;
 import org.example.server.modules.proposal.dto.ProposalEventResponseDTO;
 import org.example.server.modules.proposal.dto.ProposalRequestDTO;
@@ -20,6 +21,8 @@ import org.example.server.modules.proposal.repository.ProposalEventRepository;
 import org.example.server.modules.proposal.repository.ProposalRepository;
 import org.example.server.modules.seller.repository.SellerRepository;
 import org.example.server.modules.proposal.factory.ProposalEventFactory;
+import org.example.server.modules.user.model.User;
+import org.example.server.modules.user.model.UserRole;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -188,11 +191,21 @@ public class ProposalService {
      */
     @SuppressWarnings("null")
     @Transactional
-    public ProposalResponseDTO updateStatus(Long id, ProposalStatusUpdateDTO dto, String originIp) {
+    public ProposalResponseDTO updateStatus(User authenticatedUser, Long id, ProposalStatusUpdateDTO dto, String originIp) {
         @SuppressWarnings("null")
         Proposal proposal = proposalRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("Proposta não encontrada"));
         ProposalStatus previousStatus = proposal.getStatus();
+
+        boolean isOperatorWithoutStatusPermission = authenticatedUser != null
+                && authenticatedUser.getRole() == UserRole.OPERADOR
+                && authenticatedUser.getOperator() != null
+                && Boolean.FALSE.equals(authenticatedUser.getOperator().getCanChangeProposalStatus());
+        boolean isTryingToChangeStatus = dto.status() != null && dto.status() != previousStatus;
+
+        if (isOperatorWithoutStatusPermission && isTryingToChangeStatus) {
+            throw new AccessDeniedException("Voce nao tem permissao para alterar o status das fichas.");
+        }
 
         if (dto.status() != null) {
             proposal.setStatus(dto.status());

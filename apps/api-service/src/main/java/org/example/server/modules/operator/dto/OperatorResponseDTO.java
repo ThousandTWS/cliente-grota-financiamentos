@@ -22,8 +22,8 @@ public record OperatorResponseDTO(
         Boolean canCreate,
         Boolean canUpdate,
         Boolean canDelete,
+        Boolean canChangeProposalStatus,
 
         String generatedPassword) {
 }
-
 

@@ -13,6 +13,7 @@ public record UserResponseDTO(
                 Boolean canCreate,
                 Boolean canUpdate,
                 Boolean canDelete,
+                Boolean canChangeProposalStatus,
       
                 Long dealerId,
          
@@ -20,5 +21,4 @@ public record UserResponseDTO(
 
                 Integer allowedDealersCount) {
 }
-
 

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.example.server.modules.operator.dto.OperatorProposalStatusPermissionUpdateDTO;
 import org.example.server.modules.operator.dto.OperatorRequestDTO;
 import org.example.server.modules.operator.dto.OperatorResponseDTO;
 import org.example.server.modules.user.model.User;
@@ -102,6 +103,22 @@ public class OperatorController {
         public ResponseEntity<OperatorResponseDTO> update(@PathVariable Long id, @AuthenticationPrincipal User user,
                         @RequestBody OperatorRequestDTO operatorRequestDTO) {
                 OperatorResponseDTO operator = operatorService.update(user, id, operatorRequestDTO);
+                return ResponseEntity.ok().body(operator);
+        }
+
+        @PatchMapping("/{id}/proposal-status-permission")
+        @Operation(summary = "Atualizar permissão de status da ficha", description = "Permite habilitar ou bloquear a troca de status de fichas para o operador.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Permissão atualizada com sucesso"),
+                        @ApiResponse(responseCode = "401", description = "Não autorizado"),
+                        @ApiResponse(responseCode = "400", description = "Payload inválido"),
+                        @ApiResponse(responseCode = "404", description = "Operador não encontrado")
+        })
+        public ResponseEntity<OperatorResponseDTO> updateProposalStatusPermission(
+                        @PathVariable Long id,
+                        @AuthenticationPrincipal User user,
+                        @RequestBody OperatorProposalStatusPermissionUpdateDTO dto) {
+                OperatorResponseDTO operator = operatorService.updateProposalStatusPermission(user, id, dto);
                 return ResponseEntity.ok().body(operator);
         }
 }
