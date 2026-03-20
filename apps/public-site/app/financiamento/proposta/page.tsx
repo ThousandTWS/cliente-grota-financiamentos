@@ -42,8 +42,7 @@ function PropostaFinanciamentoContent() {
   const mode = parseMode(searchParams.get("mode"));
   const vehicleType = parseVehicleType(searchParams.get("vehicleType"));
   const condition = parseCondition(searchParams.get("condition"));
-  const proposalReference = searchParams.get("ref") ?? searchParams.get("token") ?? undefined;
-  const linkToken = searchParams.get("token") ?? undefined;
+  const proposalReference = searchParams.get("ref") ?? undefined;
   const expiresAt = searchParams.get("expiresAt") ?? undefined;
   const customerName = searchParams.get("customer") ?? undefined;
   const dealerId = parseNumericParam(searchParams.get("dealerId"));
@@ -61,7 +60,6 @@ function PropostaFinanciamentoContent() {
           initialVehicleType={vehicleType}
           initialCondition={condition}
           proposalReference={proposalReference}
-          linkToken={linkToken}
           dealerId={dealerId}
           sellerId={sellerId}
           expiresAt={expiresAt}

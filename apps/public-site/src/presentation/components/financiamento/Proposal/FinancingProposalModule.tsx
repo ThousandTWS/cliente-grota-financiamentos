@@ -38,7 +38,6 @@ interface FinancingProposalModuleProps {
   initialVehicleType?: VehicleType;
   initialCondition?: VehicleCondition;
   proposalReference?: string;
-  linkToken?: string;
   dealerId?: number;
   sellerId?: number;
   expiresAt?: string;
@@ -240,7 +239,6 @@ export default function FinancingProposalModule({
   initialVehicleType = "leves",
   initialCondition = "usado",
   proposalReference,
-  linkToken,
   dealerId,
   sellerId,
   expiresAt,
@@ -738,8 +736,6 @@ export default function FinancingProposalModule({
         vehicleType: formData.vehicleType,
         vehicleCategory: formData.vehicleCategory,
         commercialUse: formData.commercialUse,
-        proposalReference,
-        linkToken,
         linkExpiresAt: expiresAt ?? null,
         fipeReferenceMonth,
         fipeCodes: {

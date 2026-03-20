@@ -37,13 +37,6 @@ function normalizeKnownHostTypos(url: string) {
   return url.replace(typoHost, officialHost);
 }
 
-function createToken() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2, 10);
-}
-
 export default function ProposalLinkGeneratorPage() {
   const [config, setConfig] = useState<LinkConfig>({
     publicSiteBaseUrl: DEFAULT_PUBLIC_SITE_URL,
@@ -63,7 +56,6 @@ export default function ProposalLinkGeneratorPage() {
   const [sellersLoading, setSellersLoading] = useState(false);
 
   const [generatedLink, setGeneratedLink] = useState("");
-  const [generatedToken, setGeneratedToken] = useState("");
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
@@ -140,8 +132,12 @@ export default function ProposalLinkGeneratorPage() {
     const now = new Date();
     const validDaysNumber = Number(config.validDays);
     const expiry = new Date(now.getTime() + validDaysNumber * 24 * 60 * 60 * 1000);
-    const token = createToken();
-    const ref = config.internalReference.trim() || token.slice(0, 8).toUpperCase();
+    const ref =
+      config.internalReference.trim() ||
+      `LINK-${now
+        .toISOString()
+        .replace(/[-:.TZ]/g, "")
+        .slice(0, 14)}`;
     const normalizedInput = normalizeKnownHostTypos(config.publicSiteBaseUrl);
     const baseUrl = normalizeBaseUrl(normalizedInput);
     const dealerId = Number(config.dealerId);
@@ -158,7 +154,6 @@ export default function ProposalLinkGeneratorPage() {
       vehicleType: config.vehicleType,
       condition: config.condition,
       ref,
-      token,
       expiresAt: expiry.toISOString(),
     });
 
@@ -170,7 +165,6 @@ export default function ProposalLinkGeneratorPage() {
     const link = `${baseUrl}/financiamento/proposta?${params.toString()}`;
 
     setGeneratedLink(link);
-    setGeneratedToken(token);
     setGeneratedAt(now.toISOString());
     setExpiresAt(expiry.toISOString());
     toast.success("Link gerado com sucesso.");
@@ -206,7 +200,6 @@ export default function ProposalLinkGeneratorPage() {
     });
     setSellers([]);
     setGeneratedLink("");
-    setGeneratedToken("");
     setGeneratedAt(null);
     setExpiresAt(null);
   };
@@ -394,7 +387,6 @@ export default function ProposalLinkGeneratorPage() {
               <PreviewRow label="Tipo" value={config.vehicleType === "leves" ? "Leves" : "Duas rodas"} />
               <PreviewRow label="Condicao" value={config.condition === "novo" ? "Novo" : "Usado"} />
               <PreviewRow label="Validade" value={`${config.validDays || 0} dia(s)`} />
-              <PreviewRow label="Token gerado" value={generatedToken || "-"} />
             </div>
 
             <div className="mt-5">
