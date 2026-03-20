@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import WhatsappGrota from "@/src/presentation/components/whatsapp/GrotaWhatsapp";
-import CookieProvider from "@/src/presentation/components/providers/CookieProvider";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -119,11 +118,9 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <CookieProvider>
-          {children}
-          <Toaster richColors position="top-right" />
-          <WhatsappGrota />
-        </CookieProvider>
+        {children}
+        <Toaster richColors position="top-right" />
+        <WhatsappGrota />
       </body>
     </html>
   );
