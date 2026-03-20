@@ -53,18 +53,24 @@ public class AuthController {
         private final RefreshTokenService refreshTokenService;
         private final boolean cookieSecure;
         private final String cookieSameSite;
+        private final long accessTokenDurationMs;
+        private final long refreshTokenDurationMs;
 
         public AuthController(
                         JwtService jwtService,
                         UserService userService,
                         DealerService dealerService,
                         RefreshTokenService refreshTokenService,
+                        @Value("${jwt.expiration}") long accessTokenDurationMs,
+                        @Value("${jwt.refresh-token.expiration}") long refreshTokenDurationMs,
                         @Value("${app.security.cookies.secure:true}") boolean cookieSecure,
                         @Value("${app.security.cookies.same-site:Lax}") String cookieSameSite) {
                 this.jwtService = jwtService;
                 this.userService = userService;
                 this.dealerService = dealerService;
                 this.refreshTokenService = refreshTokenService;
+                this.accessTokenDurationMs = accessTokenDurationMs;
+                this.refreshTokenDurationMs = refreshTokenDurationMs;
                 this.cookieSecure = cookieSecure;
                 this.cookieSameSite = cookieSameSite;
         }
@@ -306,7 +312,7 @@ public class AuthController {
                                 .sameSite(cookieSameSite)
                                 .domain(null)
                                 .path("/")
-                                .maxAge(expire ? Duration.ZERO : Duration.ofMinutes(15)) // 15 minutos para access token
+                                .maxAge(expire ? Duration.ZERO : Duration.ofMillis(accessTokenDurationMs))
                                 .build();
         }
 
@@ -317,9 +323,8 @@ public class AuthController {
                                 .secure(cookieSecure)
                                 .sameSite(cookieSameSite)
                                 .path("/")
-                                .maxAge(expire ? Duration.ZERO : Duration.ofDays(7)) // 7 dias para refresh token
+                                .maxAge(expire ? Duration.ZERO : Duration.ofMillis(refreshTokenDurationMs))
                                 .build();
         }
 }
-
 
