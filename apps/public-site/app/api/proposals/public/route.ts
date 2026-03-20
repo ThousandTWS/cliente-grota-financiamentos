@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = body as Record<string, unknown>;
-  if (!payload.customerName || !payload.customerCpf || !payload.vehicleBrand || !payload.vehicleModel) {
+  if (!payload.customerName || !payload.customerCpf) {
     return NextResponse.json(
       { error: "Campos obrigatorios ausentes para criar proposta." },
       { status: 400 }

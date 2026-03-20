@@ -42,11 +42,13 @@ function PropostaFinanciamentoContent() {
   const mode = parseMode(searchParams.get("mode"));
   const vehicleType = parseVehicleType(searchParams.get("vehicleType"));
   const condition = parseCondition(searchParams.get("condition"));
+  const source = searchParams.get("source");
   const proposalReference = searchParams.get("ref") ?? undefined;
   const expiresAt = searchParams.get("expiresAt") ?? undefined;
   const customerName = searchParams.get("customer") ?? undefined;
   const dealerId = parseNumericParam(searchParams.get("dealerId"));
   const sellerId = parseNumericParam(searchParams.get("sellerId"));
+  const hideVehicleStep = source === "admin-console";
 
   return (
     <div className="min-h-screen w-full relative bg-[#F3F4F6]">
@@ -59,6 +61,7 @@ function PropostaFinanciamentoContent() {
           initialMode={mode}
           initialVehicleType={vehicleType}
           initialCondition={condition}
+          hideVehicleStep={hideVehicleStep}
           proposalReference={proposalReference}
           dealerId={dealerId}
           sellerId={sellerId}

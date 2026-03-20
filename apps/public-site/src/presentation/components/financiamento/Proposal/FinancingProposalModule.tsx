@@ -39,6 +39,7 @@ interface FinancingProposalModuleProps {
   initialMode?: FlowMode;
   initialVehicleType?: VehicleType;
   initialCondition?: VehicleCondition;
+  hideVehicleStep?: boolean;
   proposalReference?: string;
   dealerId?: number;
   sellerId?: number;
@@ -88,7 +89,8 @@ interface ProposalData {
   declarationAccepted: boolean;
 }
 
-const STEP_ORDER: StepKey[] = ["veiculo", "pessoal", "complementar", "resultado"];
+const DEFAULT_STEP_ORDER: StepKey[] = ["veiculo", "pessoal", "complementar", "resultado"];
+const CLIENT_LINK_STEP_ORDER: StepKey[] = ["pessoal", "complementar", "resultado"];
 
 const STEP_LABELS: Record<StepKey, string> = {
   veiculo: "Dados do veiculo",
@@ -248,6 +250,7 @@ export default function FinancingProposalModule({
   initialMode = "proposta",
   initialVehicleType = "leves",
   initialCondition = "usado",
+  hideVehicleStep = false,
   proposalReference,
   dealerId,
   sellerId,
@@ -280,6 +283,11 @@ export default function FinancingProposalModule({
   const [cepLookupInfo, setCepLookupInfo] = useState("");
   const [cepLookupError, setCepLookupError] = useState("");
   const [lastCepLookup, setLastCepLookup] = useState("");
+  const stepOrder = useMemo(
+    () => (hideVehicleStep ? CLIENT_LINK_STEP_ORDER : DEFAULT_STEP_ORDER),
+    [hideVehicleStep]
+  );
+  const shouldCollectVehicleData = !hideVehicleStep;
 
   const vehicleTypeId = useMemo(
     () => getVehicleTypeId(formData.vehicleCategory, formData.vehicleType),
@@ -297,7 +305,7 @@ export default function FinancingProposalModule({
     return totalFinanced / 48;
   }, [totalFinanced]);
 
-  const currentStep = STEP_ORDER[stepIndex];
+  const currentStep = stepOrder[stepIndex];
 
   const linkExpired = useMemo(() => {
     if (!expiresAt) return false;
@@ -305,6 +313,10 @@ export default function FinancingProposalModule({
     if (!parsed) return false;
     return parsed.getTime() < Date.now();
   }, [expiresAt]);
+
+  useEffect(() => {
+    setStepIndex((prev) => Math.min(prev, stepOrder.length - 1));
+  }, [stepOrder]);
 
   const updateField = <K extends keyof ProposalData>(field: K, value: ProposalData[K]) => {
     setFormData((prev) => ({
@@ -638,6 +650,19 @@ export default function FinancingProposalModule({
   );
 
   useEffect(() => {
+    if (hideVehicleStep) {
+      setBrands([]);
+      setModels([]);
+      setYears([]);
+      setFipeReferenceMonth("");
+      setFipeError("");
+      setLoadingBrands(false);
+      setLoadingModels(false);
+      setLoadingYears(false);
+      setLoadingFipeValue(false);
+      return;
+    }
+
     let isMounted = true;
     clearVehicleCascadeData();
 
@@ -664,7 +689,7 @@ export default function FinancingProposalModule({
     return () => {
       isMounted = false;
     };
-  }, [vehicleTypeId, clearVehicleCascadeData]);
+  }, [vehicleTypeId, clearVehicleCascadeData, hideVehicleStep]);
 
   const validateCurrentStep = () => {
     const stepErrors: Record<string, string> = {};
@@ -734,7 +759,7 @@ export default function FinancingProposalModule({
 
   const goNext = () => {
     if (!validateCurrentStep()) return;
-    setStepIndex((prev) => Math.min(prev + 1, STEP_ORDER.length - 1));
+    setStepIndex((prev) => Math.min(prev + 1, stepOrder.length - 1));
   };
 
   const goBack = () => {
@@ -765,13 +790,19 @@ export default function FinancingProposalModule({
       return;
     }
 
-    const vehicleValue = parseCurrency(formData.vehicleValue || "R$ 0,00");
-    const downPayment = parseCurrency(formData.downPayment || "R$ 0,00");
+    const vehicleValue = shouldCollectVehicleData
+      ? parseCurrency(formData.vehicleValue || "R$ 0,00")
+      : 0;
+    const downPayment = shouldCollectVehicleData
+      ? parseCurrency(formData.downPayment || "R$ 0,00")
+      : 0;
     const financedValue = Math.max(0, vehicleValue - downPayment);
     const incomeValue = parseCurrency(formData.monthlyIncome || "R$ 0,00");
-    const vehicleYear = Number(formData.modelYear || formData.manufactureYear || "0");
+    const vehicleYear = shouldCollectVehicleData
+      ? Number(formData.modelYear || formData.manufactureYear || "0")
+      : undefined;
 
-    if (!vehicleYear || Number.isNaN(vehicleYear)) {
+    if (shouldCollectVehicleData && (!vehicleYear || Number.isNaN(vehicleYear))) {
       setSubmitError("Ano do veiculo invalido. Revise os dados FIPE.");
       return;
     }
@@ -785,17 +816,17 @@ export default function FinancingProposalModule({
       customerEmail: formData.email,
       customerPhone: onlyDigits(formData.phone),
       cnhCategory: "",
-      hasCnh: formData.hasLicense === "sim",
+      hasCnh: shouldCollectVehicleData ? formData.hasLicense === "sim" : false,
       vehiclePlate: "",
-      fipeCode: formData.fipeCode || "",
-      fipeValue: vehicleValue,
-      vehicleBrand: formData.vehicleBrand,
-      vehicleModel: formData.vehicleModel,
+      fipeCode: shouldCollectVehicleData ? formData.fipeCode || "" : undefined,
+      fipeValue: shouldCollectVehicleData ? vehicleValue : undefined,
+      vehicleBrand: shouldCollectVehicleData ? formData.vehicleBrand || undefined : undefined,
+      vehicleModel: shouldCollectVehicleData ? formData.vehicleModel || undefined : undefined,
       vehicleYear,
-      downPaymentValue: downPayment,
-      financedValue,
+      downPaymentValue: shouldCollectVehicleData ? downPayment : undefined,
+      financedValue: shouldCollectVehicleData ? financedValue : undefined,
       termMonths: 48,
-      vehicle0km: formData.vehicleCondition === "novo",
+      vehicle0km: shouldCollectVehicleData ? formData.vehicleCondition === "novo" : undefined,
       maritalStatus: formData.maritalStatus || undefined,
       cep: formData.cep || undefined,
       address: formData.street || undefined,
@@ -812,8 +843,8 @@ export default function FinancingProposalModule({
         dealerId: dealerId ?? null,
         sellerId: sellerId ?? null,
         vehicleType: formData.vehicleType,
-        vehicleCategory: formData.vehicleCategory,
-        commercialUse: formData.commercialUse,
+        vehicleCategory: shouldCollectVehicleData ? formData.vehicleCategory : null,
+        commercialUse: shouldCollectVehicleData ? formData.commercialUse : null,
         customerProfile: {
           motherName: formData.motherName || null,
           employmentType: formData.employmentType || null,
@@ -823,9 +854,9 @@ export default function FinancingProposalModule({
         linkExpiresAt: expiresAt ?? null,
         fipeReferenceMonth,
         fipeCodes: {
-          brandCode: formData.vehicleBrandCode,
-          modelCode: formData.vehicleModelCode,
-          yearCode: formData.vehicleYearCode,
+          brandCode: shouldCollectVehicleData ? formData.vehicleBrandCode : null,
+          modelCode: shouldCollectVehicleData ? formData.vehicleModelCode : null,
+          yearCode: shouldCollectVehicleData ? formData.vehicleYearCode : null,
         },
       }),
       notes: formData.notes || undefined,
@@ -888,70 +919,72 @@ export default function FinancingProposalModule({
           </div>
         </div>
 
-        <div className="px-6 py-6 md:px-10 md:py-8 bg-[#F8FAFC] border-b border-gray-200">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-3">Como deseja prosseguir?</h2>
-          <div className="flex flex-wrap gap-6 mb-6">
-            <label className="inline-flex items-center gap-2 text-gray-700 font-medium cursor-pointer">
-              <input
-                type="radio"
-                name="mode"
-                checked={formData.mode === "simulacao"}
-                onChange={() => updateField("mode", "simulacao")}
-              />
-              Simulacao
-            </label>
-            <label className="inline-flex items-center gap-2 text-gray-700 font-medium cursor-pointer">
-              <input
-                type="radio"
-                name="mode"
-                checked={formData.mode === "proposta"}
-                onChange={() => updateField("mode", "proposta")}
-              />
-              Preencher proposta
-            </label>
-          </div>
+        {!hideVehicleStep ? (
+          <div className="px-6 py-6 md:px-10 md:py-8 bg-[#F8FAFC] border-b border-gray-200">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-3">Como deseja prosseguir?</h2>
+            <div className="flex flex-wrap gap-6 mb-6">
+              <label className="inline-flex items-center gap-2 text-gray-700 font-medium cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  checked={formData.mode === "simulacao"}
+                  onChange={() => updateField("mode", "simulacao")}
+                />
+                Simulacao
+              </label>
+              <label className="inline-flex items-center gap-2 text-gray-700 font-medium cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  checked={formData.mode === "proposta"}
+                  onChange={() => updateField("mode", "proposta")}
+                />
+                Preencher proposta
+              </label>
+            </div>
 
-          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3">Selecione o tipo de veiculo:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => handleVehicleTypeSelect("leves", "Carro")}
-              className={`relative overflow-hidden rounded-2xl h-44 text-left transition-all ${
-                formData.vehicleType === "leves"
-                  ? "ring-2 ring-[#1B4B7C] shadow-md"
-                  : "ring-1 ring-gray-300 opacity-80 hover:opacity-100"
-              }`}
-            >
-              <Image
-                src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&h=600&fit=crop"
-                alt="Veiculos leves"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-black/35" />
-              <span className="absolute left-4 bottom-4 text-white font-semibold text-xl">Leves</span>
-            </button>
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3">Selecione o tipo de veiculo:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => handleVehicleTypeSelect("leves", "Carro")}
+                className={`relative overflow-hidden rounded-2xl h-44 text-left transition-all ${
+                  formData.vehicleType === "leves"
+                    ? "ring-2 ring-[#1B4B7C] shadow-md"
+                    : "ring-1 ring-gray-300 opacity-80 hover:opacity-100"
+                }`}
+              >
+                <Image
+                  src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&h=600&fit=crop"
+                  alt="Veiculos leves"
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-black/35" />
+                <span className="absolute left-4 bottom-4 text-white font-semibold text-xl">Leves</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => handleVehicleTypeSelect("duas-rodas", "Moto")}
-              className={`relative overflow-hidden rounded-2xl h-44 text-left transition-all ${
-                formData.vehicleType === "duas-rodas"
-                  ? "ring-2 ring-[#1B4B7C] shadow-md"
-                  : "ring-1 ring-gray-300 opacity-80 hover:opacity-100"
-              }`}
-            >
-              <Image
-                src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1200&h=600&fit=crop"
-                alt="Duas rodas"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-black/35" />
-              <span className="absolute left-4 bottom-4 text-white font-semibold text-xl">Duas rodas</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => handleVehicleTypeSelect("duas-rodas", "Moto")}
+                className={`relative overflow-hidden rounded-2xl h-44 text-left transition-all ${
+                  formData.vehicleType === "duas-rodas"
+                    ? "ring-2 ring-[#1B4B7C] shadow-md"
+                    : "ring-1 ring-gray-300 opacity-80 hover:opacity-100"
+                }`}
+              >
+                <Image
+                  src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1200&h=600&fit=crop"
+                  alt="Duas rodas"
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-black/35" />
+                <span className="absolute left-4 bottom-4 text-white font-semibold text-xl">Duas rodas</span>
+              </button>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {linkExpired ? (
           <div className="px-6 py-10 md:px-10 bg-red-50">
@@ -972,7 +1005,7 @@ export default function FinancingProposalModule({
             <div className="mb-8">
               <p className="text-sm text-gray-600 mb-3">Acompanhe sua jornada:</p>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-                {STEP_ORDER.map((step, index) => {
+                {stepOrder.map((step, index) => {
                   const Icon = STEP_ICONS[step];
                   const active = index === stepIndex;
                   const done = index < stepIndex;
@@ -999,7 +1032,7 @@ export default function FinancingProposalModule({
               </div>
             </div>
 
-            {currentStep === "veiculo" ? (
+            {!hideVehicleStep && currentStep === "veiculo" ? (
               <section>
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Por favor, preencha os dados do veiculo</h3>
 
@@ -1499,15 +1532,24 @@ export default function FinancingProposalModule({
                 ) : null}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  <div className="rounded-xl border border-gray-200 bg-white p-5">
-                    <h4 className="font-semibold text-gray-900 mb-3">Resumo financeiro</h4>
-                    <div className="space-y-2 text-sm">
-                      <ResultLine label="Valor do veiculo" value={formData.vehicleValue || "R$ 0,00"} />
-                      <ResultLine label="Entrada" value={formData.downPayment || "R$ 0,00"} />
-                      <ResultLine label="Valor financiado" value={formatCurrency(totalFinanced)} emphasis />
-                      <ResultLine label="Parcela aproximada (48x)" value={formatCurrency(approximateInstallment)} />
+                  {shouldCollectVehicleData ? (
+                    <div className="rounded-xl border border-gray-200 bg-white p-5">
+                      <h4 className="font-semibold text-gray-900 mb-3">Resumo financeiro</h4>
+                      <div className="space-y-2 text-sm">
+                        <ResultLine label="Valor do veiculo" value={formData.vehicleValue || "R$ 0,00"} />
+                        <ResultLine label="Entrada" value={formData.downPayment || "R$ 0,00"} />
+                        <ResultLine label="Valor financiado" value={formatCurrency(totalFinanced)} emphasis />
+                        <ResultLine label="Parcela aproximada (48x)" value={formatCurrency(approximateInstallment)} />
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="rounded-xl border border-gray-200 bg-white p-5">
+                      <h4 className="font-semibold text-gray-900 mb-3">Resumo do atendimento</h4>
+                      <p className="text-sm text-gray-600">
+                        Os dados do veiculo serao confirmados pelo consultor no atendimento.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="rounded-xl border border-gray-200 bg-white p-5">
                     <h4 className="font-semibold text-gray-900 mb-3">Resumo cadastral</h4>
@@ -1516,7 +1558,9 @@ export default function FinancingProposalModule({
                       <ResultLine label="CPF" value={formData.cpf || "-"} />
                       <ResultLine label="Telefone" value={formData.phone || "-"} />
                       <ResultLine label="E-mail" value={formData.email || "-"} />
-                      <ResultLine label="Veiculo" value={`${formData.vehicleBrand || "-"} ${formData.vehicleModel || ""}`} />
+                      {shouldCollectVehicleData ? (
+                        <ResultLine label="Veiculo" value={`${formData.vehicleBrand || "-"} ${formData.vehicleModel || ""}`} />
+                      ) : null}
                       <ResultLine label="Tipo de fluxo" value={formData.mode === "simulacao" ? "Simulacao" : "Proposta"} />
                     </div>
                   </div>
