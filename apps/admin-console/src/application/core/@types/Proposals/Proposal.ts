@@ -23,8 +23,8 @@ export interface Proposal {
   vehiclePlate: string;
   fipeCode: string;
   fipeValue: number;
-  vehicleBrand: string;
-  vehicleModel: string;
+  vehicleBrand: string | null;
+  vehicleModel: string | null;
   vehicleYear: number;
   downPaymentValue: number;
   financedValue: number;
@@ -110,4 +110,3 @@ export interface ProposalEvent {
   payload?: unknown;
   createdAt: string;
 }
-
