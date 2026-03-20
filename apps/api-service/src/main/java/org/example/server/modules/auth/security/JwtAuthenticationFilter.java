@@ -23,12 +23,22 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String PUBLIC_API_PREFIX = "/api/v1/grota-financiamentos";
+
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
     public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        return path.startsWith(PUBLIC_API_PREFIX + "/auth/")
+                || path.equals(PUBLIC_API_PREFIX + "/proposals/public");
     }
 
     @SuppressWarnings("null")

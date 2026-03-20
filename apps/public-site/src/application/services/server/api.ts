@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from "axios";
 
-// Aponta direto para a API (não para o painel), pois o painel não expõe /auth/register
 const BASE_URL =
   process.env.LOGISTA_API_BASE_URL ??
   process.env.NEXT_PUBLIC_URL_API ??

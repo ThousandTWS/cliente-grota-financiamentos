@@ -31,6 +31,7 @@ type FlowMode = "simulacao" | "proposta";
 type VehicleType = "leves" | "duas-rodas";
 type VehicleCondition = "novo" | "usado";
 type YesNo = "sim" | "nao";
+type EmploymentType = "assalariado" | "autonomo";
 
 type StepKey = "veiculo" | "pessoal" | "complementar" | "resultado";
 
@@ -65,16 +66,20 @@ interface ProposalData {
   vehicleValue: string;
   downPayment: string;
   fullName: string;
+  motherName: string;
   cpf: string;
   birthDate: string;
   email: string;
   phone: string;
   maritalStatus: string;
   monthlyIncome: string;
+  employmentType: EmploymentType | "";
+  admissionDate: string;
   jobTitle: string;
   cep: string;
   street: string;
   number: string;
+  addressComplement: string;
   district: string;
   city: string;
   state: string;
@@ -216,16 +221,20 @@ function initialFormData(
     vehicleValue: "",
     downPayment: "",
     fullName: customerName ?? "",
+    motherName: "",
     cpf: "",
     birthDate: "",
     email: "",
     phone: "",
     maritalStatus: "",
     monthlyIncome: "",
+    employmentType: "",
+    admissionDate: "",
     jobTitle: "",
     cep: "",
     street: "",
     number: "",
+    addressComplement: "",
     district: "",
     city: "",
     state: "",
@@ -357,10 +366,17 @@ export default function FinancingProposalModule({
       const lookupData = (responsePayload.data as Record<string, unknown> | undefined) ?? responsePayload;
       const content = (lookupData.response as { content?: Record<string, unknown> } | undefined)?.content ?? {};
       const nomeContainer = (content.nome as { conteudo?: Record<string, unknown> } | undefined)?.conteudo ?? {};
+      const filiacaoContainer = (content.filiacao as { conteudo?: Record<string, unknown> } | undefined)?.conteudo ?? {};
 
       const nomeCompleto = pickFirstText(
         nomeContainer.nome,
         lookupData.nome
+      );
+      const nomeMae = pickFirstText(
+        filiacaoContainer.nome_mae,
+        filiacaoContainer.mae,
+        (lookupData as { nome_mae?: unknown }).nome_mae,
+        (lookupData as { mae?: unknown }).mae
       );
       const dataNascimento = normalizeBirthDate(
         pickFirstText(nomeContainer.data_nascimento, lookupData.nascimento)
@@ -372,10 +388,11 @@ export default function FinancingProposalModule({
         lookupData.status
       );
 
-      if (nomeCompleto || dataNascimento) {
+      if (nomeCompleto || nomeMae || dataNascimento) {
         setFormData((prev) => ({
           ...prev,
           fullName: prev.fullName.trim() ? prev.fullName : nomeCompleto,
+          motherName: prev.motherName.trim() ? prev.motherName : nomeMae,
           birthDate: prev.birthDate || dataNascimento,
         }));
       }
@@ -673,12 +690,12 @@ export default function FinancingProposalModule({
     if (currentStep === "pessoal") {
       const requiredFields: Array<keyof ProposalData> = [
         "fullName",
+        "motherName",
         "cpf",
         "birthDate",
         "email",
         "phone",
         "maritalStatus",
-        "monthlyIncome",
       ];
       requiredFields.forEach((field) => {
         if (!String(formData[field] ?? "").trim()) {
@@ -695,12 +712,17 @@ export default function FinancingProposalModule({
         "district",
         "city",
         "state",
+        "employmentType",
+        "monthlyIncome",
       ];
       requiredFields.forEach((field) => {
         if (!String(formData[field] ?? "").trim()) {
           stepErrors[field] = "Campo obrigatorio";
         }
       });
+      if (formData.employmentType === "assalariado" && !formData.admissionDate.trim()) {
+        stepErrors.admissionDate = "Campo obrigatorio";
+      }
       if (!formData.declarationAccepted) {
         stepErrors.declarationAccepted = "Aceite obrigatorio para continuar";
       }
@@ -778,7 +800,7 @@ export default function FinancingProposalModule({
       cep: formData.cep || undefined,
       address: formData.street || undefined,
       addressNumber: formData.number || undefined,
-      addressComplement: undefined,
+      addressComplement: formData.addressComplement || undefined,
       neighborhood: formData.district || undefined,
       uf: formData.state || undefined,
       city: formData.city || undefined,
@@ -792,6 +814,12 @@ export default function FinancingProposalModule({
         vehicleType: formData.vehicleType,
         vehicleCategory: formData.vehicleCategory,
         commercialUse: formData.commercialUse,
+        customerProfile: {
+          motherName: formData.motherName || null,
+          employmentType: formData.employmentType || null,
+          admissionDate: formData.admissionDate || null,
+          occupation: formData.jobTitle || null,
+        },
         linkExpiresAt: expiresAt ?? null,
         fipeReferenceMonth,
         fipeCodes: {
@@ -1192,13 +1220,6 @@ export default function FinancingProposalModule({
               <section>
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Agora informe seus dados pessoais</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  <FormField label="Nome completo" error={errors.fullName}>
-                    <input
-                      value={formData.fullName}
-                      onChange={(e) => updateField("fullName", e.target.value)}
-                      className="w-full input-control"
-                    />
-                  </FormField>
                   <FormField label="CPF" error={errors.cpf}>
                     <div className="flex gap-2">
                       <input
@@ -1224,6 +1245,20 @@ export default function FinancingProposalModule({
                       <p className="mt-1 text-xs text-red-600">{cpfLookupError}</p>
                     ) : null}
                   </FormField>
+                  <FormField label="Nome completo" error={errors.fullName}>
+                    <input
+                      value={formData.fullName}
+                      onChange={(e) => updateField("fullName", e.target.value)}
+                      className="w-full input-control"
+                    />
+                  </FormField>
+                  <FormField label="Nome da mae" error={errors.motherName}>
+                    <input
+                      value={formData.motherName}
+                      onChange={(e) => updateField("motherName", e.target.value)}
+                      className="w-full input-control"
+                    />
+                  </FormField>
                   <FormField label="Data de nascimento" error={errors.birthDate}>
                     <input
                       type="date"
@@ -1232,20 +1267,20 @@ export default function FinancingProposalModule({
                       className="w-full input-control"
                     />
                   </FormField>
+                  <FormField label="Celular / WhatsApp" error={errors.phone}>
+                    <input
+                      value={formData.phone}
+                      onChange={(e) => updateField("phone", formatPhone(e.target.value))}
+                      className="w-full input-control"
+                      placeholder="(00) 00000-0000"
+                    />
+                  </FormField>
                   <FormField label="E-mail" error={errors.email}>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => updateField("email", e.target.value)}
                       className="w-full input-control"
-                    />
-                  </FormField>
-                  <FormField label="Telefone" error={errors.phone}>
-                    <input
-                      value={formData.phone}
-                      onChange={(e) => updateField("phone", formatPhone(e.target.value))}
-                      className="w-full input-control"
-                      placeholder="(00) 00000-0000"
                     />
                   </FormField>
                   <FormField label="Estado civil" error={errors.maritalStatus}>
@@ -1261,15 +1296,7 @@ export default function FinancingProposalModule({
                       <option value="Viuvo(a)">Viuvo(a)</option>
                     </select>
                   </FormField>
-                  <FormField label="Renda mensal" error={errors.monthlyIncome}>
-                    <input
-                      value={formData.monthlyIncome}
-                      onChange={(e) => updateField("monthlyIncome", formatCurrencyInput(e.target.value))}
-                      className="w-full input-control"
-                      placeholder="R$ 0,00"
-                    />
-                  </FormField>
-                  <FormField label="Profissao">
+                  <FormField label="Profissao / ocupacao">
                     <input
                       value={formData.jobTitle}
                       onChange={(e) => updateField("jobTitle", e.target.value)}
@@ -1333,6 +1360,14 @@ export default function FinancingProposalModule({
                       className="w-full input-control"
                     />
                   </FormField>
+                  <FormField label="Complemento">
+                    <input
+                      value={formData.addressComplement}
+                      onChange={(e) => updateField("addressComplement", e.target.value)}
+                      className="w-full input-control"
+                      placeholder="Apartamento, casa, referencia..."
+                    />
+                  </FormField>
                   <FormField label="Bairro" error={errors.district}>
                     <input
                       value={formData.district}
@@ -1367,6 +1402,40 @@ export default function FinancingProposalModule({
                       onChange={(e) => updateField("residenceTime", e.target.value)}
                       className="w-full input-control"
                       placeholder="Ex: 3 anos"
+                    />
+                  </FormField>
+                  <FormField label="Vinculo profissional" error={errors.employmentType}>
+                    <select
+                      value={formData.employmentType}
+                      onChange={(e) => {
+                        const nextEmploymentType = e.target.value as ProposalData["employmentType"];
+                        updateField("employmentType", nextEmploymentType);
+                        if (nextEmploymentType !== "assalariado") {
+                          updateField("admissionDate", "");
+                        }
+                      }}
+                      className="w-full input-control"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="assalariado">Assalariado</option>
+                      <option value="autonomo">Autonomo</option>
+                    </select>
+                  </FormField>
+                  <FormField label="Data de admissao" error={errors.admissionDate}>
+                    <input
+                      type="date"
+                      value={formData.admissionDate}
+                      onChange={(e) => updateField("admissionDate", e.target.value)}
+                      className="w-full input-control"
+                      disabled={formData.employmentType !== "assalariado"}
+                    />
+                  </FormField>
+                  <FormField label="Renda mensal" error={errors.monthlyIncome}>
+                    <input
+                      value={formData.monthlyIncome}
+                      onChange={(e) => updateField("monthlyIncome", formatCurrencyInput(e.target.value))}
+                      className="w-full input-control"
+                      placeholder="R$ 0,00"
                     />
                   </FormField>
                   <div className="md:col-span-2 lg:col-span-3">
