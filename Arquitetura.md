@@ -10,8 +10,6 @@ Este repositório é um **starter Turborepo** adaptado para o projeto **Grota Fi
 
 ---
 
-## Arquitetura Geral
-
 ```
 ┌──────────────┐      ┌───────────────────────┐      ┌───────────────┐
 │ public-site  │ HTTP │ dealer-portal (BFF)   │ HTTP │ api-service   │
