@@ -4,7 +4,7 @@ import type { SessionScope } from "../../../../../../packages/auth";
 const DEFAULT_API_BASE_URL =
   process.env.LOGISTA_API_BASE_URL ??
   process.env.NEXT_PUBLIC_URL_API ??
-  "http://localhost:8080/api/v1/grota-financiamentos";
+  "https://grotafinanciamentos.thousand-cloud.com.br/api/v1/grota-financiamentos";
 
 const DEFAULT_CLIENT_ORIGIN =
   process.env.NEXT_PUBLIC_CLIENT_URL ??

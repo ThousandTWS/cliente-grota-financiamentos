@@ -5,7 +5,7 @@ const DEFAULT_API_BASE_URL =
   process.env.ADMIN_API_BASE_URL ??
   process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL ??
   process.env.NEXT_PUBLIC_URL_API ??
-  "http://localhost:8080/api/v1/grota-financiamentos";
+  "https://grotafinanciamentos.thousand-cloud.com.br/api/v1/grota-financiamentos";
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const IS_LOCALHOST =

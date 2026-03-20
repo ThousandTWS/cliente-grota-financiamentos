@@ -4,7 +4,7 @@ const API_BASE_URL =
   process.env.LOGISTA_API_BASE_URL ??
   process.env.NEXT_PUBLIC_URL_API ??
   process.env.DEFAULT_API_BASE_URL ??
-  "https://servidor-grotafinanciamentos.up.railway.app/api/v1/grota-financiamentos";
+  "https://grotafinanciamentos.thousand-cloud.com.br/api/v1/grota-financiamentos";
 
 export async function POST(request: NextRequest) {
   let body: unknown;

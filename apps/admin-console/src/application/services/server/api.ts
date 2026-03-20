@@ -3,7 +3,7 @@ import axios, { AxiosInstance } from "axios";
 const BASE_URL =
   process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL ??
   (process.env.NEXT_PUBLIC_URL_API as string) ??
-  "http://localhost:8080/api/v1/grota-financiamentos";
+  "https://grotafinanciamentos.thousand-cloud.com.br/api/v1/grota-financiamentos";
 
 const STATIC_BEARER = process.env.NEXT_PUBLIC_ADMIN_API_TOKEN;
 const BASIC_TOKEN = process.env.NEXT_PUBLIC_ADMIN_BASIC_TOKEN;

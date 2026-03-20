@@ -25,6 +25,7 @@ import {
   getModelos,
   getValorVeiculo,
 } from "@/src/application/services/fipe";
+import viaCepService from "@/src/application/services/External/viaCepService";
 
 type FlowMode = "simulacao" | "proposta";
 type VehicleType = "leves" | "duas-rodas";
@@ -266,6 +267,10 @@ export default function FinancingProposalModule({
   const [cpfLookupInfo, setCpfLookupInfo] = useState("");
   const [cpfLookupError, setCpfLookupError] = useState("");
   const [lastCpfLookup, setLastCpfLookup] = useState("");
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [cepLookupInfo, setCepLookupInfo] = useState("");
+  const [cepLookupError, setCepLookupError] = useState("");
+  const [lastCepLookup, setLastCepLookup] = useState("");
 
   const vehicleTypeId = useMemo(
     () => getVehicleTypeId(formData.vehicleCategory, formData.vehicleType),
@@ -385,6 +390,54 @@ export default function FinancingProposalModule({
       );
     } finally {
       setIsSearchingCpf(false);
+    }
+  };
+
+  const handleCepLookup = async () => {
+    const cepDigits = onlyDigits(formData.cep);
+    if (cepDigits.length !== 8) {
+      setCepLookupInfo("");
+      setCepLookupError("Informe um CEP valido com 8 digitos.");
+      return;
+    }
+
+    if (isSearchingCep || cepDigits === lastCepLookup) return;
+
+    try {
+      setIsSearchingCep(true);
+      setCepLookupInfo("");
+      setCepLookupError("");
+
+      const address = await viaCepService.lookup(cepDigits);
+
+      setFormData((prev) => ({
+        ...prev,
+        street: address.street || prev.street,
+        district: address.neighborhood || prev.district,
+        city: address.city || prev.city,
+        state: address.state || prev.state,
+      }));
+
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.cep;
+        delete next.street;
+        delete next.district;
+        delete next.city;
+        delete next.state;
+        return next;
+      });
+
+      setCepLookupInfo("Endereco preenchido automaticamente pelo CEP.");
+      setLastCepLookup(cepDigits);
+    } catch (error) {
+      console.error("[public-site][cep-lookup]", error);
+      setCepLookupInfo("");
+      setCepLookupError(
+        error instanceof Error ? error.message : "Nao foi possivel consultar o CEP."
+      );
+    } finally {
+      setIsSearchingCep(false);
     }
   };
 
@@ -676,6 +729,9 @@ export default function FinancingProposalModule({
     setCpfLookupInfo("");
     setCpfLookupError("");
     setLastCpfLookup("");
+    setCepLookupInfo("");
+    setCepLookupError("");
+    setLastCepLookup("");
   };
 
   const submitProposal = async () => {
@@ -1229,12 +1285,39 @@ export default function FinancingProposalModule({
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Dados complementares</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   <FormField label="CEP" error={errors.cep}>
-                    <input
-                      value={formData.cep}
-                      onChange={(e) => updateField("cep", formatCep(e.target.value))}
-                      className="w-full input-control"
-                      placeholder="00000-000"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        value={formData.cep}
+                        onChange={(e) => {
+                          const formattedCep = formatCep(e.target.value);
+                          updateField("cep", formattedCep);
+
+                          const digits = onlyDigits(formattedCep);
+                          if (digits.length < 8) {
+                            setCepLookupInfo("");
+                            setCepLookupError("");
+                            setLastCepLookup("");
+                          }
+                        }}
+                        onBlur={() => void handleCepLookup()}
+                        className="w-full input-control"
+                        placeholder="00000-000"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleCepLookup()}
+                        disabled={isSearchingCep || onlyDigits(formData.cep).length !== 8}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSearchingCep ? "..." : "Buscar"}
+                      </button>
+                    </div>
+                    {cepLookupInfo ? (
+                      <p className="mt-1 text-xs text-emerald-700">{cepLookupInfo}</p>
+                    ) : null}
+                    {cepLookupError ? (
+                      <p className="mt-1 text-xs text-red-600">{cepLookupError}</p>
+                    ) : null}
                   </FormField>
                   <FormField label="Rua" error={errors.street}>
                     <input

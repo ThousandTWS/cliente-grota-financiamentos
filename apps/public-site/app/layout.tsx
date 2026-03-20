@@ -94,16 +94,6 @@ export const metadata: Metadata = {
   applicationName: "Grota Financiamentos",
 };
 
-const newRelicLoader = `
-;window.NREUM||(NREUM={});NREUM.init={distributed_tracing:{enabled:true},performance:{capture_measures:true},privacy:{cookies_enabled:true},ajax:{deny_list:["bam.nr-data.net"]}};
-;NREUM.loader_config={accountID:"7241159",trustKey:"7241159",agentID:"1134630939",licenseKey:"NRJS-92b23d5e70ac90dc2d6",applicationID:"1134630939"};
-;NREUM.info={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net",licenseKey:"NRJS-92b23d5e70ac90dc2d6",applicationID:"1134630939",sa:1};
-/*! For license information please see nr-loader-spa-1.299.0.min.js.LICENSE.txt */
-(()=>{"use strict";var e,t,r={...};
-// ... rest of the minified New Relic loader ...
-)();
-`;
-
 const session_replay = `
 ;window.NREUM||(NREUM={});NREUM.init={session_replay:{enabled:true,block_selector:'',mask_text_selector:'*',sampling_rate:10.0,error_sampling_rate:100.0,mask_all_inputs:true,collect_fonts:true,inline_images:false,inline_stylesheet:true,fix_stylesheets:true,preload:false,mask_input_options:{}},distributed_tracing:{enabled:true},performance:{capture_measures:true},privacy:{cookies_enabled:true},ajax:{deny_list:["bam.nr-data.net", "monorepo-grota-financiamentos-clien.vercel.app", "monorepo-grota-financiamentos-admin.vercel.app", "monorepo-grota-financiamentos-logis.vercel.app"]}};
 
@@ -123,11 +113,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script
-          type="text/javascript"
-          dangerouslySetInnerHTML={{ __html: newRelicLoader }}
-        />
-
         <script
           type="text/javascript"
           dangerouslySetInnerHTML={{ __html: session_replay }}
