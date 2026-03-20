@@ -1531,7 +1531,7 @@ export default function FinancingProposalModule({
                   </div>
                 ) : null}
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className={`grid gap-5 ${shouldCollectVehicleData ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
                   {shouldCollectVehicleData ? (
                     <div className="rounded-xl border border-gray-200 bg-white p-5">
                       <h4 className="font-semibold text-gray-900 mb-3">Resumo financeiro</h4>
@@ -1542,14 +1542,7 @@ export default function FinancingProposalModule({
                         <ResultLine label="Parcela aproximada (48x)" value={formatCurrency(approximateInstallment)} />
                       </div>
                     </div>
-                  ) : (
-                    <div className="rounded-xl border border-gray-200 bg-white p-5">
-                      <h4 className="font-semibold text-gray-900 mb-3">Resumo do atendimento</h4>
-                      <p className="text-sm text-gray-600">
-                        Os dados do veiculo serao confirmados pelo consultor no atendimento.
-                      </p>
-                    </div>
-                  )}
+                  ) : null}
 
                   <div className="rounded-xl border border-gray-200 bg-white p-5">
                     <h4 className="font-semibold text-gray-900 mb-3">Resumo cadastral</h4>
