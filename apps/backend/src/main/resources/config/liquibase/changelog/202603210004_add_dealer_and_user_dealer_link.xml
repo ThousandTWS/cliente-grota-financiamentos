@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="202603210004-1" author="codex">
+        <createTable tableName="dealer">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="dealer_pk"/>
+            </column>
+            <column name="name" type="varchar(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="active" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="202603210004-2" author="codex">
+        <createTable tableName="financing_user_allowed_dealer">
+            <column name="financing_user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dealer_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey
+            tableName="financing_user_allowed_dealer"
+            columnNames="financing_user_id, dealer_id"
+            constraintName="financing_user_allowed_dealer_pk"/>
+
+        <addForeignKeyConstraint
+            baseTableName="financing_user_allowed_dealer"
+            baseColumnNames="financing_user_id"
+            referencedTableName="financing_user"
+            referencedColumnNames="id"
+            onDelete="CASCADE"
+            constraintName="fk_fu_allowed_dealer_user"/>
+
+        <addForeignKeyConstraint
+            baseTableName="financing_user_allowed_dealer"
+            baseColumnNames="dealer_id"
+            referencedTableName="dealer"
+            referencedColumnNames="id"
+            onDelete="CASCADE"
+            constraintName="fk_fu_allowed_dealer_dealer"/>
+    </changeSet>
+
+    <changeSet id="202603210004-3" author="codex">
+        <insert tableName="dealer">
+            <column name="id" valueNumeric="10"/>
+            <column name="name" value="Loja 10"/>
+            <column name="active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="dealer">
+            <column name="id" valueNumeric="20"/>
+            <column name="name" value="Loja 20"/>
+            <column name="active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="dealer">
+            <column name="id" valueNumeric="99"/>
+            <column name="name" value="Loja 99"/>
+            <column name="active" valueBoolean="true"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

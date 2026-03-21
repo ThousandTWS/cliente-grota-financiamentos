@@ -1,0 +1,840 @@
+# API-first development with OpenAPI
+# This file will be used at compile time to generate Spring-MVC endpoint stubs using openapi-generator
+openapi: '3.0.1'
+info:
+  title: 'backend'
+  version: 0.0.1
+servers:
+  - url: http://localhost:8080/api
+    description: Development server
+  - url: https://localhost:8080/api
+    description: Development server with TLS Profile
+paths:
+  /v1/grota-financiamentos/users:
+    get:
+      tags:
+        - Grota Financiamentos Users
+      operationId: listFinancingUsers
+      summary: Listar usuarios
+      description: Retorna uma lista com todos os usuarios do sistema.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ADMIN
+              - COBRANCA
+              - FINANCEIRO
+              - LOJISTA
+              - VENDEDOR
+              - GESTOR
+              - OPERADOR
+      responses:
+        '200':
+          description: Lista de usuarios retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FinancingUserResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags:
+        - Grota Financiamentos Users
+      operationId: createFinancingUser
+      summary: Criar Usuario
+      description: Cria um novo usuario no sistema Grota Financiamentos.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancingUserCreateRequest'
+      responses:
+        '201':
+          description: Usuario criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingUserResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+  /v1/grota-financiamentos/users/{id}:
+    get:
+      tags:
+        - Grota Financiamentos Users
+      operationId: getFinancingUserById
+      summary: Buscar usuario por ID
+      description: Busca um usuario pelo identificador.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingUserResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+  /v1/grota-financiamentos/users/me:
+    get:
+      tags:
+        - Grota Financiamentos Users
+      operationId: getCurrentFinancingUserProfile
+      summary: Obter perfil do usuario autenticado
+      description: Retorna os dados do usuario autenticado.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingUserResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+    put:
+      tags:
+        - Grota Financiamentos Users
+      operationId: updateCurrentFinancingUserProfile
+      summary: Atualizar perfil do usuario autenticado
+      description: Atualiza nome e email do usuario autenticado.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancingUserProfileUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingUserResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+  /v1/grota-financiamentos/users/{id}/dealer:
+    patch:
+      tags:
+        - Grota Financiamentos Users
+      operationId: updateFinancingUserDealer
+      summary: Atualizar vinculo do lojista
+      description: Associa ou remove o usuario de um lojista.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: dealerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingUserResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+  /v1/grota-financiamentos/sellers:
+    post:
+      tags:
+        - Grota Financiamentos Sellers
+      operationId: createSeller
+      summary: Cadastrar vendedor
+      description: Cadastra um vendedor no banco de dados
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellerUpdateRequest'
+      responses:
+        '201':
+          description: Vendedor cadastrado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SellerResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+    get:
+      tags:
+        - Grota Financiamentos Sellers
+      operationId: listSellers
+      summary: Listar Vendedores
+      description: Retorna uma lista de Vendedores, ordenada por nome (10 por página)
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: dealerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Lista de Vendedores retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SellerResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+  /v1/grota-financiamentos/sellers/operator-panel:
+    get:
+      tags:
+        - Grota Financiamentos Sellers
+      operationId: listSellersForOperatorPanel
+      summary: Listar vendedores para painel do operador
+      description: Retorna vendedores das lojas vinculadas ao operador. Admin vê todos.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: dealerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Lista de vendedores retornada
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SellerResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+  /v1/grota-financiamentos/sellers/manager-panel:
+    get:
+      tags:
+        - Grota Financiamentos Sellers
+      operationId: listSellersForManagerPanel
+      summary: Listar vendedores para painel do gestor
+      description: Retorna vendedores da loja do gestor. Admin vê todos.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      responses:
+        '200':
+          description: Lista de vendedores retornada
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SellerResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+  /v1/grota-financiamentos/sellers/{id}:
+    get:
+      tags:
+        - Grota Financiamentos Sellers
+      operationId: getSellerById
+      summary: Obter Vendedor por ID
+      description: Retorna os dados de um vendedor com base no ID informado.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Vendedor encontrado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SellerResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+    put:
+      tags:
+        - Grota Financiamentos Sellers
+      operationId: updateSellerById
+      summary: Atualizar Vendedor por ID
+      description: Atualiza os dados de um vendedor com base no ID informado.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellerUpdateRequest'
+      responses:
+        '200':
+          description: Vendedor atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SellerResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags:
+        - Grota Financiamentos Sellers
+      operationId: deleteSellerById
+      summary: Remover vendedor
+      description: Remove definitivamente um vendedor e seu usuario associado.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Vendedor removido com sucesso
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+  /v1/grota-financiamentos/sellers/{id}/dealer:
+    patch:
+      tags:
+        - Grota Financiamentos Sellers
+      operationId: updateSellerDealer
+      summary: Reatribuir vendedor para outra loja
+      description: Atualiza o dealer associado ao vendedor.
+      security:
+        - oauth: [jhipster, email, profile]
+        - openId: [jhipster, email, profile]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: dealerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Vínculo atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SellerResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+components:
+  schemas:
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        number:
+          type: string
+        complement:
+          type: string
+        neighborhood:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+    SellerUpdateRequest:
+      type: object
+      properties:
+        dealerId:
+          type: integer
+          format: int64
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        password:
+          type: string
+        CPF:
+          type: string
+        birthData:
+          type: string
+          format: date
+        address:
+          $ref: '#/components/schemas/Address'
+        canView:
+          type: boolean
+        canCreate:
+          type: boolean
+        canUpdate:
+          type: boolean
+        canDelete:
+          type: boolean
+    SellerResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        dealerId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 10
+        fullName:
+          type: string
+          example: Vendedor Teste
+        email:
+          type: string
+          format: email
+          example: seller@grota.com
+        phone:
+          type: string
+          example: 11999999999
+        CPF:
+          type: string
+          example: 12345678901
+        birthData:
+          type: string
+          format: date
+          example: '1990-01-01'
+        status:
+          type: string
+          enum:
+            - ATIVO
+            - PENDENTE
+            - INATIVO
+          example: ATIVO
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-03-21T11:49:16.326Z'
+        canView:
+          type: boolean
+          example: true
+        canCreate:
+          type: boolean
+          example: true
+        canUpdate:
+          type: boolean
+          example: true
+        canDelete:
+          type: boolean
+          example: true
+    FinancingUserProfileUpdateRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Maria da Silva
+        email:
+          type: string
+          format: email
+          example: maria@grota.com
+    FinancingUserCreateRequest:
+      type: object
+      required:
+        - fullName
+        - email
+        - password
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Maria da Silva
+        email:
+          type: string
+          format: email
+          example: maria@grota.com
+        password:
+          type: string
+          minLength: 6
+          maxLength: 8
+          example: '123456'
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - COBRANCA
+            - FINANCEIRO
+            - LOJISTA
+            - VENDEDOR
+            - GESTOR
+            - OPERADOR
+          example: OPERADOR
+        dealerId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 10
+        allowedDealerIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          example: [10, 20]
+        canView:
+          type: boolean
+          example: true
+        canCreate:
+          type: boolean
+          example: false
+        canUpdate:
+          type: boolean
+          example: true
+        canDelete:
+          type: boolean
+          example: false
+        canChangeProposalStatus:
+          type: boolean
+          example: false
+    FinancingUserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        email:
+          type: string
+          format: email
+          example: maria@grota.com
+        fullName:
+          type: string
+          example: Maria da Silva
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - COBRANCA
+            - FINANCEIRO
+            - LOJISTA
+            - VENDEDOR
+            - GESTOR
+            - OPERADOR
+          example: ADMIN
+        canView:
+          type: boolean
+          example: true
+        canCreate:
+          type: boolean
+          example: true
+        canUpdate:
+          type: boolean
+          example: true
+        canDelete:
+          type: boolean
+          example: true
+        canChangeProposalStatus:
+          type: boolean
+          example: true
+        dealerId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 10
+        allowedDealerIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          example: []
+        allowedDealersCount:
+          type: integer
+          format: int32
+          example: 0
+  responses:
+    Problem:
+      description: error occurred - see status code and problem object for more information.
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+                format: uri
+                description: |
+                  An absolute URI that identifies the problem type. When dereferenced,
+                  it SHOULD provide human-readable documentation for the problem type
+                  (e.g., using HTML).
+                default: 'about:blank'
+                example: 'https://www.jhipster.tech/problem/problem-with-message'
+              title:
+                type: string
+                description: |
+                  A short, summary of the problem type. Written in english and readable
+                  for engineers (usually not suited for non technical stakeholders and
+                  not localized); example: Service Unavailable
+              status:
+                type: integer
+                format: int32
+                description: |
+                  The HTTP status code generated by the origin server for this occurrence
+                  of the problem.
+                minimum: 100
+                maximum: 600
+                exclusiveMaximum: true
+                example: 503
+              detail:
+                type: string
+                description: |
+                  A human readable explanation specific to this occurrence of the
+                  problem.
+                example: Connection to database timed out
+              instance:
+                type: string
+                format: uri
+                description: |
+                  An absolute URI that identifies the specific occurrence of the problem.
+                  It may or may not yield further information if dereferenced.
+
+  securitySchemes:
+    oauth:
+      type: oauth2
+      description: OAuth2 authentication with KeyCloak
+      flows:
+        authorizationCode:
+          authorizationUrl: http://localhost:9080/realms/jhipster/protocol/openid-connect/auth
+          tokenUrl: http://localhost:9080/realms/jhipster/protocol/openid-connect/token
+          scopes:
+            jhipster: Jhipster specific claims
+            email: Email claims
+            profile: Profile claims
+    openId:
+      type: openIdConnect
+      description: OpenID Connect authentication with KeyCloak
+      openIdConnectUrl: http://localhost:9080/realms/jhipster/.well-known/openid-configuration
+security:
+  - oauth: [jhipster, email, profile]
+  - openId: [jhipster, email, profile]
