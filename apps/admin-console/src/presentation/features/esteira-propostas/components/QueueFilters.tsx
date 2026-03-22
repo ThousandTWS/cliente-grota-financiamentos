@@ -54,7 +54,7 @@ export function QueueFilters({
   const filteredSuggestions = normalizedSearch
     ? searchSuggestions
         .filter((suggestion) =>
-          suggestion.value.toLowerCase().includes(normalizedSearch),
+          (suggestion.value || "").toLowerCase().includes(normalizedSearch),
         )
         .slice(0, 8)
     : [];

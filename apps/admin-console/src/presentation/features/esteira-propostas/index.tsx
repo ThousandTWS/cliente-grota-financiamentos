@@ -489,9 +489,9 @@ export default function EsteiraDePropostasFeature() {
         filters.status === "ALL" || proposal.status === filters.status;
       const searchInput = deferredSearch.trim().toLowerCase();
       const matchesSearch = searchInput
-        ? proposal.customerName.toLowerCase().includes(searchInput) ||
-          proposal.customerCpf.toLowerCase().includes(searchInput) ||
-          proposal.vehiclePlate.toLowerCase().includes(searchInput)
+        ? (proposal.customerName || "").toLowerCase().includes(searchInput) ||
+          (proposal.customerCpf || "").toLowerCase().includes(searchInput) ||
+          (proposal.vehiclePlate || "").toLowerCase().includes(searchInput)
         : true;
       const matchesDealer = filters.dealerId
         ? String(proposal.dealerId ?? "") === filters.dealerId
@@ -594,9 +594,9 @@ export default function EsteiraDePropostasFeature() {
         return true;
       })
       .map((proposal) => ({
-        value: proposal.customerName,
+        value: proposal.customerName || "",
         proposalId: proposal.id,
-        label: `${proposal.customerName} · ${proposal.customerCpf}`,
+        label: `${proposal.customerName || ""} · ${proposal.customerCpf || ""}`,
       }));
   }, [proposals]);
 
