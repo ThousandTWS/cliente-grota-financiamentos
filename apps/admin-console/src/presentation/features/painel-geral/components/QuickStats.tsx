@@ -4,9 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpOutlined,
   ArrowDownOutlined,
-  UserOutlined,
-  ShopOutlined,
-  FileTextOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
   SyncOutlined,
@@ -23,8 +20,6 @@ import {
   Tag,
   Spin,
   Empty,
-  Flex,
-  Avatar,
   Badge,
   Modal,
   Pagination,
@@ -226,7 +221,7 @@ export function QuickStats() {
       <Row gutter={[16, 16]}>
         {statsSummary.map(item => (
           <Col xs={24} sm={12} xl={6} key={item.key}>
-            <Card className="shadow-sm border-slate-200" hoverable>
+            <Card className="shadow-sm border-slate-200 " hoverable>
               <Statistic
                 title={
                   <Space>
@@ -286,13 +281,12 @@ export function QuickStats() {
                     <div key={item.id} className="flex items-center justify-between gap-3 py-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                            index === 0
-                              ? "bg-amber-100 text-amber-700"
-                              : index === 1
-                                ? "bg-slate-100 text-slate-700"
-                                : "bg-orange-100 text-orange-700"
-                          }`}
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index === 0
+                            ? "bg-amber-100 text-amber-700"
+                            : index === 1
+                              ? "bg-slate-100 text-slate-700"
+                              : "bg-orange-100 text-orange-700"
+                            }`}
                         >
                           {index + 1}º
                         </div>
@@ -347,13 +341,12 @@ export function QuickStats() {
                     <div key={item.id} className="flex items-center justify-between gap-3 py-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                            index === 0
-                              ? "bg-amber-100 text-amber-700"
-                              : index === 1
-                                ? "bg-slate-100 text-slate-700"
-                                : "bg-orange-100 text-orange-700"
-                          }`}
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index === 0
+                            ? "bg-amber-100 text-amber-700"
+                            : index === 1
+                              ? "bg-slate-100 text-slate-700"
+                              : "bg-orange-100 text-orange-700"
+                            }`}
                         >
                           {index + 1}º
                         </div>
@@ -465,18 +458,17 @@ export function QuickStats() {
             <div key={item.id} className="flex items-center justify-between gap-3 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                            index === 0
-                              ? "bg-amber-100 text-amber-700"
-                              : index === 1
-                                ? "bg-slate-100 text-slate-700"
-                                : index === 2
-                                  ? "bg-orange-100 text-orange-700"
-                                  : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {index + 1}º
-                        </div>
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index === 0
+                    ? "bg-amber-100 text-amber-700"
+                    : index === 1
+                      ? "bg-slate-100 text-slate-700"
+                      : index === 2
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                >
+                  {index + 1}º
+                </div>
                 <div className="min-w-0">
                   <Text style={{ display: "block" }}>{item.name}</Text>
                   <Text type="secondary"><HideValue value={item.count} placeholder="•••" /> propostas</Text>
@@ -507,18 +499,17 @@ export function QuickStats() {
             <div key={item.id} className="flex items-center justify-between gap-3 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                            index === 0
-                              ? "bg-amber-100 text-amber-700"
-                              : index === 1
-                                ? "bg-slate-100 text-slate-700"
-                                : index === 2
-                                  ? "bg-orange-100 text-orange-700"
-                                  : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {index + 1}º
-                        </div>
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index === 0
+                    ? "bg-amber-100 text-amber-700"
+                    : index === 1
+                      ? "bg-slate-100 text-slate-700"
+                      : index === 2
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                >
+                  {index + 1}º
+                </div>
                 <div className="min-w-0">
                   <Text style={{ display: "block" }}>{item.name}</Text>
                   <Text type="secondary"><HideValue value={item.count} placeholder="•••" /> propostas</Text>

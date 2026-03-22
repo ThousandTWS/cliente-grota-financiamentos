@@ -204,11 +204,11 @@ export function FinancingChart() {
           <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
-                <XAxis dataKey="month" tick={{ fill: "#64748B", fontSize: 12 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="month" tick={{ fill: "#64748B", fontSize: 12 }} axisLine={true} tickLine={false} />
                 <YAxis
-                  tick={{ fill: "#64748B", fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
+                  tick={{ fill: "#134B73", fontSize: 12 }}
+                  axisLine={true}
+                  tickLine={true}
                   tickFormatter={(value) =>
                     isHidden
                       ? (metric === "sales" ? "R$ •••" : "•••")
@@ -226,9 +226,9 @@ export function FinancingChart() {
                         : [Number(value).toLocaleString("pt-BR"), "Visualizações"]
                   }
                   labelFormatter={(label) => `Mês: ${label}`}
-                  contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
+                  contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 15 }}
                 />
-                <Bar dataKey="value" fill="#2563EB" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill="#134B73" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

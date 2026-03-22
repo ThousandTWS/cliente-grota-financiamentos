@@ -232,9 +232,9 @@ export function ConversionFunnel() {
                     <Tooltip
                       formatter={(value) => [isHidden ? "•••" : Number(value).toLocaleString("pt-BR"), "Usuários"]}
                       labelFormatter={(label) => `Dia ${label}`}
-                      contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
+                      contentStyle={{ borderRadius: 8, borderColor: "#134B73", fontSize: 15 }}
                     />
-                    <Area type="monotone" dataKey="value" stroke="#3B82F6" fill="#93C5FD" fillOpacity={0.35} />
+                    <Area type="monotone" dataKey="value" stroke="#134B73" fill="#134B73" fillOpacity={0.40} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -247,7 +247,7 @@ export function ConversionFunnel() {
                   {totals.searchesTrend >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(totals.searchesTrend).toFixed(1)}%
                 </span>
               </div>
-              <div className="mt-2 h-16">
+              <div className="mt-2 h-18">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={proposalsSeries}>
                     <YAxis hide domain={["auto", "auto"]} />
@@ -255,9 +255,9 @@ export function ConversionFunnel() {
                     <Tooltip
                       formatter={(value) => [isHidden ? "•••" : Number(value).toLocaleString("pt-BR"), "Buscas"]}
                       labelFormatter={(label) => `Dia ${label}`}
-                      contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
+                      contentStyle={{ borderRadius: 8, borderColor: "#134B73", fontSize: 15 }}
                     />
-                    <Area type="monotone" dataKey="value" stroke="#3B82F6" fill="#93C5FD" fillOpacity={0.35} />
+                    <Area type="monotone" dataKey="value" stroke="#134B73" fill="#134B73" fillOpacity={0.40} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
