@@ -118,16 +118,6 @@ const AppSidebar = () => {
                             new
                           </span>
                         )}
-                        {subItem.pro && (
-                          <span
-                            className={`ml-auto ${isActive(subItem.path)
-                              ? "menu-dropdown-badge-active"
-                              : "menu-dropdown-badge-inactive"
-                              } menu-dropdown-badge `}
-                          >
-                            pro
-                          </span>
-                        )}
                       </span>
                     </Link>
                   </li>

@@ -9,8 +9,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@workspace/api-client": "workspace:*",
-    "@workspace/auth": "workspace:*",
     "@ably/chat": "^1.1.1",
     "@ably/chat-react-ui-kit": "^0.3.0",
     "@ant-design/icons": "^6.1.0",
@@ -55,6 +53,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@rc-component/util": "^1.10.0",
     "@react-jvectormap/core": "^1.0.4",
     "@react-jvectormap/world": "^1.1.2",
     "@refinedev/antd": "^6.0.3",
@@ -64,8 +63,11 @@
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/postcss": "^4.0.9",
     "@tanstack/react-table": "^8.21.3",
+    "@workspace/api-client": "workspace:*",
+    "@workspace/auth": "workspace:*",
     "ably": "^2.15.0",
     "antd": "^6.1.2",
+    "antd-style": "^4.1.0",
     "apexcharts": "^4.3.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.12.2",

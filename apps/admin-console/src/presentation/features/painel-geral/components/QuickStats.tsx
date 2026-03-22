@@ -12,6 +12,7 @@ import {
   SyncOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
+import { Trophy, Store, Clock } from "lucide-react";
 import {
   Card,
   Row,
@@ -27,12 +28,15 @@ import {
   Badge,
   Modal,
   Pagination,
+  Button,
 } from "antd";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
 import { Dealer, getAllLogistics } from "@/application/services/Logista/logisticService";
 import { useUser } from "@/application/core/context/UserContext";
+import { HideValue } from "@/presentation/components/HideValue/HideValue";
+import { StatusBadge } from "../../logista/components/status-badge";
 
 const { Title, Text } = Typography;
 
@@ -195,18 +199,6 @@ export function QuickStats() {
     return allProposalsSorted.slice(start, start + pageSize);
   }, [allProposalsSorted, proposalsPage]);
 
-  const statusTags: Record<ProposalStatus, { color: string; label: string }> = {
-    SUBMITTED: { color: "blue", label: "Recebida" },
-    PENDING: { color: "orange", label: "Em análise" },
-    ANALYSIS: { color: "purple", label: "Em análise" },
-    APPROVED: { color: "green", label: "Aprovada" },
-    APPROVED_DEDUCTED: { color: "geekblue", label: "Aprovada Reduzido" },
-    CONTRACT_ISSUED: { color: "geekblue", label: "Contrato emitido" },
-    REJECTED: { color: "red", label: "Reprovada" },
-    PAID: { color: "cyan", label: "Paga" },
-    WITHDRAWN: { color: "default", label: "Desistido" },
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center p-12">
@@ -243,6 +235,7 @@ export function QuickStats() {
                   </Space>
                 }
                 value={item.count}
+                formatter={(val) => <HideValue value={val as React.ReactNode} placeholder="••••••" />}
                 suffix={
                   <span
                     style={{
@@ -259,7 +252,7 @@ export function QuickStats() {
                 <Text type="secondary" style={{ fontSize: "12px" }}>
                   Volume Total
                 </Text>
-                <Text strong>{currency(item.totalValue)}</Text>
+                <Text strong><HideValue value={currency(item.totalValue)} isCurrency /></Text>
               </div>
             </Card>
           </Col>
@@ -270,16 +263,17 @@ export function QuickStats() {
         <Col xs={24} lg={8}>
           <Card
             title={
-              <Flex align="center" gap={8}>
-                <Avatar style={{ backgroundColor: "#fa8c16" }} icon={<UserOutlined />} />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center rounded-lg bg-orange-100 p-2 text-orange-600">
+                  <Trophy className="size-5" />
+                </div>
                 <div>
-                  <Text strong>Top 3 Vendedores</Text>
-                  <br />
+                  <Title level={5} className="!m-0">Top 3 Vendedores</Title>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Ranking por volume
                   </Text>
                 </div>
-              </Flex>
+              </div>
             }
             className="shadow-sm border-slate-200 h-full"
             size="small"
@@ -291,30 +285,33 @@ export function QuickStats() {
                   {topSellersDisplay.map((item, index) => (
                     <div key={item.id} className="flex items-center justify-between gap-3 py-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <Avatar
-                          style={{
-                            backgroundColor:
-                              index === 0 ? "#faad14" : index === 1 ? "#8c8c8c" : "#d48806",
-                          }}
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                            index === 0
+                              ? "bg-amber-100 text-amber-700"
+                              : index === 1
+                                ? "bg-slate-100 text-slate-700"
+                                : "bg-orange-100 text-orange-700"
+                          }`}
                         >
                           {index + 1}º
-                        </Avatar>
+                        </div>
                         <div className="min-w-0">
                           <Text ellipsis style={{ maxWidth: 140, display: "block" }}>
                             {item.name}
                           </Text>
-                          <Text type="secondary">{item.count} propostas</Text>
+                          <Text type="secondary"><HideValue value={item.count} placeholder="•••" /> propostas</Text>
                         </div>
                       </div>
-                      <Text strong type="success">{currency(item.total)}</Text>
+                      <Text strong type="success"><HideValue value={currency(item.total)} isCurrency /></Text>
                     </div>
                   ))}
                 </div>
                 {topSellersAll.length > 3 && (
-                  <div style={{ textAlign: "center", marginTop: 8 }}>
-                    <Typography.Link onClick={() => setSellersModalOpen(true)}>
-                      Ver mais ({topSellersAll.length - 3} restantes)
-                    </Typography.Link>
+                  <div className="mt-2">
+                    <Button type="text" className="w-full text-blue-600 hover:bg-blue-50" onClick={() => setSellersModalOpen(true)}>
+                      Ver todas ({topSellersAll.length - 3} restantes)
+                    </Button>
                   </div>
                 )}
               </>
@@ -327,16 +324,17 @@ export function QuickStats() {
         <Col xs={24} lg={8}>
           <Card
             title={
-              <Flex align="center" gap={8}>
-                <Avatar style={{ backgroundColor: "#1677ff" }} icon={<ShopOutlined />} />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-600">
+                  <Store className="size-5" />
+                </div>
                 <div>
-                  <Text strong>Top 3 Lojas</Text>
-                  <br />
+                  <Title level={5} className="!m-0">Top 3 Lojas</Title>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Ranking por volume
                   </Text>
                 </div>
-              </Flex>
+              </div>
             }
             className="shadow-sm border-slate-200 h-full"
             size="small"
@@ -348,30 +346,33 @@ export function QuickStats() {
                   {topDealersDisplay.map((item, index) => (
                     <div key={item.id} className="flex items-center justify-between gap-3 py-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <Avatar
-                          style={{
-                            backgroundColor:
-                              index === 0 ? "#faad14" : index === 1 ? "#8c8c8c" : "#d48806",
-                          }}
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                            index === 0
+                              ? "bg-amber-100 text-amber-700"
+                              : index === 1
+                                ? "bg-slate-100 text-slate-700"
+                                : "bg-orange-100 text-orange-700"
+                          }`}
                         >
                           {index + 1}º
-                        </Avatar>
+                        </div>
                         <div className="min-w-0">
                           <Text ellipsis style={{ maxWidth: 140, display: "block" }}>
                             {item.name}
                           </Text>
-                          <Text type="secondary">{item.count} propostas</Text>
+                          <Text type="secondary"><HideValue value={item.count} placeholder="•••" /> propostas</Text>
                         </div>
                       </div>
-                      <Text strong type="success">{currency(item.total)}</Text>
+                      <Text strong type="success"><HideValue value={currency(item.total)} isCurrency /></Text>
                     </div>
                   ))}
                 </div>
                 {topDealersAll.length > 3 && (
-                  <div style={{ textAlign: "center", marginTop: 8 }}>
-                    <Typography.Link onClick={() => setDealersModalOpen(true)}>
-                      Ver mais ({topDealersAll.length - 3} restantes)
-                    </Typography.Link>
+                  <div className="mt-2">
+                    <Button type="text" className="w-full text-blue-600 hover:bg-blue-50" onClick={() => setDealersModalOpen(true)}>
+                      Ver todas ({topDealersAll.length - 3} restantes)
+                    </Button>
                   </div>
                 )}
               </>
@@ -384,16 +385,17 @@ export function QuickStats() {
         <Col xs={24} lg={8}>
           <Card
             title={
-              <Flex align="center" gap={8}>
-                <Avatar style={{ backgroundColor: "#52c41a" }} icon={<FileTextOutlined />} />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center rounded-lg bg-green-100 p-2 text-green-600">
+                  <Clock className="size-5" />
+                </div>
                 <div>
-                  <Text strong>Últimas 5 Propostas</Text>
-                  <br />
+                  <Title level={5} className="!m-0">Últimas 5 Propostas</Title>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Atividade recente
                   </Text>
                 </div>
-              </Flex>
+              </div>
             }
             className="shadow-sm border-slate-200 h-full"
             size="small"
@@ -425,15 +427,15 @@ export function QuickStats() {
                           </Text>
                         </div>
                       </div>
-                      <Tag color={statusTags[item.status].color}>{statusTags[item.status].label}</Tag>
+                      <StatusBadge status={item.status} className="m-0" />
                     </div>
                   ))}
                 </div>
                 {allProposalsSorted.length > 5 && (
-                  <div style={{ textAlign: "center", marginTop: 8 }}>
-                    <Typography.Link onClick={() => setProposalsModalOpen(true)}>
-                      Ver mais ({allProposalsSorted.length - 5} restantes)
-                    </Typography.Link>
+                  <div className="mt-2">
+                    <Button type="text" className="w-full text-blue-600 hover:bg-blue-50" onClick={() => setProposalsModalOpen(true)}>
+                      Ver todas ({allProposalsSorted.length - 5} restantes)
+                    </Button>
                   </div>
                 )}
               </>
@@ -446,10 +448,12 @@ export function QuickStats() {
 
       <Modal
         title={
-          <Flex align="center" gap={8}>
-            <Avatar style={{ backgroundColor: "#fa8c16" }} icon={<UserOutlined />} />
-            <Text strong>Ranking de Vendedores</Text>
-          </Flex>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center rounded-lg bg-orange-100 p-2 text-orange-600">
+              <Trophy className="size-5" />
+            </div>
+            <Title level={5} className="!m-0">Ranking de Vendedores</Title>
+          </div>
         }
         open={sellersModalOpen}
         onCancel={() => setSellersModalOpen(false)}
@@ -460,26 +464,25 @@ export function QuickStats() {
           {topSellersAll.map((item, index) => (
             <div key={item.id} className="flex items-center justify-between gap-3 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <Avatar
-                  style={{
-                    backgroundColor:
-                      index === 0
-                        ? "#faad14"
-                        : index === 1
-                          ? "#8c8c8c"
-                          : index === 2
-                            ? "#d48806"
-                            : "#bfbfbf",
-                  }}
-                >
-                  {index + 1}º
-                </Avatar>
+                <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                            index === 0
+                              ? "bg-amber-100 text-amber-700"
+                              : index === 1
+                                ? "bg-slate-100 text-slate-700"
+                                : index === 2
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {index + 1}º
+                        </div>
                 <div className="min-w-0">
                   <Text style={{ display: "block" }}>{item.name}</Text>
-                  <Text type="secondary">{item.count} propostas</Text>
+                  <Text type="secondary"><HideValue value={item.count} placeholder="•••" /> propostas</Text>
                 </div>
               </div>
-              <Text strong type="success">{currency(item.total)}</Text>
+              <Text strong type="success"><HideValue value={currency(item.total)} isCurrency /></Text>
             </div>
           ))}
         </div>
@@ -487,10 +490,12 @@ export function QuickStats() {
 
       <Modal
         title={
-          <Flex align="center" gap={8}>
-            <Avatar style={{ backgroundColor: "#1677ff" }} icon={<ShopOutlined />} />
-            <Text strong>Ranking de Lojas</Text>
-          </Flex>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-600">
+              <Store className="size-5" />
+            </div>
+            <Title level={5} className="!m-0">Ranking de Lojas</Title>
+          </div>
         }
         open={dealersModalOpen}
         onCancel={() => setDealersModalOpen(false)}
@@ -501,26 +506,25 @@ export function QuickStats() {
           {topDealersAll.map((item, index) => (
             <div key={item.id} className="flex items-center justify-between gap-3 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <Avatar
-                  style={{
-                    backgroundColor:
-                      index === 0
-                        ? "#faad14"
-                        : index === 1
-                          ? "#8c8c8c"
-                          : index === 2
-                            ? "#d48806"
-                            : "#bfbfbf",
-                  }}
-                >
-                  {index + 1}º
-                </Avatar>
+                <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                            index === 0
+                              ? "bg-amber-100 text-amber-700"
+                              : index === 1
+                                ? "bg-slate-100 text-slate-700"
+                                : index === 2
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {index + 1}º
+                        </div>
                 <div className="min-w-0">
                   <Text style={{ display: "block" }}>{item.name}</Text>
-                  <Text type="secondary">{item.count} propostas</Text>
+                  <Text type="secondary"><HideValue value={item.count} placeholder="•••" /> propostas</Text>
                 </div>
               </div>
-              <Text strong type="success">{currency(item.total)}</Text>
+              <Text strong type="success"><HideValue value={currency(item.total)} isCurrency /></Text>
             </div>
           ))}
         </div>
@@ -528,10 +532,12 @@ export function QuickStats() {
 
       <Modal
         title={
-          <Flex align="center" gap={8}>
-            <Avatar style={{ backgroundColor: "#52c41a" }} icon={<FileTextOutlined />} />
-            <Text strong>Todas as Propostas</Text>
-          </Flex>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center rounded-lg bg-green-100 p-2 text-green-600">
+              <Clock className="size-5" />
+            </div>
+            <Title level={5} className="!m-0">Todas as Propostas</Title>
+          </div>
         }
         open={proposalsModalOpen}
         onCancel={() => {
@@ -562,11 +568,11 @@ export function QuickStats() {
                     <Text type="secondary">
                       {new Date(item.createdAt).toLocaleDateString("pt-BR")}
                     </Text>
-                    {item.financedValue && <Text type="secondary">• {currency(item.financedValue)}</Text>}
+                    {item.financedValue && <Text type="secondary">• <HideValue value={currency(item.financedValue)} isCurrency /></Text>}
                   </Space>
                 </div>
               </div>
-              <Tag color={statusTags[item.status].color}>{statusTags[item.status].label}</Tag>
+              <StatusBadge status={item.status} className="m-0" />
             </div>
           ))}
         </div>

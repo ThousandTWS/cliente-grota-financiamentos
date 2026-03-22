@@ -46,8 +46,6 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const pageSize = 8;
-  const [visibleCount, setVisibleCount] = useState(pageSize);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingManager, setEditingManager] = useState<Manager | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -113,9 +111,7 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  useEffect(() => {
-    setVisibleCount(pageSize);
-  }, [debouncedSearch, pageSize, managers.length]);
+
 
   const handleRefresh = () => {
     if (loading || refreshing) return;
@@ -226,29 +222,13 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
     });
   }, [activeManagers, debouncedSearch]);
 
-  const visibleManagers = useMemo(
-    () => filteredManagers.slice(0, visibleCount),
-    [filteredManagers, visibleCount],
-  );
 
-  const canShowMore = visibleCount < filteredManagers.length;
-  const showPagination = filteredManagers.length > pageSize;
 
   const columns: ColumnsType<Manager> = [
     {
       key: "manager",
       title: "Gestor",
       dataIndex: "fullName",
-      render: (value: string | undefined, manager: Manager) => (
-        <div>
-          <div className="font-medium text-gray-900">{value ?? "--"}</div>
-          {manager.id && (
-            <Typography.Text type="secondary" className="text-xs">
-              ID #{manager.id}
-            </Typography.Text>
-          )}
-        </div>
-      ),
     },
     {
       key: "contact",
@@ -332,6 +312,7 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           <Input
+           size="large"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Buscar gestor..."
@@ -349,7 +330,7 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
           </Button>
           <div className="flex items-center gap-2">
             <div className="text-right text-xs text-muted-foreground">
-              Mostrando {visibleManagers.length} de {filteredManagers.length}
+              Total: {filteredManagers.length}
             </div>
             <StatusBadge status="ativo" className="shadow-none">
               {filteredManagers.length} gestores
@@ -376,9 +357,10 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
           <>
             <Table
               columns={columns}
-              dataSource={visibleManagers}
+              dataSource={filteredManagers}
               rowKey="id"
-              pagination={false}
+              pagination={{ pageSize: 5, showSizeChanger: false, position: ["bottomCenter"] }}
+              scroll={{ x: "max-content", y: 400 }}
               locale={{
                 emptyText: (
                   <Empty
@@ -388,37 +370,6 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
                 ),
               }}
             />
-            {showPagination && (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-6 py-4 text-xs text-muted-foreground">
-                <span>
-                  Mostrando {visibleManagers.length} de {filteredManagers.length} gestores
-                </span>
-                <div className="flex items-center gap-2">
-                  {visibleCount > pageSize && (
-                    <Button
-                      type="default"
-                      size="small"
-                      onClick={() => setVisibleCount(pageSize)}
-                    >
-                      Mostrar menos
-                    </Button>
-                  )}
-                  {canShowMore && (
-                    <Button
-                      type="default"
-                      size="small"
-                      onClick={() =>
-                        setVisibleCount((prev) =>
-                          Math.min(prev + pageSize, filteredManagers.length),
-                        )
-                      }
-                    >
-                      Ver mais
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>

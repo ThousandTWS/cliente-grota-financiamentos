@@ -11,12 +11,6 @@ import {
   Receipt,
   PlusCircle,
   Bot,
-  Car,
-  Megaphone,
-  Users,
-  Calculator,
-  BarChart3,
-  Settings,
   Link2,
 } from "lucide-react";
 
@@ -112,53 +106,5 @@ export const navItems: NavItem[] = [
     ],
   },
 
-  {
-  name: "Marketplace",
-  icon: <ClipboardList />,
-  subItems: [
-    {
-      name: "Dashboard da Loja",
-      path: "/marketplace/dashboard",
-      icon: <LayoutDashboard size={16} />,
-      pro: false
-    },
-    {
-      name: "Veículos",
-      path: "/marketplace/veiculos",
-      icon: <Car size={16} />,
-      pro: false
-    },
-    {
-      name: "Anúncios",
-      path: "/marketplace/anuncios",
-      icon: <Megaphone size={16} />,
-      pro: false
-    },
-    {
-      name: "Leads da Loja",
-      path: "/marketplace/leads",
-      icon: <Users size={16} />,
-      pro: false
-    },
-    {
-      name: "Propostas",
-      path: "/marketplace/propostas",
-      icon: <FileText size={16} />,
-      pro: false
-    },
-    {
-      name: "Relatórios",
-      path: "/marketplace/relatorios",
-      icon: <BarChart3 size={16} />,
-      pro: false
-    },
-    {
-      name: "Configurações da Loja",
-      path: "/marketplace/configuracoes",
-      icon: <Settings size={16} />,
-      pro: false
-    }
-  ]
-}
 
 ];

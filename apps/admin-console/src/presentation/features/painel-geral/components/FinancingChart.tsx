@@ -7,6 +7,8 @@ import dayjs, { Dayjs } from "dayjs";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
+import { useHideValues } from "@/application/core/context/HideValuesContext";
+import { HideValue } from "@/presentation/components/HideValue/HideValue";
 
 const { Title, Text } = Typography;
 
@@ -44,6 +46,7 @@ export function FinancingChart() {
     null,
     null,
   ]);
+  const { isHidden } = useHideValues();
 
   useEffect(() => {
     let mounted = true;
@@ -207,16 +210,20 @@ export function FinancingChart() {
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(value) =>
-                    metric === "sales"
-                      ? `R$ ${(value / 1000).toFixed(0)}k`
-                      : `${value}`
+                    isHidden
+                      ? (metric === "sales" ? "R$ •••" : "•••")
+                      : metric === "sales"
+                        ? `R$ ${(value / 1000).toFixed(0)}k`
+                        : `${value}`
                   }
                 />
                 <Tooltip
                   formatter={(value) =>
-                    metric === "sales"
-                      ? [formatCurrency(Number(value)), "Vendas"]
-                      : [Number(value).toLocaleString("pt-BR"), "Visualizações"]
+                    isHidden
+                      ? [metric === "sales" ? "R$ ••••••" : "••••••", metric === "sales" ? "Vendas" : "Visualizações"]
+                      : metric === "sales"
+                        ? [formatCurrency(Number(value)), "Vendas"]
+                        : [Number(value).toLocaleString("pt-BR"), "Visualizações"]
                   }
                   labelFormatter={(label) => `Mês: ${label}`}
                   contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
@@ -242,9 +249,13 @@ export function FinancingChart() {
                     <Text>{item.name}</Text>
                   </div>
                   <Text strong>
-                    {metric === "sales"
-                      ? formatCurrency(item.value)
-                      : item.count.toLocaleString("pt-BR")}
+                    <HideValue 
+                      value={metric === "sales"
+                        ? formatCurrency(item.value)
+                        : item.count.toLocaleString("pt-BR")}
+                      isCurrency={metric === "sales"}
+                      placeholder={metric === "sales" ? "R$ ••••••" : "••••••"}
+                    />
                   </Text>
                 </div>
               ))}

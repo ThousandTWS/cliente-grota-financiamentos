@@ -44,8 +44,6 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const pageSize = 8;
-  const [visibleCount, setVisibleCount] = useState(pageSize);
 
   const fetchSellers = useCallback(
     async (showFullLoading = false) => {
@@ -107,9 +105,7 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  useEffect(() => {
-    setVisibleCount(pageSize);
-  }, [debouncedSearch, pageSize, sellers.length]);
+
 
   const handleRefresh = () => {
     if (loading || refreshing) return;
@@ -169,29 +165,13 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
     });
   }, [activeSellers, debouncedSearch]);
 
-  const visibleSellers = useMemo(
-    () => filteredSellers.slice(0, visibleCount),
-    [filteredSellers, visibleCount],
-  );
 
-  const canShowMore = visibleCount < filteredSellers.length;
-  const showPagination = filteredSellers.length > pageSize;
 
   const columns: ColumnsType<Seller> = [
     {
       key: "seller",
       title: "Vendedor",
       dataIndex: "fullName",
-      render: (value: string | undefined, seller: Seller) => (
-        <div>
-          <div className="font-medium text-gray-900">{value ?? "--"}</div>
-          {seller.id && (
-            <Typography.Text type="secondary" className="text-xs">
-              ID #{seller.id}
-            </Typography.Text>
-          )}
-        </div>
-      ),
     },
     {
       key: "email",
@@ -270,6 +250,7 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           <Input
+          size="large"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Buscar vendedor..."
@@ -287,7 +268,7 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
           </Button>
           <div className="flex items-center gap-2">
             <div className="text-right text-xs text-muted-foreground">
-              Mostrando {visibleSellers.length} de {filteredSellers.length}
+              Total: {filteredSellers.length}
             </div>
             <StatusBadge status="ativo" className="shadow-none">
               {filteredSellers.length} vendedores
@@ -314,9 +295,10 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
           <>
             <Table
               columns={columns}
-              dataSource={visibleSellers}
+              dataSource={filteredSellers}
               rowKey="id"
-              pagination={false}
+              pagination={{ pageSize: 5, showSizeChanger: false, position: ["bottomCenter"] }}
+              scroll={{ x: "max-content", y: 400 }}
               locale={{
                 emptyText: (
                   <Empty
@@ -326,37 +308,6 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
                 ),
               }}
             />
-            {showPagination && (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-6 py-4 text-xs text-muted-foreground">
-                <span>
-                  Mostrando {visibleSellers.length} de {filteredSellers.length} vendedores
-                </span>
-                <div className="flex items-center gap-2">
-                  {visibleCount > pageSize && (
-                    <Button
-                      type="default"
-                      size="small"
-                      onClick={() => setVisibleCount(pageSize)}
-                    >
-                      Mostrar menos
-                    </Button>
-                  )}
-                  {canShowMore && (
-                    <Button
-                      type="default"
-                      size="small"
-                      onClick={() =>
-                        setVisibleCount((prev) =>
-                          Math.min(prev + pageSize, filteredSellers.length),
-                        )
-                      }
-                    >
-                      Ver mais
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>

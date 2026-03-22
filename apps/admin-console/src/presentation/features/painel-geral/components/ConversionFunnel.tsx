@@ -7,6 +7,8 @@ import { EllipsisOutlined, ArrowUpOutlined, ArrowDownOutlined } from "@ant-desig
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
+import { useHideValues } from "@/application/core/context/HideValuesContext";
+import { HideValue } from "@/presentation/components/HideValue/HideValue";
 
 const { Text, Title } = Typography;
 
@@ -53,6 +55,7 @@ export function ConversionFunnel() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isHidden } = useHideValues();
 
   useEffect(() => {
     let mounted = true;
@@ -173,6 +176,7 @@ export function ConversionFunnel() {
       dataIndex: "userNumber",
       key: "userNumber",
       align: "right" as const,
+      render: (value: number) => <HideValue value={value.toLocaleString("pt-BR")} placeholder="•••" />,
     },
     {
       title: "Aumento semanal",
@@ -215,7 +219,7 @@ export function ConversionFunnel() {
             <div>
               <Text type="secondary" className="text-xs">Número de usuários de busca</Text>
               <div className="mt-1 flex items-center gap-2">
-                <span className="text-2xl font-semibold">{totals.totalUsers.toLocaleString("pt-BR")}</span>
+                <span className="text-2xl font-semibold"><HideValue value={totals.totalUsers.toLocaleString("pt-BR")} placeholder="•••" /></span>
                 <span className={totals.usersTrend >= 0 ? "text-emerald-600 text-xs" : "text-red-500 text-xs"}>
                   {totals.usersTrend >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(totals.usersTrend).toFixed(1)}%
                 </span>
@@ -226,7 +230,7 @@ export function ConversionFunnel() {
                     <YAxis hide domain={["auto", "auto"]} />
                     <XAxis hide dataKey="date" />
                     <Tooltip
-                      formatter={(value) => [Number(value).toLocaleString("pt-BR"), "Usuários"]}
+                      formatter={(value) => [isHidden ? "•••" : Number(value).toLocaleString("pt-BR"), "Usuários"]}
                       labelFormatter={(label) => `Dia ${label}`}
                       contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
                     />
@@ -238,7 +242,7 @@ export function ConversionFunnel() {
             <div>
               <Text type="secondary" className="text-xs">Número de buscas</Text>
               <div className="mt-1 flex items-center gap-2">
-                <span className="text-2xl font-semibold">{totals.totalSearches.toLocaleString("pt-BR")}</span>
+                <span className="text-2xl font-semibold"><HideValue value={totals.totalSearches.toLocaleString("pt-BR")} placeholder="•••" /></span>
                 <span className={totals.searchesTrend >= 0 ? "text-emerald-600 text-xs" : "text-red-500 text-xs"}>
                   {totals.searchesTrend >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(totals.searchesTrend).toFixed(1)}%
                 </span>
@@ -249,7 +253,7 @@ export function ConversionFunnel() {
                     <YAxis hide domain={["auto", "auto"]} />
                     <XAxis hide dataKey="date" />
                     <Tooltip
-                      formatter={(value) => [Number(value).toLocaleString("pt-BR"), "Buscas"]}
+                      formatter={(value) => [isHidden ? "•••" : Number(value).toLocaleString("pt-BR"), "Buscas"]}
                       labelFormatter={(label) => `Dia ${label}`}
                       contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 12 }}
                     />

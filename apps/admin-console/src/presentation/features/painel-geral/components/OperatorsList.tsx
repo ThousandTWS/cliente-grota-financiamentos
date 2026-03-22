@@ -51,8 +51,6 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const pageSize = 8;
-  const [visibleCount, setVisibleCount] = useState(pageSize);
 
   const fetchOperators = useCallback(
     async (showFullLoading = false) => {
@@ -114,9 +112,7 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  useEffect(() => {
-    setVisibleCount(pageSize);
-  }, [debouncedSearch, pageSize, operators.length]);
+
 
   const handleRefresh = () => {
     if (loading || refreshing) return;
@@ -226,29 +222,13 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
     });
   }, [activeOperators, debouncedSearch]);
 
-  const visibleOperators = useMemo(
-    () => filteredOperators.slice(0, visibleCount),
-    [filteredOperators, visibleCount],
-  );
 
-  const canShowMore = visibleCount < filteredOperators.length;
-  const showPagination = filteredOperators.length > pageSize;
 
   const columns: ColumnsType<Operator> = [
     {
       key: "operator",
       title: "Operador",
       dataIndex: "fullName",
-      render: (value: string | undefined, operator: Operator) => (
-        <div>
-          <div className="font-medium text-gray-900">{value ?? "--"}</div>
-          {operator.id && (
-            <Typography.Text type="secondary" className="text-xs">
-              ID #{operator.id}
-            </Typography.Text>
-          )}
-        </div>
-      ),
     },
     {
       key: "contact",
@@ -337,6 +317,7 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           <Input
+          size="large"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Buscar operador..."
@@ -354,7 +335,7 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
           </Button>
           <div className="flex items-center gap-2">
             <div className="text-right text-xs text-muted-foreground">
-              Mostrando {visibleOperators.length} de {filteredOperators.length}
+              Total: {filteredOperators.length}
             </div>
             <StatusBadge status="ativo" className="shadow-none">
               {filteredOperators.length} operadores
@@ -381,9 +362,10 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
           <>
             <Table
               columns={columns}
-              dataSource={visibleOperators}
+              dataSource={filteredOperators}
               rowKey="id"
-              pagination={false}
+              pagination={{ pageSize: 5, showSizeChanger: false, position: ["bottomCenter"] }}
+              scroll={{ x: "max-content", y: 400 }}
               locale={{
                 emptyText: (
                   <Empty
@@ -393,37 +375,6 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
                 ),
               }}
             />
-            {showPagination && (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-6 py-4 text-xs text-muted-foreground">
-                <span>
-                  Mostrando {visibleOperators.length} de {filteredOperators.length} operadores
-                </span>
-                <div className="flex items-center gap-2">
-                  {visibleCount > pageSize && (
-                    <Button
-                      type="default"
-                      size="small"
-                      onClick={() => setVisibleCount(pageSize)}
-                    >
-                      Mostrar menos
-                    </Button>
-                  )}
-                  {canShowMore && (
-                    <Button
-                      type="default"
-                      size="small"
-                      onClick={() =>
-                        setVisibleCount((prev) =>
-                          Math.min(prev + pageSize, filteredOperators.length),
-                        )
-                      }
-                    >
-                      Ver mais
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>

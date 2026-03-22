@@ -6,6 +6,7 @@ import { Metadata } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { RefineNotificationProvider } from "@/application/core/notifications/refine-notification-provider";
 import { RefineRealtimeProvider } from "@/application/core/realtime/refine-realtime-provider";
+import { MuiThemeProvider } from "@/application/theme/MuiThemeProvider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -29,9 +30,11 @@ export default function RootLayout({
         <ThemeProvider>
           <SidebarProvider>
             <AntdRegistry>
-              <RefineRealtimeProvider>
-                <RefineNotificationProvider>{children}</RefineNotificationProvider>
-              </RefineRealtimeProvider>
+              <MuiThemeProvider>
+                <RefineRealtimeProvider>
+                  <RefineNotificationProvider>{children}</RefineNotificationProvider>
+                </RefineRealtimeProvider>
+              </MuiThemeProvider>
             </AntdRegistry>
           </SidebarProvider>
         </ThemeProvider>

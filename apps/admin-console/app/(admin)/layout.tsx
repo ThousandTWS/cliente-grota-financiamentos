@@ -3,6 +3,7 @@ import { useSidebar } from "@/application/core/context/SidebarContext";
 import { usePathname } from "next/navigation";
 import { useAuthorization } from "@/application/core/authorization/use-authorization";
 import { UserProvider } from "@/application/core/context/UserContext";
+import { HideValuesProvider } from "@/application/core/context/HideValuesContext";
 import AppHeader from "@/presentation/layout/header/AppHeader";
 import { AccessDeniedState } from "@/presentation/layout/common/AccessDeniedState";
 import AppSidebar from "@/presentation/layout/sidebar/AppSidebar";
@@ -19,7 +20,9 @@ export default function AdminLayout({
 }) {
   return (
     <UserProvider>
-      <AdminLayoutContent>{children}</AdminLayoutContent>
+      <HideValuesProvider>
+        <AdminLayoutContent>{children}</AdminLayoutContent>
+      </HideValuesProvider>
     </UserProvider>
   );
 }
