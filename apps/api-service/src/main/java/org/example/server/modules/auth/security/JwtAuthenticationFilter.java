@@ -24,6 +24,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String PUBLIC_API_PREFIX = "/api/v1/grota-financiamentos";
+    private static final String AUTH_PREFIX = PUBLIC_API_PREFIX + "/auth";
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -37,7 +38,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
 
-        return path.startsWith(PUBLIC_API_PREFIX + "/auth/")
+        return path.equals(AUTH_PREFIX + "/login")
+                || path.equals(AUTH_PREFIX + "/register")
+                || path.equals(AUTH_PREFIX + "/refresh")
+                || path.equals(AUTH_PREFIX + "/logout")
+                || path.equals(AUTH_PREFIX + "/verify-code")
+                || path.equals(AUTH_PREFIX + "/resend-code")
+                || path.equals(AUTH_PREFIX + "/forgot-password")
+                || path.equals(AUTH_PREFIX + "/reset-password")
                 || path.equals(PUBLIC_API_PREFIX + "/proposals/public");
     }
 

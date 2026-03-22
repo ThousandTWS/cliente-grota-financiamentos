@@ -68,7 +68,14 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Rotas publicas
-                        .requestMatchers("/api/v1/grota-financiamentos/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/auth/logout").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/grota-financiamentos/auth/verify-code").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/auth/resend-code").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/auth/forgot-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/proposals/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/dealers").permitAll()
