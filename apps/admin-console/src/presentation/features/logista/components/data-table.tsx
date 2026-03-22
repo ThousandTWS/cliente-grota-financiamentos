@@ -16,6 +16,8 @@ import {
   UserPlus2,
   Trash2,
   Unlink,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { Logista, getLogistaColumns } from "./columns";
 import { LogistaDialog } from "./logista-dialog";
@@ -41,6 +43,7 @@ import {
   Operator,
 } from "@/application/services/Operator/operatorService";
 import userServices, { AdminUser } from "@/application/services/UserServices/UserServices";
+import { buildMarketplaceStoreUrl } from "@/application/services/Marketplace/marketplaceService";
 
 interface DataTableProps {
   data: Logista[];
@@ -79,6 +82,23 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
   const [actionsModalOpen, setActionsModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
+
+  const copyStoreLink = async (logista: Logista) => {
+    try {
+      await navigator.clipboard.writeText(buildMarketplaceStoreUrl(logista));
+      toast({
+        title: "Link copiado!",
+        description: "A URL da loja virtual foi copiada para a area de transferencia.",
+      });
+    } catch (error) {
+      console.error("[logista] copyStoreLink", error);
+      toast({
+        title: "Erro ao copiar",
+        description: "Nao foi possivel copiar o link da loja virtual.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredData = data.filter((logista) => {
     const normalizedSearch = searchTerm.toLowerCase();
@@ -611,6 +631,29 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
                   Use o menu de acoes para vincular operadores, gestores e vendedores.
                 </Typography.Text>
               </div>
+              <Divider />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="primary"
+                  icon={<ExternalLink className="size-4" />}
+                  href={selectedLogista ? buildMarketplaceStoreUrl(selectedLogista) : undefined}
+                  target="_blank"
+                  disabled={!selectedLogista}
+                >
+                  Abrir loja virtual
+                </Button>
+                <Button
+                  icon={<Copy className="size-4" />}
+                  disabled={!selectedLogista}
+                  onClick={() => {
+                    if (selectedLogista) {
+                      void copyStoreLink(selectedLogista);
+                    }
+                  }}
+                >
+                  Copiar link publico
+                </Button>
+              </div>
             </div>
           </Card>
           <div className="flex justify-end pt-4">
@@ -748,6 +791,30 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
               >
                 <span>Visualizar</span>
                 <Eye className="size-4" />
+              </Button>
+              <Button
+                type="primary"
+                className="w-full justify-between px-3"
+                onClick={() => {
+                  if (selectedLogista) {
+                    window.open(buildMarketplaceStoreUrl(selectedLogista), "_blank", "noopener,noreferrer");
+                  }
+                }}
+              >
+                <span>Abrir loja virtual</span>
+                <ExternalLink className="size-4" />
+              </Button>
+              <Button
+                type="primary"
+                className="w-full justify-between px-3"
+                onClick={() => {
+                  if (selectedLogista) {
+                    void copyStoreLink(selectedLogista);
+                  }
+                }}
+              >
+                <span>Copiar link da loja</span>
+                <Copy className="size-4" />
               </Button>
               <Button
                 type="primary"

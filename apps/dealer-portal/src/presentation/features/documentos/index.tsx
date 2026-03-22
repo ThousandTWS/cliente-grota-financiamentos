@@ -7,12 +7,9 @@ import {
   useState,
 } from "react";
 import {
-  REALTIME_CHANNELS,
-  REALTIME_EVENT_TYPES,
-  dispatchBridgeEvent,
-  parseBridgeEvent,
-  useRealtimeChannel,
-} from "@grota/realtime-client";
+  usePublish,
+  useSubscription,
+} from "@/application/core/realtime/live-hooks";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -63,7 +60,10 @@ import {
 import { Badge } from "@/presentation/ui/badge";
 import { Progress } from "@/presentation/ui/progress";
 import { cn } from "@/lib/utils";
-import { getRealtimeUrl } from "@/application/config/realtime";
+import {
+  DEALER_LIVE_CHANNELS,
+  DEALER_LIVE_EVENT_TYPES,
+} from "@/application/core/realtime/refine-live-provider";
 const LOGISTA_DOCUMENTS_IDENTITY = "logista-documentos";
 
 const documentTypeConfig: Record<
@@ -168,11 +168,6 @@ const statusFilterOptions: { value: ReviewStatus | "ALL"; label: string }[] = [
   { value: "REPROVADO", label: "Reprovadas" },
 ];
 
-const presenceLabels: Record<string, string> = {
-  admin: "Backoffice",
-  [LOGISTA_DOCUMENTS_IDENTITY]: "Você",
-};
-
 const formatFileSize = (sizeBytes: number) => {
   if (!sizeBytes || Number.isNaN(sizeBytes)) return "0 B";
   if (sizeBytes < 1024) return `${sizeBytes} B`;
@@ -194,31 +189,31 @@ const formatDateTime = (value?: string | null) => {
   });
 };
 
-  const describeRealtimeEvent = (
-    event: string,
-    payload: unknown,
-  ) => {
-    const typedPayload = (payload ?? null) as
-      | { document?: DocumentRecord }
-      | null;
-    switch (event) {
-      case REALTIME_EVENT_TYPES.DOCUMENT_UPLOADED:
-        return `Novo documento: ${
-          documentTypeConfig[
-            typedPayload?.document?.documentType ?? "RG_FRENTE"
-          ]?.label ?? "Documento"
-        }`;
-      case REALTIME_EVENT_TYPES.DOCUMENT_REVIEW_UPDATED:
-        return `Status atualizado para ${
-          statusCopy[typedPayload?.document?.reviewStatus ?? "PENDENTE"]
-            ?.label ?? "Revisão"
-        }`;
-      case REALTIME_EVENT_TYPES.DOCUMENTS_REFRESH_REQUEST:
-        return "Sincronização solicitada pelo backoffice";
-      default:
-        return event;
-    }
-  };
+const describeRealtimeEvent = (
+  event: string,
+  payload: unknown,
+) => {
+  const typedPayload = (payload ?? null) as
+    | { document?: DocumentRecord }
+    | null;
+  switch (event) {
+    case DEALER_LIVE_EVENT_TYPES.DOCUMENT_UPLOADED:
+      return `Novo documento: ${
+        documentTypeConfig[
+          typedPayload?.document?.documentType ?? "RG_FRENTE"
+        ]?.label ?? "Documento"
+      }`;
+    case DEALER_LIVE_EVENT_TYPES.DOCUMENT_REVIEW_UPDATED:
+      return `Status atualizado para ${
+        statusCopy[typedPayload?.document?.reviewStatus ?? "PENDENTE"]
+          ?.label ?? "Revisão"
+      }`;
+    case DEALER_LIVE_EVENT_TYPES.DOCUMENTS_REFRESH_REQUEST:
+      return "Sincronização solicitada pelo backoffice";
+    default:
+      return event;
+  }
+};
 
 export function DocumentosFeature() {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -228,23 +223,29 @@ export function DocumentosFeature() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [recentRealtimeEvents, setRecentRealtimeEvents] = useState<
+    Array<{ id: string; event: string; payload: unknown; timestamp: string }>
+  >([]);
+  const publish = usePublish();
+  const realtimeStatus = realtimeStatusTokens.connected;
 
-  const { messages, sendMessage, status, participants } = useRealtimeChannel({
-    channel: REALTIME_CHANNELS.DOCUMENTS,
-    identity: LOGISTA_DOCUMENTS_IDENTITY,
-    url: getRealtimeUrl(),
-    metadata: { area: "logista-documents" },
-  });
-
-  const sortedParticipants = useMemo(() => {
-    return participants
-      .slice()
-      .sort((a, b) => a.sender.localeCompare(b.sender, "pt-BR"));
-  }, [participants]);
-
-  const realtimeStatus =
-    realtimeStatusTokens[status as keyof typeof realtimeStatusTokens] ??
-    realtimeStatusTokens.idle;
+  const pushRealtimeEvent = useCallback((event: string, payload: unknown) => {
+    setRecentRealtimeEvents((current) => {
+      const next = [
+        {
+          id:
+            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random()}`,
+          event,
+          payload,
+          timestamp: new Date().toISOString(),
+        },
+        ...current,
+      ];
+      return next.slice(0, 6);
+    });
+  }, []);
 
   const applySnapshot = useCallback((record: DocumentRecord) => {
     if (!record?.id) return;
@@ -289,39 +290,43 @@ export function DocumentosFeature() {
     loadDocuments();
   }, [loadDocuments]);
 
-  useEffect(() => {
-    if (!messages.length) return;
-    const latest = messages[messages.length - 1];
-    const parsed = parseBridgeEvent(latest);
-    if (!parsed) return;
+  useSubscription({
+    channel: DEALER_LIVE_CHANNELS.DOCUMENTS,
+    onLiveEvent: (event) => {
+      const payload =
+        (event.payload as {
+          document?: DocumentRecord;
+          source?: string;
+          eventType?: string;
+        }) ?? null;
 
-    const payload =
-      (parsed.payload as { document?: DocumentRecord; source?: string }) ??
-      null;
+      const eventType = payload?.eventType ?? "";
+      pushRealtimeEvent(eventType, payload);
 
-    switch (parsed.event) {
-      case REALTIME_EVENT_TYPES.DOCUMENT_UPLOADED:
-        if (
-          payload?.document &&
-          payload.source !== LOGISTA_DOCUMENTS_IDENTITY
-        ) {
-          applySnapshot(payload.document);
-          toast.success("Backoffice sinalizou um novo documento.");
-        }
-        break;
-      case REALTIME_EVENT_TYPES.DOCUMENT_REVIEW_UPDATED:
-        if (payload?.document) {
-          applySnapshot(payload.document);
-          toast.info("Status do documento atualizado pelo backoffice.");
-        }
-        break;
-      case REALTIME_EVENT_TYPES.DOCUMENTS_REFRESH_REQUEST:
-        loadDocuments({ silent: true });
-        break;
-      default:
-        break;
-    }
-  }, [messages, applySnapshot, loadDocuments]);
+      switch (eventType) {
+        case DEALER_LIVE_EVENT_TYPES.DOCUMENT_UPLOADED:
+          if (
+            payload?.document &&
+            payload.source !== LOGISTA_DOCUMENTS_IDENTITY
+          ) {
+            applySnapshot(payload.document);
+            toast.success("Backoffice sinalizou um novo documento.");
+          }
+          break;
+        case DEALER_LIVE_EVENT_TYPES.DOCUMENT_REVIEW_UPDATED:
+          if (payload?.document) {
+            applySnapshot(payload.document);
+            toast.info("Status do documento atualizado pelo backoffice.");
+          }
+          break;
+        case DEALER_LIVE_EVENT_TYPES.DOCUMENTS_REFRESH_REQUEST:
+          void loadDocuments({ silent: true });
+          break;
+        default:
+          break;
+      }
+    },
+  });
 
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -345,9 +350,15 @@ export function DocumentosFeature() {
       toast.success("Documento enviado com sucesso!", {
         description: `${documentTypeConfig[selectedType].label} sincronizado com o backoffice.`,
       });
-      dispatchBridgeEvent(sendMessage, REALTIME_EVENT_TYPES.DOCUMENT_UPLOADED, {
-        document: created,
-        source: LOGISTA_DOCUMENTS_IDENTITY,
+      publish?.({
+        channel: DEALER_LIVE_CHANNELS.DOCUMENTS,
+        type: DEALER_LIVE_EVENT_TYPES.DOCUMENT_UPLOADED,
+        payload: {
+          eventType: DEALER_LIVE_EVENT_TYPES.DOCUMENT_UPLOADED,
+          document: created,
+          source: LOGISTA_DOCUMENTS_IDENTITY,
+        },
+        date: new Date(),
       });
     } catch (error) {
       console.error("[logista][documents] Falha no upload", error);
@@ -404,29 +415,6 @@ export function DocumentosFeature() {
     };
   }, [documents]);
 
-  const allowedRealtimeEvents = useMemo(
-    () =>
-      new Set<string>([
-        REALTIME_EVENT_TYPES.DOCUMENT_UPLOADED,
-        REALTIME_EVENT_TYPES.DOCUMENT_REVIEW_UPDATED,
-        REALTIME_EVENT_TYPES.DOCUMENTS_REFRESH_REQUEST,
-      ]),
-    [],
-  );
-
-  const recentRealtimeEvents = useMemo(() => {
-    return messages
-      .map((message) => parseBridgeEvent(message))
-      .filter(
-        (
-          event,
-        ): event is NonNullable<ReturnType<typeof parseBridgeEvent>> =>
-          !!event && allowedRealtimeEvents.has(event.event),
-      )
-      .slice(-6)
-      .reverse();
-  }, [allowedRealtimeEvents, messages]);
-
   return (
     <div className="space-y-6">
       <div>
@@ -438,7 +426,7 @@ export function DocumentosFeature() {
         </h1>
         <p className="mt-2 text-base text-muted-foreground">
           Centralize os documentos exigidos pelo backoffice e acompanhe a
-          revisão em tempo real via WebSocket.
+          revisão em tempo real via Refine Live.
         </p>
       </div>
 
@@ -503,11 +491,15 @@ export function DocumentosFeature() {
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  dispatchBridgeEvent(
-                    sendMessage,
-                    REALTIME_EVENT_TYPES.DOCUMENTS_REFRESH_REQUEST,
-                    { source: LOGISTA_DOCUMENTS_IDENTITY },
-                  )
+                  publish?.({
+                    channel: DEALER_LIVE_CHANNELS.DOCUMENTS,
+                    type: DEALER_LIVE_EVENT_TYPES.DOCUMENTS_REFRESH_REQUEST,
+                    payload: {
+                      eventType: DEALER_LIVE_EVENT_TYPES.DOCUMENTS_REFRESH_REQUEST,
+                      source: LOGISTA_DOCUMENTS_IDENTITY,
+                    },
+                    date: new Date(),
+                  })
                 }
               >
                 <RefreshCcw className="mr-2 size-4" />
@@ -607,7 +599,7 @@ export function DocumentosFeature() {
               <div>
                 <CardTitle>Sync em tempo real</CardTitle>
                 <CardDescription>
-                  Conexão com o backoffice via WebSocket.
+                  Assinatura do canal pelo Refine.
                 </CardDescription>
               </div>
               <Badge className={cn("text-xs", realtimeStatus.className)}>
@@ -619,24 +611,11 @@ export function DocumentosFeature() {
           <CardContent className="space-y-4">
             <div className="space-y-1 text-sm text-muted-foreground">
               <div className="font-medium text-foreground">
-                Participantes conectados
+                Canal monitorado
               </div>
-              <div className="flex flex-wrap gap-2">
-                {sortedParticipants.length === 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    Nenhum cliente conectado
-                  </span>
-                )}
-                {sortedParticipants.map((participant) => (
-                  <Badge
-                    key={participant.clientId}
-                    variant="secondary"
-                    className="bg-muted text-foreground"
-                  >
-                    {presenceLabels[participant.sender] ?? participant.sender}
-                  </Badge>
-                ))}
-              </div>
+              <Badge variant="secondary" className="bg-muted text-foreground">
+                {DEALER_LIVE_CHANNELS.DOCUMENTS}
+              </Badge>
             </div>
 
             <div className="space-y-2">
@@ -651,14 +630,14 @@ export function DocumentosFeature() {
                 )}
                 {recentRealtimeEvents.map((event) => (
                   <div
-                    key={event?.message.id}
+                    key={event.id}
                     className="rounded-lg border border-border bg-muted/40 p-3 text-sm"
                   >
                     <p className="font-medium text-foreground">
-                      {describeRealtimeEvent(event?.event ?? "", event?.payload ?? null)}
+                      {describeRealtimeEvent(event.event, event.payload)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(event?.message.timestamp ?? Date.now()).toLocaleTimeString("pt-BR", {
+                      {new Date(event.timestamp).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}

@@ -96,14 +96,14 @@ export function ManagersList({ dealerId }: { dealerId?: number }) {
   );
 
   useEffect(() => {
-    fetchManagers(true);
-  }, [fetchManagers]);
+    mountedRef.current = true;
 
-  useEffect(() => {
+    fetchManagers(true);
+
     return () => {
       mountedRef.current = false;
     };
-  }, []);
+  }, [fetchManagers]);
 
   useEffect(() => {
     const handler = setTimeout(() => {

@@ -202,12 +202,21 @@ const subscribeNotifications = ({
     }
   };
 
+  const scheduleReconnect = () => {
+    if (!active || retryTimer) return;
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      connect();
+    }, SSE_RETRY_DELAY_MS);
+  };
+
   const connect = () => {
     if (!active || typeof window === "undefined") return;
 
     source = new EventSource("/api/notifications/stream");
 
     source.onmessage = (message) => {
+      if (typeof message.data !== "string") return;
       const parsed = parseJsonSafely(message.data);
       if (!isRecord(parsed)) return;
       if (!shouldDispatchType(types, "created")) return;
@@ -220,11 +229,7 @@ const subscribeNotifications = ({
         source.close();
         source = null;
       }
-      if (!active || retryTimer) return;
-      retryTimer = setTimeout(() => {
-        retryTimer = null;
-        connect();
-      }, SSE_RETRY_DELAY_MS);
+      scheduleReconnect();
     };
   };
 
@@ -395,6 +400,8 @@ export const refineLiveProvider: LiveProvider = {
 
     if (isProposalChannel(event.channel)) {
       publishProposalEvent(event);
+      return;
     }
+
   },
 };

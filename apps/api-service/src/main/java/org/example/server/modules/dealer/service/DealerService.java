@@ -14,6 +14,7 @@ import org.example.server.modules.dealer.model.Partner;
 import org.example.server.modules.proposal.model.Proposal;
 import org.example.server.modules.seller.model.Seller;
 import org.example.server.modules.user.model.User;
+import org.example.server.modules.user.model.UserStatus;
 import org.example.server.modules.dealer.repository.DealerRepository;
 import org.example.server.modules.user.repository.UserRepository;
 import org.example.server.modules.document.repository.DocumentRepository;
@@ -42,6 +43,7 @@ public class DealerService {
     private final DealerProfileMapper dealerProfileMapper;
     private final AddressMapper addressMapper;
     private final DealerDetailsMapper dealerDetailsMapper;
+    private final DealerMarketplaceMapper dealerMarketplaceMapper;
     private final RefreshTokenRepository refreshTokenRepository;
     private final SellerRepository sellerRepository;
     private final ManagerRepository managerRepository;
@@ -59,6 +61,7 @@ public class DealerService {
             DealerProfileMapper dealerProfileMapper,
             AddressMapper addressMapper,
             DealerDetailsMapper dealerDetailsMapper,
+            DealerMarketplaceMapper dealerMarketplaceMapper,
             RefreshTokenRepository refreshTokenRepository,
             SellerRepository sellerRepository,
             ManagerRepository managerRepository,
@@ -75,6 +78,7 @@ public class DealerService {
         this.dealerProfileMapper = dealerProfileMapper;
         this.addressMapper = addressMapper;
         this.dealerDetailsMapper = dealerDetailsMapper;
+        this.dealerMarketplaceMapper = dealerMarketplaceMapper;
         this.refreshTokenRepository = refreshTokenRepository;
         this.sellerRepository = sellerRepository;
         this.managerRepository = managerRepository;
@@ -173,6 +177,38 @@ public class DealerService {
         return dealerList.stream()
                 .map(dealerRegistrationMapper::toDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DealerMarketplaceSummaryDTO> listMarketplaceDealers() {
+        return dealerRepository.findAllByUser_StatusOrderByEnterpriseAsc(UserStatus.ATIVO).stream()
+                .map(dealer -> dealerMarketplaceMapper.toSummaryDTO(
+                        dealer,
+                        vehicleRepository.countByDealerIdAndStatus(
+                                dealer.getId(),
+                                org.example.server.modules.vehicle.model.VehicleStatus.DISPONIVEL
+                        )
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public DealerMarketplaceDetailsDTO findMarketplaceDealer(Long id) {
+        Dealer dealer = dealerRepository.findById(id)
+                .orElseThrow(() -> new RecordNotFoundException(id));
+
+        User user = dealer.getUser();
+        if (user == null || user.getVerificationStatus() != UserStatus.ATIVO) {
+            throw new RecordNotFoundException("Loja virtual não encontrada.");
+        }
+
+        return dealerMarketplaceMapper.toDetailsDTO(
+                dealer,
+                vehicleRepository.countByDealerIdAndStatus(
+                        dealer.getId(),
+                        org.example.server.modules.vehicle.model.VehicleStatus.DISPONIVEL
+                )
+        );
     }
 
     @SuppressWarnings("null")
@@ -343,6 +379,5 @@ public class DealerService {
         return (prefix.length() > 6 ? prefix.substring(0, 6) : prefix) + "-" + phoneSuffix;
     }
 }
-
 
 

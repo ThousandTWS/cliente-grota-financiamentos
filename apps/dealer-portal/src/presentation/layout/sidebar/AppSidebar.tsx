@@ -243,7 +243,7 @@ const AppSidebar = ({ customNavItems, customOthersItems }: AppSidebarProps) => {
             <>
               <Image
                 className="dark:hidden filter brightness-0 invert"
-                src="/images/logo/Grota_logo horizontal positivo.png"
+                src="/images/logo/grota-logo-horizontal-positive.png"
                 alt="Logo"
                 width={150}
                 height={40}
@@ -251,7 +251,7 @@ const AppSidebar = ({ customNavItems, customOthersItems }: AppSidebarProps) => {
               />
               <Image
                 className="hidden dark:block filter brightness-0 invert"
-                src="/images/logo/Grota_logo horizontal negativo.png"
+                src="/images/logo/grota-logo-horizontal-negative.png"
                 alt="Logo"
                 width={150}
                 height={40}
@@ -263,8 +263,8 @@ const AppSidebar = ({ customNavItems, customOthersItems }: AppSidebarProps) => {
               className="filter brightness-0 invert"
               src={
                 theme === "dark"
-                  ? "/images/logo/Símbolo negativo.png" // versão branca
-                  : "/images/logo/Símbolo positivo.png" // versão padrão
+                  ? "/images/logo/grota-symbol-negative.png"
+                  : "/images/logo/grota-symbol-positive.png"
               }
               alt="Logo"
               width={32}

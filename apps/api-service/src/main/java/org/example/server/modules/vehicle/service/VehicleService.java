@@ -78,6 +78,12 @@ public class VehicleService {
                 .toList();
     }
 
+    public java.util.List<VehicleResponseDTO> getAvailableVehiclesByDealer(Long id) {
+        return vehicleRepository.findByDealerIdAndStatus(id, VehicleStatus.DISPONIVEL).stream()
+                .map(vehicleMapper::toDTO)
+                .toList();
+    }
+
     public VehicleResponseDTO updateStatus(User user, Long id, VehicleStatus status) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException(id));
@@ -94,5 +100,4 @@ public class VehicleService {
     }
 
 }
-
 

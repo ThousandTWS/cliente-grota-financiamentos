@@ -56,60 +56,18 @@ Este repositório é um **starter Turborepo** adaptado para o projeto **Grota Fi
 │  ├─ ui/
 │  ├─ eslint-config/
 │  ├─ typescript-config/
-│  ├─ realtime-client/
-│  └─ realtime-server/
 └─ turbo.json
 ```
 
-Foi adicionado um canal WebSocket compartilhado para permitir que o painel administrativo envie recados imediatos aos lojistas diretamente do dashboard:
-
-1. **Suba o servidor** dedicado no workspace:
-
-   ```bash
-   Websocks
-   pnpm realtime
-   pnpm --filter @grota/realtime-server dev
-
-   Apps
-   pnpm dev --filter grota-website
-   pnpm dev --filter grota-painel-logista
-   pnpm dev --filter grota-painel-admin
-
-   ```
-
-   > O servidor usa `ws://localhost:4545` por padrão (configurável via `WS_PORT`).
-
-2. **Defina o endpoint** público nos apps que consumirão o canal, por exemplo em `.env.local`:
-
-   ```bash
-   NEXT_PUBLIC_REALTIME_WS_URL=ws://localhost:4545
-   ```
-
 ## Comunicação em tempo real (Admin ↔ Logista)
 
-Foi adicionado um canal WebSocket compartilhado para permitir que o painel administrativo envie recados imediatos aos lojistas diretamente do dashboard:
+Os frontends usam `liveProvider` do Refine para assinar e publicar eventos de tempo real. Os canais de propostas, documentos e notificações ficam integrados na camada de aplicação dos próprios apps, sem package dedicada de realtime no workspace.
 
-1. **Suba o servidor** dedicado no workspace:
+Se o ambiente precisar apontar para um broker/socket externo, configure o endpoint público no `.env.local` dos apps que consomem realtime:
 
-   ```bash
-   Websocks
-   pnpm realtime
-   pnpm --filter @grota/realtime-server dev
-
-   Apps
-   pnpm dev --filter grota-website
-   pnpm dev --filter grota-painel-logista
-   pnpm dev --filter grota-painel-admin
-
-   ```
-
-   > O servidor usa `ws://localhost:4545` por padrão (configurável via `WS_PORT`).
-
-2. **Defina o endpoint** público nos apps que consumirão o canal, por exemplo em `.env.local`:
-
-   ```bash
+```bash
    NEXT_PUBLIC_REALTIME_WS_URL=ws://localhost:4545
-   ```
+```
 
 3. Abra as páginas `apps/admin-console/(admin)/visao-geral` e `apps/dealer-portal/(logista)/visao-geral` para visualizar o card _Canal Admin ↔ Logista_. As mensagens viajam instantaneamente enquanto ambos estiverem conectados.
 

@@ -60,7 +60,7 @@ const AppHeader = () => {
         <Link href="/" className="lg:hidden flex items-center">
            <Image
               className="filter brightness-0 invert"
-              src="/images/logo/Grota_logo%20horizontal%20positivo.png"
+              src="/images/logo/grota-logo-horizontal-positive.png"
               alt="Logo"
               width={130}
               height={35}

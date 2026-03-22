@@ -1,14 +1,10 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  REALTIME_CHANNELS,
-  REALTIME_EVENT_TYPES,
-  dispatchBridgeEvent,
-  parseBridgeEvent,
-  useRealtimeChannel,
-} from "@grota/realtime-client";
+  usePublish,
+  useSubscription,
+} from "@/application/core/realtime/live-hooks";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
@@ -26,7 +22,10 @@ import {
   fetchManagerPanelSellers,
 } from "@/application/services/Sellers/sellerService";
 import { fetchAllDealers } from "@/application/services/DealerServices/dealerService";
-import { getRealtimeUrl } from "@/application/config/realtime";
+import {
+  DEALER_LIVE_CHANNELS,
+  DEALER_LIVE_EVENT_TYPES,
+} from "@/application/core/realtime/refine-live-provider";
 
 const LOGISTA_PROPOSALS_IDENTITY = "logista-esteira";
 
@@ -172,15 +171,7 @@ export function EsteiraDePropostasFeature({
   >([]);
   const [dealerIndex, setDealerIndex] = useState<Record<number, { name: string; enterprise?: string }>>({});
   const [sellerIndex, setSellerIndex] = useState<Record<number, string>>({});
-
-  const { messages, sendMessage } = useRealtimeChannel({
-    channel: REALTIME_CHANNELS.PROPOSALS,
-    identity: LOGISTA_PROPOSALS_IDENTITY,
-    url: getRealtimeUrl(),
-  });
-
-  const latestRealtimeMessage =
-    messages.length > 0 ? messages[messages.length - 1] : null;
+  const publish = usePublish();
 
   const loadProposals = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -282,50 +273,47 @@ export function EsteiraDePropostasFeature({
     loadEntities();
   }, [useManagerSellers]);
 
-  useEffect(() => {
-    if (!latestRealtimeMessage) return;
-    const parsed = parseBridgeEvent(latestRealtimeMessage);
-    if (!parsed) return;
+  useSubscription({
+    channel: DEALER_LIVE_CHANNELS.PROPOSALS,
+    onLiveEvent: (event) => {
+      const payload = (event.payload ?? {}) as {
+        proposal?: Proposal;
+        source?: string;
+        eventType?: string;
+      };
+      const eventType = payload.eventType;
 
-    const payload = (parsed.payload ?? {}) as {
-      proposal?: Proposal;
-      source?: string;
-    };
+      if (
+        eventType === DEALER_LIVE_EVENT_TYPES.PROPOSAL_CREATED &&
+        payload.proposal &&
+        payload.source !== LOGISTA_PROPOSALS_IDENTITY
+      ) {
+        applyRealtimeSnapshot(payload.proposal);
+        toast.success(
+          `Nova ficha enviada: ${payload.proposal.customerName} (${payload.proposal.status})`,
+        );
+        return;
+      }
 
-    if (
-      parsed.event === REALTIME_EVENT_TYPES.PROPOSAL_CREATED &&
-      payload.proposal &&
-      payload.source !== LOGISTA_PROPOSALS_IDENTITY
-    ) {
-      applyRealtimeSnapshot(payload.proposal);
-      toast.success(
-        `Nova ficha enviada: ${payload.proposal.customerName} (${payload.proposal.status})`,
-      );
-      return;
-    }
+      if (
+        eventType === DEALER_LIVE_EVENT_TYPES.PROPOSAL_STATUS_UPDATED &&
+        payload.proposal
+      ) {
+        applyRealtimeSnapshot(payload.proposal);
+        const statusInfo =
+          statusBadges[payload.proposal.status] ??
+          ({ label: payload.proposal.status, className: "" } as const);
+        toast.info(
+          `Status atualizado: ${payload.proposal.customerName} agora está ${statusInfo.label}.`,
+        );
+        return;
+      }
 
-    if (
-      parsed.event === REALTIME_EVENT_TYPES.PROPOSAL_STATUS_UPDATED &&
-      payload.proposal
-    ) {
-      applyRealtimeSnapshot(payload.proposal);
-      const statusInfo =
-        statusBadges[payload.proposal.status] ??
-        ({ label: payload.proposal.status, className: "" } as const);
-      toast.info(
-        `Status atualizado: ${payload.proposal.customerName} agora está ${statusInfo.label}.`,
-      );
-      return;
-    }
-
-    if (parsed.event === REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST) {
-      loadProposals({ silent: true });
-    }
-  }, [
-    latestRealtimeMessage,
-    applyRealtimeSnapshot,
-    loadProposals,
-  ]);
+      if (eventType === DEALER_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST) {
+        void loadProposals({ silent: true });
+      }
+    },
+  });
 
   const filteredProposals = useMemo(() => {
     return proposals.filter((proposal) => {
@@ -442,9 +430,15 @@ export function EsteiraDePropostasFeature({
 
   const handleRefresh = () => {
     loadProposals();
-    dispatchBridgeEvent(sendMessage, REALTIME_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
-      source: LOGISTA_PROPOSALS_IDENTITY,
-      reason: "manual-refresh",
+    publish?.({
+      channel: DEALER_LIVE_CHANNELS.PROPOSALS,
+      type: DEALER_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST,
+      payload: {
+        eventType: DEALER_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST,
+        source: LOGISTA_PROPOSALS_IDENTITY,
+        reason: "manual-refresh",
+      },
+      date: new Date(),
     });
   };
 

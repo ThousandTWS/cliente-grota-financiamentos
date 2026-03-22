@@ -8,6 +8,7 @@ export type Dealer = {
   enterprise: string;
   status?: string;
   createdAt?: string;
+  address?: AddressPayload;
 };
 
 export type PartnerPayload = {
@@ -38,6 +39,85 @@ export type CreateDealerPayload = {
   partners?: PartnerPayload[];
   observation?: string;
 };
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function pickString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+
+  return undefined;
+}
+
+function normalizeDealer(dealer: unknown): Dealer {
+  const record = asRecord(dealer) ?? {};
+  const nestedAddress =
+    asRecord(record.address) ??
+    asRecord(record.endereco) ??
+    asRecord(record.dealerAddress) ??
+    asRecord(record.location);
+
+  const city = pickString(
+    nestedAddress?.city,
+    nestedAddress?.cidade,
+    nestedAddress?.municipio,
+    record.city,
+    record.cidade,
+    record.municipio,
+  );
+
+  const state = pickString(
+    nestedAddress?.state,
+    nestedAddress?.uf,
+    nestedAddress?.estado,
+    record.state,
+    record.uf,
+    record.estado,
+  )?.toUpperCase();
+
+  return {
+    ...(record as unknown as Dealer),
+    address: {
+      zipCode: pickString(
+        nestedAddress?.zipCode,
+        nestedAddress?.cep,
+        record.zipCode,
+        record.cep,
+      ),
+      street: pickString(
+        nestedAddress?.street,
+        nestedAddress?.logradouro,
+        record.street,
+        record.logradouro,
+      ),
+      number: pickString(
+        nestedAddress?.number,
+        nestedAddress?.numero,
+        record.number,
+        record.numero,
+      ),
+      complement: pickString(
+        nestedAddress?.complement,
+        nestedAddress?.complemento,
+        record.complement,
+        record.complemento,
+      ),
+      neighborhood: pickString(
+        nestedAddress?.neighborhood,
+        nestedAddress?.bairro,
+        record.neighborhood,
+        record.bairro,
+      ),
+      city,
+      state,
+    },
+  };
+}
 
 function extractArrayPayload(payload: unknown): unknown[] {
   if (Array.isArray(payload)) return payload;
@@ -94,16 +174,17 @@ export const getAllLogistics = async (): Promise<Dealer[]> => {
     method: "GET",
   });
   const listPayload = extractArrayPayload(payload);
-  return (listPayload as Dealer[]).map((dealer) => dealer as Dealer);
+  return listPayload.map((dealer) => normalizeDealer(dealer));
 };
 
 export const createDealer = async (
   payload: CreateDealerPayload,
 ): Promise<Dealer> => {
-  return request<Dealer>("/api/dealers", {
+  const response = await request<unknown>("/api/dealers", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  return normalizeDealer(response);
 };
 
 export const deleteDealer = async (id: number): Promise<void> => {

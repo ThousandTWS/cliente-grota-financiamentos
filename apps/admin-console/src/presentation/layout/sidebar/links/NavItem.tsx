@@ -147,18 +147,6 @@ export const navItems: NavItem[] = [
       pro: false
     },
     {
-      name: "Simulações de Financiamento",
-      path: "/marketplace/simulacoes",
-      icon: <Calculator size={16} />,
-      pro: false
-    },
-    {
-      name: "Parceiros & Lojas",
-      path: "/marketplace/parceiros",
-      icon: <Building2 size={16} />,
-      pro: false
-    },
-    {
       name: "Relatórios",
       path: "/marketplace/relatorios",
       icon: <BarChart3 size={16} />,

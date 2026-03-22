@@ -233,7 +233,7 @@ const AppSidebar = () => {
             <>
               <Image
                 className="dark:hidden filter brightness-0 invert"
-                src="/images/logo/Grota_logo horizontal positivo.png"
+                src="/images/logo/grota-logo-horizontal-positive.png"
                 alt="Logo"
                 width={150}
                 height={40}
@@ -241,7 +241,7 @@ const AppSidebar = () => {
               />
               <Image
                 className="hidden dark:block filter brightness-0 invert"
-                src="/images/logo/Grota_logo horizontal negativo.png"
+                src="/images/logo/grota-logo-horizontal-negative.png"
                 alt="Logo"
                 width={150}
                 height={40}
@@ -251,7 +251,7 @@ const AppSidebar = () => {
           ) : (
             <Image
               className="filter brightness-0 invert"
-              src="/images/logo/Símbolo positivo.png"
+              src="/images/logo/grota-symbol-positive.png"
               alt="Logo"
               width={40}
               height={40}

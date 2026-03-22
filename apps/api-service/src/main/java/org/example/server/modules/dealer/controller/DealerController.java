@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.example.server.modules.dealer.dto.DealerAdminRegistrationRequestDTO;
 import org.example.server.modules.dealer.dto.DealerDetailsResponseDTO;
+import org.example.server.modules.dealer.dto.DealerMarketplaceDetailsDTO;
+import org.example.server.modules.dealer.dto.DealerMarketplaceSummaryDTO;
 import org.example.server.modules.dealer.dto.DealerLogoResponseDTO;
 import org.example.server.modules.dealer.dto.DealerLogoUploadRequest;
 import org.example.server.modules.dealer.dto.DealerProfileDTO;
@@ -72,6 +74,33 @@ public class DealerController {
     public ResponseEntity<List<DealerRegistrationResponseDTO>> findAll(){
         List<DealerRegistrationResponseDTO> dealerList = dealerService.findAll();
         return ResponseEntity.ok().body(dealerList);
+    }
+
+    @GetMapping("/public")
+    @Operation(
+            summary = "Listar lojas virtuais",
+            description = "Retorna as lojas ativas disponíveis no marketplace público."
+    )
+    public ResponseEntity<List<DealerMarketplaceSummaryDTO>> findPublicMarketplaceDealers() {
+        return ResponseEntity.ok(dealerService.listMarketplaceDealers());
+    }
+
+    @GetMapping("/public/{id}")
+    @Operation(
+            summary = "Detalhar loja virtual",
+            description = "Retorna os dados públicos de uma loja ativa no marketplace."
+    )
+    public ResponseEntity<DealerMarketplaceDetailsDTO> findPublicMarketplaceDealer(@PathVariable Long id) {
+        return ResponseEntity.ok(dealerService.findMarketplaceDealer(id));
+    }
+
+    @GetMapping("/public/{id}/vehicles")
+    @Operation(
+            summary = "Listar veículos públicos da loja",
+            description = "Retorna apenas os veículos disponíveis de uma loja no marketplace."
+    )
+    public ResponseEntity<List<VehicleResponseDTO>> getPublicVehiclesByDealer(@PathVariable Long id) {
+        return ResponseEntity.ok(vehicleService.getAvailableVehiclesByDealer(id));
     }
 
     @GetMapping("/{id}")
@@ -258,5 +287,4 @@ public class DealerController {
 
 
 }
-
 

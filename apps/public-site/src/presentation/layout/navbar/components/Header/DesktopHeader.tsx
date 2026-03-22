@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
     href: "/nossa-historia",
     children: [],
   },
+  { name: "Lojas", href: "/lojas" },
   { name: "Solucoes", href: "/solucoes" },
   { name: "Financiamento", href: "/financiamento" },
   { name: "Contato", href: "/contato" },

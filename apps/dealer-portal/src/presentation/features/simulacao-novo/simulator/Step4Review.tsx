@@ -669,7 +669,7 @@ export default function Step4Review({
         selectedDealerName
           ? Promise.resolve(selectedDealerName)
           : fetchDealerName(formData.dealerId),
-        loadImageDataUrl("/images/logo/Grota_logo horizontal positivo.png"),
+        loadImageDataUrl("/images/logo/grota-logo-horizontal-positive.png"),
       ]);
       await buildPdf(formData, calculation, {
         dealerName,

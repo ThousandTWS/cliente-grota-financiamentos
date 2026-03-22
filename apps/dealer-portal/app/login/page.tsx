@@ -16,7 +16,7 @@ export default function LoginPage() {
         <div className="lg:hidden px-6 py-5 border-b border-border/50">
           <div className="flex items-center gap-3">
             <Image
-              src="/images/logo/Grota_logo horizontal positivo.png"
+              src="/images/logo/grota-logo-horizontal-positive.png"
               alt="Grota Financiamentos"
               width={170}
               height={34}

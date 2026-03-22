@@ -452,7 +452,7 @@ export default function Step4Review({
     try {
       setDownloadingPDF(true);
       const logoDataUrl = await loadImageDataUrl(
-        "/images/logo/Grota_logo horizontal positivo.png",
+        "/images/logo/grota-logo-horizontal-positive.png",
       );
       buildPdf(formData, calculation, {
         dealerId,

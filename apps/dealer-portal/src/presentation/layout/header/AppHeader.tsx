@@ -87,7 +87,7 @@ const AppHeader: React.FC = () => {
           <Link href="/" className="lg:hidden">
             <Image
               className="filter brightness-0 invert"
-              src="/images/logo/Grota_logo horizontal positivo.png"
+              src="/images/logo/grota-logo-horizontal-positive.png"
               alt="Logo"
               width={150}
               height={40}

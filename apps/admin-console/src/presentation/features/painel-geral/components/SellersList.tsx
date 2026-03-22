@@ -90,14 +90,14 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
   );
 
   useEffect(() => {
-    fetchSellers(true);
-  }, [fetchSellers]);
+    mountedRef.current = true;
 
-  useEffect(() => {
+    fetchSellers(true);
+
     return () => {
       mountedRef.current = false;
     };
-  }, []);
+  }, [fetchSellers]);
 
   useEffect(() => {
     const handler = setTimeout(() => {

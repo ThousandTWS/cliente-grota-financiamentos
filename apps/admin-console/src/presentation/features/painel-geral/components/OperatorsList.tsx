@@ -97,14 +97,14 @@ export function OperatorsList({ dealerId }: { dealerId?: number }) {
   );
 
   useEffect(() => {
-    fetchOperators(true);
-  }, [fetchOperators]);
+    mountedRef.current = true;
 
-  useEffect(() => {
+    fetchOperators(true);
+
     return () => {
       mountedRef.current = false;
     };
-  }, []);
+  }, [fetchOperators]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
