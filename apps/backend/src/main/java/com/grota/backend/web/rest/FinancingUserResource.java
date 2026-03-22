@@ -2,7 +2,7 @@ package com.grota.backend.web.rest;
 
 import com.grota.backend.security.AuthoritiesConstants;
 import com.grota.backend.service.FinancingUserService;
-import com.grota.backend.domain.FinancingUserRole;
+import com.grota.backend.enums.FinancingUserRole;
 import com.grota.backend.service.dto.FinancingUserCreateRequestDTO;
 import com.grota.backend.service.dto.FinancingUserProfileUpdateDTO;
 import com.grota.backend.service.dto.FinancingUserResponseDTO;

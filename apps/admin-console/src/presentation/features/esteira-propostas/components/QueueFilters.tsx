@@ -1,9 +1,11 @@
 import { ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Button, DatePicker, Input, Select, Typography } from "antd";
+import { Button, AutoComplete, DatePicker, Input, Select, Typography } from "antd";
 import { Download, Filter, Plus, RefreshCw, Search } from "lucide-react";
 import dayjs from "dayjs";
+import { useEffect, useRef, useState } from "react";
 
 const { Text } = Typography;
+const SEARCH_DEBOUNCE_MS = 250;
 
 type QueueFiltersProps = {
   filters: {
@@ -19,7 +21,13 @@ type QueueFiltersProps = {
   operators: { value: string; label: string }[];
   dealers: { value: string; label: string }[];
   statuses: { value: ProposalStatus | "ALL"; label: string }[];
+  searchSuggestions?: {
+    value: string;
+    label: string;
+    proposalId: number;
+  }[];
   onFiltersChange: (partial: Partial<QueueFiltersProps["filters"]>) => void;
+  onSearchSelect?: (proposalId: number, value: string) => void;
   onRefresh: () => void;
   onCreate?: () => void;
   onExport?: () => void;
@@ -31,13 +39,47 @@ export function QueueFilters({
   operators,
   dealers,
   statuses,
+  searchSuggestions = [],
   onFiltersChange,
+  onSearchSelect,
   onRefresh,
   onCreate,
   onExport,
   isRefreshing,
 }: QueueFiltersProps) {
+  const [searchValue, setSearchValue] = useState(filters.search);
+  const skipNextSyncRef = useRef(false);
+  const normalizedSearch = searchValue.trim().toLowerCase();
+
+  const filteredSuggestions = normalizedSearch
+    ? searchSuggestions
+        .filter((suggestion) =>
+          suggestion.value.toLowerCase().includes(normalizedSearch),
+        )
+        .slice(0, 8)
+    : [];
+
+  useEffect(() => {
+    if (skipNextSyncRef.current) {
+      skipNextSyncRef.current = false;
+      return;
+    }
+    setSearchValue(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (searchValue === filters.search) return;
+      onFiltersChange({ search: searchValue });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [filters.search, onFiltersChange, searchValue]);
+
   const handleReset = () => {
+    setSearchValue("");
     onFiltersChange({
       search: "",
       operatorId: undefined,
@@ -57,13 +99,35 @@ export function QueueFilters({
           <Text className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Foco no cliente
           </Text>
-          <Input
-            placeholder="Pesquise por cliente, CPF ou placa"
-            value={filters.search}
-            onChange={(event) => onFiltersChange({ search: event.target.value })}
-            prefix={<Search className="size-4 text-muted-foreground" />}
-            allowClear
-          />
+          <AutoComplete
+            value={searchValue}
+            options={filteredSuggestions.map((suggestion) => ({
+              value: suggestion.value,
+              label: suggestion.label,
+            }))}
+            onSelect={(value, option) => {
+              const selected = filteredSuggestions.find(
+                (suggestion) =>
+                  suggestion.value === value &&
+                  suggestion.label === String(option.label),
+              );
+              skipNextSyncRef.current = true;
+              setSearchValue(value);
+              onFiltersChange({ search: value });
+              if (selected) {
+                onSearchSelect?.(selected.proposalId, value);
+              }
+            }}
+            onChange={setSearchValue}
+            filterOption={false}
+            className="w-full"
+          >
+            <Input
+              placeholder="Pesquise por cliente, CPF ou placa"
+              prefix={<Search className="size-4 text-muted-foreground" />}
+              allowClear
+            />
+          </AutoComplete>
         </div>
         <div className="grid flex-1 grid-cols-2 gap-3 lg:grid-cols-3">
           <div className="space-y-1">

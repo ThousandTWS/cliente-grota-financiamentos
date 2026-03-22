@@ -1,6 +1,6 @@
 package com.grota.backend.repository;
 
-import com.grota.backend.domain.Authority;
+import com.grota.backend.domain.authority.Authority;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 

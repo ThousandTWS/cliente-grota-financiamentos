@@ -1,10 +1,9 @@
 package com.grota.backend.web.rest;
 
-import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 import com.grota.backend.IntegrationTest;
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.user.User;
 import com.grota.backend.repository.UserRepository;
 import com.grota.backend.repository.search.UserSearchRepository;
 import com.grota.backend.security.AuthoritiesConstants;

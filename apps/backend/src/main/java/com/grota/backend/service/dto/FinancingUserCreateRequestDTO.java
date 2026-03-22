@@ -1,6 +1,6 @@
 package com.grota.backend.service.dto;
 
-import com.grota.backend.domain.FinancingUserRole;
+import com.grota.backend.enums.FinancingUserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

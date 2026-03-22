@@ -1,7 +1,7 @@
 package com.grota.backend.repository.search;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.user.User;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.SearchHit;

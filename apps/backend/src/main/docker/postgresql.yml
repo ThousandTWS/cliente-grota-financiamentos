@@ -3,13 +3,14 @@ name: backend
 services:
   postgresql:
     image: postgres:18.3
-    # volumes:
-    #   - ~/volumes/jhipster/backend/postgresql/:/var/lib/postgresql/data/
+    volumes:
+      - ./postgresql-grota-oficial-data/:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=backend
+      - POSTGRES_DB=grota_financiamentos
+      - POSTGRES_USER=grota
       - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER}']
+      test: ['CMD-SHELL', 'pg_isready -U grota -d grota_financiamentos']
       interval: 5s
       timeout: 5s
       retries: 10

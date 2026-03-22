@@ -1,7 +1,7 @@
 package com.grota.backend.repository;
 
-import com.grota.backend.domain.Authority;
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.authority.Authority;
+import com.grota.backend.domain.user.User;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

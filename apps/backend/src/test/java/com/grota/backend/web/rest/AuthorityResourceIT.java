@@ -8,7 +8,7 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grota.backend.IntegrationTest;
-import com.grota.backend.domain.Authority;
+import com.grota.backend.domain.authority.Authority;
 import com.grota.backend.repository.AuthorityRepository;
 import com.grota.backend.repository.EntityManager;
 import java.time.Duration;

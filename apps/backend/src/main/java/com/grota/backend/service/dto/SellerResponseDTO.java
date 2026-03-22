@@ -1,8 +1,8 @@
 package com.grota.backend.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.grota.backend.domain.Seller;
-import com.grota.backend.domain.SellerStatus;
+import com.grota.backend.domain.seller.Seller;
+import com.grota.backend.enums.SellerStatus;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;

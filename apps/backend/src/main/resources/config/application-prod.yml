@@ -36,9 +36,9 @@ spring:
   # Replace by 'prod, faker' to add the faker context and have sample data loaded in production
   liquibase:
     contexts: prod
-    url: jdbc:postgresql://localhost:5432/backend
+    url: jdbc:postgresql://localhost:5432/grota_financiamentos
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/backend
+    url: r2dbc:postgresql://localhost:5432/grota_financiamentos
   thymeleaf:
     cache: true
 

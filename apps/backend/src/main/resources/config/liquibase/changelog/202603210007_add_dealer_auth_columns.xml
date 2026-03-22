@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="202603210007-1" author="codex">
+        <addColumn tableName="dealer">
+            <column name="auth_login" type="varchar(100)"/>
+            <column name="keycloak_user_id" type="varchar(100)"/>
+        </addColumn>
+
+        <addUniqueConstraint tableName="dealer" columnNames="auth_login" constraintName="ux_dealer_auth_login"/>
+        <addUniqueConstraint tableName="dealer" columnNames="keycloak_user_id" constraintName="ux_dealer_keycloak_user_id"/>
+    </changeSet>
+</databaseChangeLog>

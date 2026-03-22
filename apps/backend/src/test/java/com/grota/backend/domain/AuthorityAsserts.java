@@ -1,5 +1,7 @@
 package com.grota.backend.domain;
 
+import com.grota.backend.domain.authority.Authority;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AuthorityAsserts {

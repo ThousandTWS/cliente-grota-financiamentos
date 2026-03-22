@@ -3,8 +3,8 @@ package com.grota.backend.web.rest;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 import com.grota.backend.IntegrationTest;
-import com.grota.backend.domain.FinancingUser;
-import com.grota.backend.domain.FinancingUserRole;
+import com.grota.backend.domain.financingUser.FinancingUser;
+import com.grota.backend.enums.FinancingUserRole;
 import com.grota.backend.repository.FinancingUserRepository;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;

@@ -1,6 +1,7 @@
 package com.grota.backend.repository;
 
-import com.grota.backend.domain.Seller;
+import com.grota.backend.domain.seller.Seller;
+import java.util.Collection;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -22,7 +23,7 @@ public interface SellerRepository extends R2dbcRepository<Seller, Long> {
 
     Flux<Seller> findAllByDealerIdOrderByFullNameAsc(Long dealerId);
 
-    Flux<Seller> findAllByDealerIdInOrderByFullNameAsc(Iterable<Long> dealerIds);
+    Flux<Seller> findAllByDealerIdInOrderByFullNameAsc(Collection<Long> dealerIds);
 
     Flux<Seller> findAllByOrderByFullNameAsc();
 }

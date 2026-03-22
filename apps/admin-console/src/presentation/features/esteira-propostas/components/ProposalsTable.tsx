@@ -1,12 +1,13 @@
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Button, Card, Checkbox, Input, Modal, Select, Skeleton, Typography } from "antd";
+import { Button, Card, Checkbox, Input, Modal, Pagination, Select, Skeleton, Typography } from "antd";
 import { StatusBadge } from "../../logista/components/status-badge";
 import { Clock3, Eye, StickyNote, Trash2, CheckCircle2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTime } from "../utils/date";
 
 const { Text } = Typography;
+const CARDS_PER_PAGE = 4;
 
 type ProposalsTableProps = {
   proposals: Proposal[];
@@ -28,6 +29,7 @@ type ProposalsTableProps = {
   // Índice de operadores por dealerId - permite encontrar o operador responsável pela loja
   operatorsByDealerId?: Record<number, string>;
   isBulkDeleting?: boolean;
+  focusedProposalId?: number | null;
 };
 
 const proposalStatusLabels: Record<ProposalStatus, string> = {
@@ -141,6 +143,7 @@ export function ProposalsTable({
   unconfirmedIds = {},
   onConfirmArrival,
   isBulkDeleting = false,
+  focusedProposalId = null,
 }: ProposalsTableProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -149,6 +152,8 @@ export function ProposalsTable({
   const [messageTarget, setMessageTarget] = useState<Proposal | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const handleOpenDelete = (proposal: Proposal) => {
     setDeleteTarget(proposal);
@@ -188,6 +193,10 @@ export function ProposalsTable({
     setSelectedIds((current) => current.filter((id) => available.has(id)));
   }, [proposals]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [proposals]);
+
   const cards = useMemo(() => {
     return proposals.map((proposal) => {
       const dealerFromMetadata = getDealerName(proposal.metadata);
@@ -225,6 +234,44 @@ export function ProposalsTable({
     const selectedSet = new Set(selectedIds);
     return cards.filter((proposal) => selectedSet.has(proposal.id));
   }, [cards, selectedIds]);
+
+  const totalPages = Math.max(1, Math.ceil(cards.length / CARDS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage <= totalPages) return;
+    setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginatedCards = useMemo(() => {
+    const start = (currentPage - 1) * CARDS_PER_PAGE;
+    return cards.slice(start, start + CARDS_PER_PAGE);
+  }, [cards, currentPage]);
+
+  useEffect(() => {
+    if (!focusedProposalId) return;
+    const cardIndex = cards.findIndex((proposal) => proposal.id === focusedProposalId);
+    if (cardIndex < 0) return;
+    const targetPage = Math.floor(cardIndex / CARDS_PER_PAGE) + 1;
+    if (targetPage !== currentPage) {
+      setCurrentPage(targetPage);
+    }
+  }, [cards, currentPage, focusedProposalId]);
+
+  useEffect(() => {
+    if (!focusedProposalId) return;
+    const isVisible = paginatedCards.some((proposal) => proposal.id === focusedProposalId);
+    if (!isVisible) return;
+    const timeoutId = window.setTimeout(() => {
+      cardRefs.current[focusedProposalId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 80);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [focusedProposalId, paginatedCards]);
 
   const allChecked =
     cards.length > 0 && cards.every((proposal) => selectedIds.includes(proposal.id));
@@ -311,12 +358,25 @@ export function ProposalsTable({
           </div>
         </div>
       ) : null}
-      {cards.map((proposal) => (
-        <Card
+      {paginatedCards.map((proposal) => (
+        <div
           key={proposal.id}
-          className={`mb-6 last:mb-0 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition-all duration-300 ${unconfirmedIds[proposal.id] ? "proposal-flash ring-2 ring-amber-400 border-amber-300" : recentIds[proposal.id] ? "ring-2 ring-sky-300/50 border-sky-200" : ""}`}
-          styles={{ body: { padding: 24 } }}
+          ref={(element) => {
+            cardRefs.current[proposal.id] = element;
+          }}
         >
+          <Card
+            className={`mb-6 last:mb-0 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition-all duration-300 ${
+              focusedProposalId === proposal.id
+                ? "ring-2 ring-emerald-400 border-emerald-300"
+                : unconfirmedIds[proposal.id]
+                  ? "proposal-flash ring-2 ring-amber-400 border-amber-300"
+                  : recentIds[proposal.id]
+                    ? "ring-2 ring-sky-300/50 border-sky-200"
+                    : ""
+            }`}
+            styles={{ body: { padding: 24 } }}
+          >
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-3">
               {onBulkDelete ? (
@@ -431,8 +491,24 @@ export function ProposalsTable({
               </div>
             </div>
           </div>
-        </Card>
+          </Card>
+        </div>
       ))}
+
+      {cards.length > CARDS_PER_PAGE ? (
+        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 md:flex-row md:items-center md:justify-between">
+          <Text className="text-sm text-muted-foreground">
+            Exibindo {(currentPage - 1) * CARDS_PER_PAGE + 1} a {Math.min(currentPage * CARDS_PER_PAGE, cards.length)} de {cards.length} propostas
+          </Text>
+          <Pagination
+            current={currentPage}
+            pageSize={CARDS_PER_PAGE}
+            total={cards.length}
+            onChange={setCurrentPage}
+            showSizeChanger={false}
+          />
+        </div>
+      ) : null}
 
       <Modal
         open={messageOpen}

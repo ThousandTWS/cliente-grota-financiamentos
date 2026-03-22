@@ -1,6 +1,8 @@
-package com.grota.backend.domain;
+package com.grota.backend.domain.financingUser;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.grota.backend.domain.abstractAuditing.AbstractAuditingEntity;
+import com.grota.backend.enums.FinancingUserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

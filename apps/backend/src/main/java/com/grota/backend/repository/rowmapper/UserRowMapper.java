@@ -1,6 +1,6 @@
 package com.grota.backend.repository.rowmapper;
 
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.user.User;
 import io.r2dbc.spi.Row;
 import java.util.function.BiFunction;
 import org.springframework.stereotype.Service;

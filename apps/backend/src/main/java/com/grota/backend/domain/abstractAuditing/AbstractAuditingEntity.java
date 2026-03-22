@@ -1,4 +1,4 @@
-package com.grota.backend.domain;
+package com.grota.backend.domain.abstractAuditing;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serial;

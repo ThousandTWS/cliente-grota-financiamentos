@@ -3,6 +3,7 @@ package com.grota.backend.domain;
 import static com.grota.backend.domain.AuthorityTestSamples.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.grota.backend.domain.authority.Authority;
 import com.grota.backend.web.rest.TestUtil;
 import org.junit.jupiter.api.Test;
 

@@ -1,13 +1,12 @@
 package com.grota.backend.web.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grota.backend.IntegrationTest;
 import com.grota.backend.config.Constants;
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.user.User;
 import com.grota.backend.repository.AuthorityRepository;
 import com.grota.backend.repository.EntityManager;
 import com.grota.backend.repository.UserRepository;

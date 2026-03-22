@@ -1,8 +1,8 @@
 package com.grota.backend.service;
 
 import com.grota.backend.config.Constants;
-import com.grota.backend.domain.Authority;
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.authority.Authority;
+import com.grota.backend.domain.user.User;
 import com.grota.backend.repository.AuthorityRepository;
 import com.grota.backend.repository.UserRepository;
 import com.grota.backend.repository.search.UserSearchRepository;

@@ -1,8 +1,8 @@
 package com.grota.backend.service;
 
 import com.grota.backend.config.Constants;
-import com.grota.backend.domain.FinancingUser;
-import com.grota.backend.domain.FinancingUserRole;
+import com.grota.backend.domain.financingUser.FinancingUser;
+import com.grota.backend.enums.FinancingUserRole;
 import com.grota.backend.repository.DealerRepository;
 import com.grota.backend.repository.FinancingUserAllowedDealerRepository;
 import com.grota.backend.repository.FinancingUserRepository;

@@ -1,7 +1,9 @@
-package com.grota.backend.domain;
+package com.grota.backend.domain.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.grota.backend.config.Constants;
+import com.grota.backend.domain.abstractAuditing.AbstractAuditingEntity;
+import com.grota.backend.domain.authority.Authority;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;

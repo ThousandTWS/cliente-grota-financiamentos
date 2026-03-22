@@ -16,6 +16,9 @@
     <include file="config/liquibase/changelog/202603210002_add_seller_table.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603210003_update_seller_table.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603210004_add_dealer_and_user_dealer_link.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603210005_update_dealer_for_admin_register.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603210006_add_dealer_birth_data.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603210007_add_dealer_auth_columns.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->

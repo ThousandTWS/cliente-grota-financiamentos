@@ -1,4 +1,4 @@
-package com.grota.backend.domain;
+package com.grota.backend.domain.authority;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.*;

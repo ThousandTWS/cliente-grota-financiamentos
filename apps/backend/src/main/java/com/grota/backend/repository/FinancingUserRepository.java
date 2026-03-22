@@ -1,7 +1,7 @@
 package com.grota.backend.repository;
 
-import com.grota.backend.domain.FinancingUser;
-import com.grota.backend.domain.FinancingUserRole;
+import com.grota.backend.domain.financingUser.FinancingUser;
+import com.grota.backend.enums.FinancingUserRole;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;

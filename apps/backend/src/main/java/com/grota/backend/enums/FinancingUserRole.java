@@ -1,4 +1,4 @@
-package com.grota.backend.domain;
+package com.grota.backend.enums;
 
 public enum FinancingUserRole {
     ADMIN,

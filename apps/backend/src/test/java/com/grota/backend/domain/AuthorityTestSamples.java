@@ -1,5 +1,7 @@
 package com.grota.backend.domain;
 
+import com.grota.backend.domain.authority.Authority;
+
 import java.util.UUID;
 
 public class AuthorityTestSamples {

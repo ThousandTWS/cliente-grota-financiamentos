@@ -1,6 +1,6 @@
 package com.grota.backend.service.dto;
 
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.user.User;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;

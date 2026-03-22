@@ -3,10 +3,10 @@ package com.grota.backend.web.rest;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 import com.grota.backend.IntegrationTest;
-import com.grota.backend.domain.FinancingUser;
-import com.grota.backend.domain.FinancingUserRole;
-import com.grota.backend.domain.Seller;
-import com.grota.backend.domain.SellerStatus;
+import com.grota.backend.domain.financingUser.FinancingUser;
+import com.grota.backend.enums.FinancingUserRole;
+import com.grota.backend.domain.seller.Seller;
+import com.grota.backend.enums.SellerStatus;
 import com.grota.backend.repository.FinancingUserRepository;
 import com.grota.backend.repository.SellerRepository;
 import java.time.Instant;

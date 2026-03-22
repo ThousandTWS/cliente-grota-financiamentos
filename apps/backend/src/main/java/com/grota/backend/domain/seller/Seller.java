@@ -1,9 +1,11 @@
-package com.grota.backend.domain;
+package com.grota.backend.domain.seller;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.LocalDate;
+
+import com.grota.backend.enums.SellerStatus;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;

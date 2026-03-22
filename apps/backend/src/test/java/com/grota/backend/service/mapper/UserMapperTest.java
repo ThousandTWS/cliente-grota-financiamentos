@@ -2,8 +2,8 @@ package com.grota.backend.service.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.grota.backend.domain.Authority;
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.authority.Authority;
+import com.grota.backend.domain.user.User;
 import com.grota.backend.security.AuthoritiesConstants;
 import com.grota.backend.service.dto.AdminUserDTO;
 import com.grota.backend.service.dto.UserDTO;

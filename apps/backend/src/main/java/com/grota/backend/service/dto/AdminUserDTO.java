@@ -1,8 +1,8 @@
 package com.grota.backend.service.dto;
 
 import com.grota.backend.config.Constants;
-import com.grota.backend.domain.Authority;
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.authority.Authority;
+import com.grota.backend.domain.user.User;
 import jakarta.validation.constraints.*;
 import java.io.Serial;
 import java.io.Serializable;

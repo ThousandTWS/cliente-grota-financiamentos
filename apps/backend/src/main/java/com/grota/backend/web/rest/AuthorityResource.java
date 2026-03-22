@@ -1,6 +1,6 @@
 package com.grota.backend.web.rest;
 
-import com.grota.backend.domain.Authority;
+import com.grota.backend.domain.authority.Authority;
 import com.grota.backend.repository.AuthorityRepository;
 import com.grota.backend.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
@@ -21,7 +21,7 @@ import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.reactive.ResponseUtil;
 
 /**
- * REST controller for managing {@link com.grota.backend.domain.Authority}.
+ * REST controller for managing {@link Authority}.
  */
 @RestController
 @RequestMapping("/api/authorities")

@@ -1,12 +1,12 @@
 package com.grota.backend.service;
 
-import com.grota.backend.domain.FinancingUserRole;
+import com.grota.backend.enums.FinancingUserRole;
 import com.grota.backend.repository.DealerRepository;
 import com.grota.backend.repository.SellerRepository;
 import com.grota.backend.repository.FinancingUserAllowedDealerRepository;
 import com.grota.backend.repository.FinancingUserRepository;
-import com.grota.backend.domain.Seller;
-import com.grota.backend.domain.SellerStatus;
+import com.grota.backend.domain.seller.Seller;
+import com.grota.backend.enums.SellerStatus;
 import com.grota.backend.security.SecurityUtils;
 import com.grota.backend.service.dto.SellerResponseDTO;
 import com.grota.backend.service.dto.SellerUpdateRequestDTO;
@@ -260,7 +260,7 @@ public class SellerService {
         return emailValidation.then(cpfValidation).then(phoneValidation);
     }
 
-    private Mono<com.grota.backend.domain.Seller> updateSeller(com.grota.backend.domain.Seller seller, SellerUpdateRequestDTO request) {
+    private Mono<Seller> updateSeller(Seller seller, SellerUpdateRequestDTO request) {
         if (request.dealerId() != null) {
             seller.setDealerId(request.dealerId());
         }

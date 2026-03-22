@@ -19,6 +19,8 @@ logging:
     tech.jhipster: DEBUG
     org.hibernate.SQL: DEBUG
     com.grota.backend: DEBUG
+    liquibase: DEBUG
+    org.springframework.boot.autoconfigure.liquibase: DEBUG
 
 management:
   health:
@@ -26,6 +28,11 @@ management:
       enabled: false
 
 spring:
+  docker:
+    compose:
+      enabled: true
+      lifecycle-management: start-only
+      file: src/main/docker/keycloak.yml
   devtools:
     restart:
       enabled: true
@@ -38,15 +45,16 @@ spring:
   elasticsearch:
     uris: http://localhost:9200
   liquibase:
-    # Remove 'faker' if you do not want the sample data to be loaded automatically
-    contexts: dev, faker
-    url: jdbc:postgresql://localhost:5432/backend
-    user: backend
+    contexts: dev
+    url: 'jdbc:postgresql://ep-wandering-mud-aitgemhn.c-4.us-east-1.aws.neon.tech/grota-financiamentos?user=neondb_owner&password=npg_j6fOmux3DKTQ&sslmode=require&channelBinding=require'
+    user: neondb_owner
+    password: npg_j6fOmux3DKTQ
   messages:
     cache-duration: PT1S # 1 second, see the ISO 8601 standard
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/backend
-    username: backend
+    url: 'r2dbc:postgresql://ep-wandering-mud-aitgemhn-pooler.c-4.us-east-1.aws.neon.tech/grota-financiamentos?sslMode=require'
+    username: neondb_owner
+    password: npg_j6fOmux3DKTQ
   security:
     oauth2:
       client:
@@ -101,3 +109,16 @@ jhipster:
 # ===================================================================
 
 # application:
+application:
+  keycloak:
+    base-url: http://localhost:9080
+    realm: jhipster
+    admin-realm: master
+    admin-username: admin
+    admin-password: admin
+    admin-client-id: admin-cli
+  cloudinary:
+    cloud-name:
+    api-key:
+    api-secret:
+    dealer-documents-folder: dealers

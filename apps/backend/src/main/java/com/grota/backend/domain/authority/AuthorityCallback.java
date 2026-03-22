@@ -1,4 +1,4 @@
-package com.grota.backend.domain;
+package com.grota.backend.domain.authority;
 
 import org.reactivestreams.Publisher;
 import org.springframework.data.r2dbc.mapping.OutboundRow;
@@ -9,15 +9,15 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 @Component
-public class UserCallback implements AfterSaveCallback<User>, AfterConvertCallback<User> {
+public class AuthorityCallback implements AfterSaveCallback<Authority>, AfterConvertCallback<Authority> {
 
     @Override
-    public Publisher<User> onAfterConvert(User entity, SqlIdentifier table) {
+    public Publisher<Authority> onAfterConvert(Authority entity, SqlIdentifier table) {
         return Mono.just(entity.setIsPersisted());
     }
 
     @Override
-    public Publisher<User> onAfterSave(User entity, OutboundRow outboundRow, SqlIdentifier table) {
+    public Publisher<Authority> onAfterSave(Authority entity, OutboundRow outboundRow, SqlIdentifier table) {
         return Mono.just(entity.setIsPersisted());
     }
 }

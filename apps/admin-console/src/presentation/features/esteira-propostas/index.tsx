@@ -1,7 +1,7 @@
  
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   usePublish,
   useSubscription,
@@ -151,6 +151,7 @@ const toLocalDateKey = (value?: string) => {
 export default function EsteiraDePropostasFeature() {
   const { toast } = useToast();
   const [filters, setFilters] = useState<LocalFilters>(initialFilters);
+  const [focusedProposalId, setFocusedProposalId] = useState<number | null>(null);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -188,6 +189,7 @@ export default function EsteiraDePropostasFeature() {
   const recentTimeouts = useRef<Record<number, number>>({});
   const audioContextRef = useRef<AudioContext | null>(null);
   const publish = usePublish();
+  const deferredSearch = useDeferredValue(filters.search);
 
   const ensureAudioContext = useCallback(async () => {
     if (audioContextRef.current) {
@@ -497,7 +499,7 @@ export default function EsteiraDePropostasFeature() {
     return proposals.filter((proposal) => {
       const matchesStatus =
         filters.status === "ALL" || proposal.status === filters.status;
-      const searchInput = filters.search.trim().toLowerCase();
+      const searchInput = deferredSearch.trim().toLowerCase();
       const matchesSearch = searchInput
         ? proposal.customerName.toLowerCase().includes(searchInput) ||
           proposal.customerCpf.toLowerCase().includes(searchInput) ||
@@ -533,7 +535,7 @@ export default function EsteiraDePropostasFeature() {
         matchesDateTo
       );
     });
-  }, [filters, proposals]);
+  }, [deferredSearch, filters, proposals]);
 
   const summary = useMemo<ProposalsDashboardSummary>(() => {
     const overallTotal = proposals.length;
@@ -594,12 +596,39 @@ export default function EsteiraDePropostasFeature() {
     }));
   }, [proposals, dealerIndex]);
 
+  const searchSuggestions = useMemo(() => {
+    const seen = new Set<number>();
+
+    return proposals
+      .filter((proposal) => {
+        if (seen.has(proposal.id)) return false;
+        seen.add(proposal.id);
+        return true;
+      })
+      .map((proposal) => ({
+        value: proposal.customerName,
+        proposalId: proposal.id,
+        label: `${proposal.customerName} · ${proposal.customerCpf}`,
+      }));
+  }, [proposals]);
+
   const handleFiltersChange = (partial: Partial<LocalFilters>) => {
     setFilters((prev) => ({
       ...prev,
       ...partial,
     }));
+    if (partial.search !== undefined && partial.search.trim().length === 0) {
+      setFocusedProposalId(null);
+    }
   };
+
+  const handleSearchSelect = useCallback((proposalId: number, value: string) => {
+    setFocusedProposalId(proposalId);
+    setFilters((prev) => ({
+      ...prev,
+      search: value,
+    }));
+  }, []);
 
   const handleExport = async () => {
     const params = new URLSearchParams();
@@ -953,7 +982,9 @@ export default function EsteiraDePropostasFeature() {
         operators={availableOperators}
         dealers={availableDealers}
         statuses={statusOptions}
+        searchSuggestions={searchSuggestions}
         onFiltersChange={handleFiltersChange}
+        onSearchSelect={handleSearchSelect}
         onRefresh={handleRefresh}
         onCreate={handleCreate}
         onExport={handleExport}
@@ -988,6 +1019,7 @@ export default function EsteiraDePropostasFeature() {
         recentIds={recentIds}
         unconfirmedIds={unconfirmedIds}
         onConfirmArrival={handleConfirmArrival}
+        focusedProposalId={focusedProposalId}
       />
 
       <Modal

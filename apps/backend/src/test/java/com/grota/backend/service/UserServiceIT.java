@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.grota.backend.IntegrationTest;
 import com.grota.backend.config.Constants;
-import com.grota.backend.domain.User;
+import com.grota.backend.domain.user.User;
 import com.grota.backend.repository.UserRepository;
 import com.grota.backend.repository.search.UserSearchRepository;
 import com.grota.backend.security.AuthoritiesConstants;

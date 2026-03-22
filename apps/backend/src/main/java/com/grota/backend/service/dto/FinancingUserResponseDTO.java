@@ -1,7 +1,7 @@
 package com.grota.backend.service.dto;
 
-import com.grota.backend.domain.FinancingUser;
-import com.grota.backend.domain.FinancingUserRole;
+import com.grota.backend.domain.financingUser.FinancingUser;
+import com.grota.backend.enums.FinancingUserRole;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
