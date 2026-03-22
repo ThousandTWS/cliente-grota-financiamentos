@@ -1,9 +1,7 @@
 import axios, { AxiosInstance } from "axios";
+import { getPublicApiBaseUrl } from "@/src/application/server/api/config";
 
-const BASE_URL =
-  process.env.LOGISTA_API_BASE_URL ??
-  process.env.NEXT_PUBLIC_URL_API ??
-  "https://grotafinanciamentos.thousand-cloud.com.br/api/v1/grota-financiamentos";
+const BASE_URL = getPublicApiBaseUrl();
 
 const defaultHeaders = {
   "Content-Type": "application/json",

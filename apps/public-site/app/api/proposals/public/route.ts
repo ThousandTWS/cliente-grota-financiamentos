@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPublicApiBaseUrl } from "@/src/application/server/api/config";
 
-const API_BASE_URL =
-  process.env.LOGISTA_API_BASE_URL ??
-  process.env.NEXT_PUBLIC_URL_API ??
-  process.env.DEFAULT_API_BASE_URL ??
-  "https://grotafinanciamentos.thousand-cloud.com.br/api/v1/grota-financiamentos";
+const API_BASE_URL = getPublicApiBaseUrl();
 
 export async function POST(request: NextRequest) {
   let body: unknown;
