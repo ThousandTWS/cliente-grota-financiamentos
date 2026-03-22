@@ -2,6 +2,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 
 import { NotificationProvider } from "@grota/realtime-client";
+import { AuthorizationProvider } from "@/application/core/authorization/AuthorizationProvider";
 import { SidebarProvider } from "@/application/core/context/SidebarContext";
 import { ThemeProvider } from "@/application/core/context/ThemeContext";
 import { Toaster } from "sonner";
@@ -23,16 +24,18 @@ export default function RootLayout({
         {/* Loader Global */}
       
         <NotificationProvider identity="logista">
-          <ThemeProvider>
-            <SidebarProvider>
-              <AntdRegistry>
-                <AntdProvider>
-                  {children}
-                  <Toaster richColors position="top-right" />
-                </AntdProvider>
-              </AntdRegistry>
-            </SidebarProvider>
-          </ThemeProvider>
+          <AuthorizationProvider>
+            <ThemeProvider>
+              <SidebarProvider>
+                <AntdRegistry>
+                  <AntdProvider>
+                    {children}
+                    <Toaster richColors position="top-right" />
+                  </AntdProvider>
+                </AntdRegistry>
+              </SidebarProvider>
+            </ThemeProvider>
+          </AuthorizationProvider>
         </NotificationProvider>
       </body>
     </html>

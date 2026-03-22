@@ -2,9 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
   Button,
@@ -16,13 +15,17 @@ import {
   Spin,
   Typography,
 } from "antd";
-import { createSeller } from "@/application/services/Seller/sellerService";
+import {
+  type Seller,
+} from "@/application/services/Seller/sellerService";
 import { getAllLogistics, Dealer } from "@/application/services/Logista/logisticService";
 import { SellersList } from "@/presentation/features/painel-geral/components/SellersList";
 import { fetchAddressByCep } from "@/application/services/cep/cepService";
 import { StatusBadge } from "@/presentation/features/logista/components/status-badge";
 import { formatName } from "@/lib/formatters";
 import { convertBRtoISO } from "@/application/core/utils/formatters";
+import { showValidationErrors } from "@/application/core/forms/show-validation-errors";
+import { useAdminCreateForm } from "@/application/core/forms/use-admin-create-form";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
@@ -102,7 +105,6 @@ export default function Vendedores() {
 }
 
 function VendedoresContent() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [isCepLoading, setIsCepLoading] = useState(false);
   const [isCpfLoading, setIsCpfLoading] = useState(false);
@@ -117,10 +119,11 @@ function VendedoresContent() {
     control,
     watch,
     setValue,
+    refineCore: { onFinish, formLoading },
     formState: { errors },
-  } = useForm<SellerFormValues>({
-    //@ts-ignore
-    resolver: zodResolver(sellerSchema),
+  } = useAdminCreateForm<Seller, SellerFormValues>({
+    resource: "sellers",
+    schema: sellerSchema,
     defaultValues: {
       fullName: "",
       email: "",
@@ -163,14 +166,12 @@ function VendedoresContent() {
       toast.error("Aguarde a verificacao do CPF ou tente novamente.");
       return;
     }
-    setIsSubmitting(true);
     try {
       let birthDateIso: string | null = null;
       if (values.birthData) {
         const date = new Date(values.birthData);
         if (isNaN(date.getTime())) {
           toast.error("Data de nascimento invalida.");
-          setIsSubmitting(false);
           return;
         }
         birthDateIso = date.toISOString().split("T")[0];
@@ -202,7 +203,7 @@ function VendedoresContent() {
         canDelete: values.canDelete ?? true,
       };
 
-      await createSeller(payload);
+      await onFinish(payload as unknown as SellerFormValues);
 
       toast.success("Vendedor cadastrado com sucesso!");
       reset();
@@ -215,8 +216,6 @@ function VendedoresContent() {
           ? error.message
           : "Nao foi possivel cadastrar o vendedor.";
       toast.error(message);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -309,7 +308,7 @@ function VendedoresContent() {
     }
   };
 
-  const onError = (formErrors: any) => {
+  const onError = (formErrors: Parameters<typeof showValidationErrors<SellerFormValues>>[0]) => {
     const fieldNames: Record<string, string> = {
       fullName: "Nome completo",
       email: "E-mail",
@@ -325,14 +324,7 @@ function VendedoresContent() {
       zipCode: "CEP",
       dealerId: "Loja",
     };
-
-    Object.keys(formErrors).forEach((key) => {
-      const error = formErrors[key];
-      if (error?.message) {
-        const fieldName = fieldNames[key] || key;
-        toast.error(`${fieldName}: ${error.message}`);
-      }
-    });
+    showValidationErrors(formErrors, fieldNames);
   };
 
   return (
@@ -646,8 +638,8 @@ function VendedoresContent() {
           </div>
 
           <div className="md:col-span-2 flex justify-end">
-            <Button type="primary" htmlType="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Cadastrar vendedor"}
+            <Button type="primary" htmlType="submit" disabled={formLoading}>
+              {formLoading ? "Salvando..." : "Cadastrar vendedor"}
             </Button>
           </div>
         </form>
@@ -657,6 +649,4 @@ function VendedoresContent() {
     </div>
   );
 }
-
-
 

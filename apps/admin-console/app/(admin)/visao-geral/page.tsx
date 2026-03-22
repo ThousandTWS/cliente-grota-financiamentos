@@ -8,7 +8,6 @@ import {
   OperatorsList, 
   QuickStats, 
   SellersList,
-  StatusDistribution
 } from "@/presentation/features/painel-geral";
 import { Skeleton, Row, Col, ConfigProvider, theme } from "antd";
 

@@ -2,9 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
   Button,
@@ -16,7 +15,9 @@ import {
   Spin,
   Typography,
 } from "antd";
-import { createManager } from "@/application/services/Manager/managerService";
+import {
+  type Manager,
+} from "@/application/services/Manager/managerService";
 import { getAllLogistics, Dealer } from "@/application/services/Logista/logisticService";
 import { ManagersList } from "@/presentation/features/painel-geral/components/ManagersList";
 import { createNotification } from "@/application/services/Notifications/notificationService";
@@ -24,6 +25,8 @@ import { fetchAddressByCep } from "@/application/services/cep/cepService";
 import { StatusBadge } from "@/presentation/features/logista/components/status-badge";
 import { formatName } from "@/lib/formatters";
 import { convertBRtoISO } from "@/application/core/utils/formatters";
+import { showValidationErrors } from "@/application/core/forms/show-validation-errors";
+import { useAdminCreateForm } from "@/application/core/forms/use-admin-create-form";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
@@ -105,7 +108,6 @@ export default function Gestores() {
 }
 
 function GestoresContent() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [isCepLoading, setIsCepLoading] = useState(false);
   const [isCpfLoading, setIsCpfLoading] = useState(false);
@@ -120,10 +122,11 @@ function GestoresContent() {
     control,
     watch,
     setValue,
+    refineCore: { onFinish, formLoading },
     formState: { errors },
-  } = useForm<ManagerFormValues>({
-    //@ts-ignore
-    resolver: zodResolver(managerSchema),
+  } = useAdminCreateForm<Manager, ManagerFormValues>({
+    resource: "managers",
+    schema: managerSchema,
     defaultValues: {
       dealerId: "",
       fullName: "",
@@ -162,25 +165,27 @@ function GestoresContent() {
   }, [searchParams, setValue]);
 
   const onSubmit = async (values: ManagerFormValues) => {
-    setIsSubmitting(true);
+    if (isCpfLoading) {
+      toast.error("Aguarde a verificacao do CPF ou tente novamente.");
+      return;
+    }
+
     try {
       let birthDateIso: string;
       if (values.birthData) {
         const date = new Date(values.birthData);
         if (isNaN(date.getTime())) {
           toast.error("Data de nascimento invalida.");
-          setIsSubmitting(false);
           return;
         }
         birthDateIso = date.toISOString().split("T")[0];
       } else {
         toast.error("Data de nascimento e obrigatoria.");
-        setIsSubmitting(false);
         return;
       }
       const dealerId = values.dealerId ? Number(values.dealerId) : undefined;
 
-      await createManager({
+      await onFinish({
         dealerId,
         fullName: values.fullName,
         email: values.email.trim().toLowerCase(),
@@ -201,12 +206,7 @@ function GestoresContent() {
         canCreate: values.canCreate,
         canUpdate: values.canUpdate,
         canDelete: values.canDelete,
-      });
-
-      if (isCpfLoading) {
-        toast.error("Aguarde a verificacao do CPF ou tente novamente.");
-        return;
-      }
+      } as unknown as ManagerFormValues);
 
       toast.success("Gestor cadastrado com sucesso!");
       await createNotification({
@@ -229,8 +229,6 @@ function GestoresContent() {
           ? error.message
           : "Nao foi possivel cadastrar o gestor.";
       toast.error(message);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -323,7 +321,7 @@ function GestoresContent() {
     }
   };
 
-  const onError = (formErrors: any) => {
+  const onError = (formErrors: Parameters<typeof showValidationErrors<ManagerFormValues>>[0]) => {
     const fieldNames: Record<string, string> = {
       fullName: "Nome completo",
       email: "E-mail",
@@ -339,14 +337,7 @@ function GestoresContent() {
       zipCode: "CEP",
       dealerId: "Loja",
     };
-
-    Object.keys(formErrors).forEach((key) => {
-      const error = formErrors[key];
-      if (error?.message) {
-        const fieldName = fieldNames[key] || key;
-        toast.error(`${fieldName}: ${error.message}`);
-      }
-    });
+    showValidationErrors(formErrors, fieldNames);
   };
 
   return (
@@ -653,8 +644,8 @@ function GestoresContent() {
           </div>
 
           <div className="md:col-span-2 flex justify-end">
-            <Button type="primary" htmlType="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Cadastrar gestor"}
+            <Button type="primary" htmlType="submit" disabled={formLoading}>
+              {formLoading ? "Salvando..." : "Cadastrar gestor"}
             </Button>
           </div>
         </form>
@@ -664,4 +655,3 @@ function GestoresContent() {
     </div>
   );
 }
-

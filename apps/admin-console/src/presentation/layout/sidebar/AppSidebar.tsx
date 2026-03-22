@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -8,10 +8,17 @@ import { ChevronDownIcon, LucideGripHorizontal } from "lucide-react";
 import { navItems } from "./links/NavItem";
 import { othersItems } from "./links/OthersItems";
 import { NavItem } from "@/application/core/@types/Sidebar/NavItem";
+import { useAuthorization } from "@/application/core/authorization/use-authorization";
 
 const AppSidebar = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const { filterNavItems } = useAuthorization();
+  const authorizedNavItems = useMemo(() => filterNavItems(navItems), [filterNavItems]);
+  const authorizedOtherItems = useMemo(
+    () => filterNavItems(othersItems),
+    [filterNavItems],
+  );
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -145,28 +152,38 @@ const AppSidebar = () => {
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
-    let submenuMatched = false;
+    let nextOpenSubmenu: {
+      type: "main" | "others";
+      index: number;
+    } | null = null;
+
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? authorizedNavItems : authorizedOtherItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
+            if (!nextOpenSubmenu && isActive(subItem.path)) {
+              nextOpenSubmenu = {
                 type: menuType as "main" | "others",
                 index,
-              });
-              submenuMatched = true;
+              };
             }
           });
         }
       });
     });
 
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
-    }
-  }, [pathname, isActive]);
+    setOpenSubmenu((current) => {
+      if (
+        current?.type === nextOpenSubmenu?.type &&
+        current?.index === nextOpenSubmenu?.index
+      ) {
+        return current;
+      }
+
+      return nextOpenSubmenu;
+    });
+  }, [authorizedNavItems, authorizedOtherItems, pathname, isActive]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
@@ -259,7 +276,7 @@ const AppSidebar = () => {
                   <LucideGripHorizontal />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(authorizedNavItems, "main")}
             </div>
 
             <div className="">
@@ -275,7 +292,7 @@ const AppSidebar = () => {
                   <LucideGripHorizontal />
                 )}
               </h2>
-              {renderMenuItems(othersItems, "others")}
+              {renderMenuItems(authorizedOtherItems, "others")}
             </div>
           </div>
         </nav>

@@ -1,21 +1,18 @@
  
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Dropdown } from "@/presentation/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/presentation/ui/dropdown/DropdownItem";
+import { useAuthorization } from "@/application/core/authorization/AuthorizationProvider";
 import { User } from "lucide-react";
-import userServices, {
-  type AuthenticatedUser,
-} from "@/application/services/UserServices/UserServices";
 
 const CLIENT_REDIRECT_URL =
   process.env.NEXT_PUBLIC_CLIENT_URL ?? "http://localhost:3000";
 
 export default function UserDropdown() {
-  const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading: loading } = useAuthorization();
 
   // Logout
   const handleLogout = async () => {
@@ -30,35 +27,6 @@ export default function UserDropdown() {
       window.location.href = CLIENT_REDIRECT_URL;
     }
   };
-
-  // Fetch do usuário
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchUser = async () => {
-      try {
-        const userData = await userServices.me();
-        if (isMounted) {
-          setUser(userData);
-        }
-      } catch (error: unknown) {
-        console.error("Erro ao buscar usuário:", error);
-        if (isMounted) {
-          setUser(null);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchUser();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const toggleDropdown = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 "use client";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
@@ -8,6 +7,7 @@ import { useSidebar } from "../../../application/core/context/SidebarContext";
 import { ChevronDownIcon, LucideGripHorizontal } from "lucide-react";
 import { useTheme } from "@/application/core/context/ThemeContext";
 import { NavItem } from "@/application/core/@types/Sidebar/NavItem";
+import { useAuthorization } from "@/application/core/authorization/AuthorizationProvider";
 import { navItems as defaultNavItems } from "./links/NavItems";
 import { othersItems as defaultOthersItems } from "./links/OthersItems";
 import { gestorNavItems, gestorOthersItems } from "./links/GestorNavItems";
@@ -22,16 +22,21 @@ const AppSidebar = ({ customNavItems, customOthersItems }: AppSidebarProps) => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
   const { theme } = useTheme();
+  const { filterNavItems } = useAuthorization();
 
   // Determine which items to show: props > path detection > default
   const isGestor = pathname.includes("/gestao");
   const isOperador = pathname.includes("/operacao");
 
-  const currentNavItems = customNavItems
-    || (isGestor ? gestorNavItems : isOperador ? operadorNavItems : defaultNavItems);
+  const currentNavItems = filterNavItems(
+    customNavItems
+      || (isGestor ? gestorNavItems : isOperador ? operadorNavItems : defaultNavItems),
+  );
 
-  const currentOthersItems = customOthersItems
-    || (isGestor ? gestorOthersItems : isOperador ? operadorOthersItems : defaultOthersItems);
+  const currentOthersItems = filterNavItems(
+    customOthersItems
+      || (isGestor ? gestorOthersItems : isOperador ? operadorOthersItems : defaultOthersItems),
+  );
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -188,7 +193,7 @@ const AppSidebar = ({ customNavItems, customOthersItems }: AppSidebarProps) => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [pathname, isActive]);
+  }, [currentNavItems, currentOthersItems, pathname, isActive]);
 
   useEffect(() => {
     if (openSubmenu !== null) {

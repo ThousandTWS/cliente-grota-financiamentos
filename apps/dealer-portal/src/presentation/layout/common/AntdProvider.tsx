@@ -1,6 +1,6 @@
 "use client";
 
-import { ConfigProvider } from "antd";
+import { App as AntdApp, ConfigProvider } from "antd";
 import type { ReactNode } from "react";
 import { dealerPortalTheme } from "@/presentation/theme/antdTheme";
 
@@ -9,5 +9,9 @@ type AntdProviderProps = {
 };
 
 export function AntdProvider({ children }: AntdProviderProps) {
-  return <ConfigProvider theme={dealerPortalTheme}>{children}</ConfigProvider>;
+  return (
+    <ConfigProvider theme={dealerPortalTheme}>
+      <AntdApp>{children}</AntdApp>
+    </ConfigProvider>
+  );
 }

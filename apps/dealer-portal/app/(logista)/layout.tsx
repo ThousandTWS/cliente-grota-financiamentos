@@ -2,7 +2,9 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
+import { useAuthorization } from "@/application/core/authorization/AuthorizationProvider";
 import { useSidebar } from "@/application/core/context/SidebarContext";
+import { AccessDeniedState } from "@/presentation/layout/common/AccessDeniedState";
 import AppHeader from "@/presentation/layout/header/AppHeader";
 import AppSidebar from "@/presentation/layout/sidebar/AppSidebar";
 import Backdrop from "@/presentation/layout/sidebar/Backdrop";
@@ -14,6 +16,7 @@ export default function AdminLayout({
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const pathname = usePathname();
+  const { canPath, isLoading } = useAuthorization();
   const isPainelGestor =
     pathname === "/gestao" ||
     pathname.startsWith("/gestao/") ||
@@ -32,6 +35,8 @@ export default function AdminLayout({
     return <main className="min-h-screen">{children}</main>;
   }
 
+  const decision = canPath(pathname);
+
   return (
     <div className="min-h-screen xl:flex">
       
@@ -48,7 +53,9 @@ export default function AdminLayout({
         <AppHeader />
 
         {/* Page Content */}
-        <div className="w-full">{children}</div>
+        <div className="w-full">
+          {isLoading ? null : decision.can ? children : <AccessDeniedState />}
+        </div>
       </div>
     </div>
   );

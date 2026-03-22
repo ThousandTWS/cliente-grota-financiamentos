@@ -1,12 +1,9 @@
-export type LiveEventType = "created" | "updated" | "deleted" | "*" | string;
+export type {
+  LiveEvent,
+  LiveProvider,
+} from "@refinedev/core";
 
-export type LiveEvent = {
-  channel: string;
-  type: LiveEventType;
-  payload?: unknown;
-  date?: Date;
-  meta?: unknown;
-};
+export type LiveEventType = "created" | "updated" | "deleted" | "*" | string;
 
 export type LiveSubscriptionHandle =
   | {
@@ -15,17 +12,3 @@ export type LiveSubscriptionHandle =
     }
   | null
   | void;
-
-export type LiveSubscribeParams = {
-  channel: string;
-  callback: (event: LiveEvent) => void;
-  types?: LiveEventType[];
-  meta?: unknown;
-};
-
-export type LiveProvider = {
-  subscribe?: (params: LiveSubscribeParams) => LiveSubscriptionHandle;
-  unsubscribe?: (subscription: LiveSubscriptionHandle) => void;
-  publish?: (event: LiveEvent) => void | Promise<void>;
-};
-

@@ -1,18 +1,8 @@
-import { notification as staticNotification } from "antd";
 import type { NotificationProvider, OpenNotificationParams } from "./types";
 
 const fallbackProvider: NotificationProvider = {
-  open: ({ key, message, description, type }) => {
-    staticNotification.open({
-      key,
-      message,
-      description,
-      type: type === "progress" ? "info" : type,
-    });
-  },
-  close: (key: string) => {
-    staticNotification.destroy(key);
-  },
+  open: () => {},
+  close: () => {},
 };
 
 let activeProvider: NotificationProvider = fallbackProvider;

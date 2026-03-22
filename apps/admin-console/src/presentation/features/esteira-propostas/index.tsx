@@ -1,6 +1,7 @@
  
 "use client";
 
+import { useDelete, useList, useUpdate, type HttpError } from "@refinedev/core";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   usePublish,
@@ -8,14 +9,9 @@ import {
 } from "@/application/core/realtime/live-hooks";
 import {
   Proposal,
-  ProposalFilters,
   ProposalStatus,
+  UpdateProposalStatusPayload,
 } from "@/application/core/@types/Proposals/Proposal";
-import {
-  fetchProposals,
-  deleteProposal,
-  updateProposalStatus,
-} from "@/application/services/Proposals/proposalService";
 import { useToast } from "@/application/core/hooks/use-toast";
 import {
   QueueStats,
@@ -152,9 +148,6 @@ export default function EsteiraDePropostasFeature() {
   const { toast } = useToast();
   const [filters, setFilters] = useState<LocalFilters>(initialFilters);
   const [focusedProposalId, setFocusedProposalId] = useState<number | null>(null);
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -190,6 +183,44 @@ export default function EsteiraDePropostasFeature() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const publish = usePublish();
   const deferredSearch = useDeferredValue(filters.search);
+  const lastLoadErrorRef = useRef<string | null>(null);
+
+  const serverQuery = useMemo(() => {
+    const query: Record<string, string | number> = {};
+
+    if (filters.status !== "ALL") {
+      query.status = filters.status;
+    }
+
+    if (filters.dealerId) {
+      query.dealerId = Number(filters.dealerId);
+    }
+
+    return query;
+  }, [filters.dealerId, filters.status]);
+
+  const {
+    result: { data: proposals },
+    query: proposalsQuery,
+  } = useList<Proposal, HttpError>({
+    resource: "proposals",
+    pagination: {
+      mode: "off",
+    },
+    meta: {
+      query: serverQuery,
+    },
+    liveMode: "auto",
+  });
+
+  const { mutateAsync: mutateProposalStatus } = useUpdate<
+    Proposal,
+    HttpError,
+    UpdateProposalStatusPayload
+  >();
+  const { mutateAsync: mutateDeleteProposal } = useDelete<Proposal, HttpError>();
+  const isLoading = proposalsQuery.isLoading;
+  const isRefreshing = proposalsQuery.isFetching && !proposalsQuery.isLoading;
 
   const ensureAudioContext = useCallback(async () => {
     if (audioContextRef.current) {
@@ -259,53 +290,6 @@ export default function EsteiraDePropostasFeature() {
       });
   }, [ensureAudioContext]);
 
-  const loadProposals = useCallback(
-    async (options?: { silent?: boolean }) => {
-      const silent = options?.silent ?? false;
-      if (!silent) {
-        setIsLoading(true);
-      }
-      setIsRefreshing(true);
-      try {
-        const queryFilters: ProposalFilters = {};
-        if (filters.status !== "ALL") {
-          queryFilters.status = filters.status;
-        }
-        if (filters.dealerId) {
-          queryFilters.dealerId = Number(filters.dealerId);
-        }
-        const result = await fetchProposals(queryFilters);
-        setProposals(result);
-      } catch (error) {
-        console.error("[Admin Esteira] Falha ao buscar propostas", error);
-        toast({
-          title: "Falha ao carregar",
-          description: "Nao conseguimos sincronizar as fichas agora.",
-          variant: "destructive",
-        });
-      } finally {
-        if (!silent) {
-          setIsLoading(false);
-        }
-        setIsRefreshing(false);
-      }
-    },
-    [filters.dealerId, filters.status, toast],
-  );
-
-  const applyRealtimeSnapshot = useCallback((snapshot: Proposal) => {
-    if (!snapshot?.id) return;
-    setProposals((current) => {
-      const index = current.findIndex((item) => item.id === snapshot.id);
-      if (index >= 0) {
-        const clone = [...current];
-        clone[index] = snapshot;
-        return clone;
-      }
-      return [snapshot, ...current];
-    });
-  }, []);
-
   const markRecent = useCallback((proposalId: number) => {
     setRecentIds((prev) => ({ ...prev, [proposalId]: true }));
     setUnconfirmedIds((prev) => ({ ...prev, [proposalId]: true }));
@@ -333,8 +317,24 @@ export default function EsteiraDePropostasFeature() {
   }, []);
 
   useEffect(() => {
-    loadProposals();
-  }, [loadProposals]);
+    if (!proposalsQuery.isError || !proposalsQuery.error?.message) {
+      lastLoadErrorRef.current = null;
+      return;
+    }
+
+    if (lastLoadErrorRef.current === proposalsQuery.error.message) {
+      return;
+    }
+
+    lastLoadErrorRef.current = proposalsQuery.error.message;
+    console.error("[Admin Esteira] Falha ao buscar propostas", proposalsQuery.error);
+    toast({
+      title: "Falha ao carregar",
+      description:
+        proposalsQuery.error.message || "Nao conseguimos sincronizar as fichas agora.",
+      variant: "destructive",
+    });
+  }, [proposalsQuery.error, proposalsQuery.isError, toast]);
 
   useEffect(() => {
     return () => {
@@ -434,22 +434,12 @@ export default function EsteiraDePropostasFeature() {
     loadNames();
   }, []);
 
-  const applyRealtimeSnapshotRef = useRef(applyRealtimeSnapshot);
   const markRecentRef = useRef(markRecent);
-  const loadProposalsRef = useRef(loadProposals);
   const toastRef = useRef(toast);
-
-  useEffect(() => {
-    applyRealtimeSnapshotRef.current = applyRealtimeSnapshot;
-  }, [applyRealtimeSnapshot]);
 
   useEffect(() => {
     markRecentRef.current = markRecent;
   }, [markRecent]);
-
-  useEffect(() => {
-    loadProposalsRef.current = loadProposals;
-  }, [loadProposals]);
 
   useEffect(() => {
     toastRef.current = toast;
@@ -471,7 +461,6 @@ export default function EsteiraDePropostasFeature() {
         eventType === ADMIN_LIVE_EVENT_TYPES.PROPOSAL_CREATED &&
         payload.proposal
       ) {
-        applyRealtimeSnapshotRef.current(payload.proposal);
         markRecentRef.current(payload.proposal.id);
         toastRef.current({
           title: "Nova ficha do lojista",
@@ -485,12 +474,11 @@ export default function EsteiraDePropostasFeature() {
         payload.proposal &&
         payload.source !== ADMIN_PROPOSALS_IDENTITY
       ) {
-        applyRealtimeSnapshotRef.current(payload.proposal);
         return;
       }
 
       if (eventType === ADMIN_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST) {
-        void loadProposalsRef.current({ silent: true });
+        void proposalsQuery.refetch();
       }
     },
   });
@@ -677,7 +665,7 @@ export default function EsteiraDePropostasFeature() {
   );
 
   const handleRefresh = () => {
-    loadProposals();
+    void proposalsQuery.refetch();
     publishBridgeEvent(ADMIN_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
       source: ADMIN_PROPOSALS_IDENTITY,
       reason: "admin-manual-refresh",
@@ -734,19 +722,26 @@ export default function EsteiraDePropostasFeature() {
     setUpdatingId(proposal.id);
     try {
       const note = noteDrafts[proposal.id] ?? proposal.notes ?? undefined;
-      // Permite mudança para qualquer status - sem validações
-      const updated = await updateProposalStatus(proposal.id, {
-        status: nextStatus,
-        notes: note,
-        actor: "admin-console",
-        contractNumber: contractData?.contractNumber,
-        financedValue: contractData?.financedValue,
-        installmentCount: contractData?.installmentCount,
-        installmentValue: contractData?.installmentValue,
-        paymentDate: contractData?.paymentDate,
-        firstDueDate: contractData?.firstDueDate,
+      const { data: updated } = await mutateProposalStatus({
+        resource: "proposals",
+        id: proposal.id,
+        values: {
+          status: nextStatus,
+          notes: note,
+          actor: "admin-console",
+          contractNumber: contractData?.contractNumber,
+          financedValue: contractData?.financedValue,
+          installmentCount: contractData?.installmentCount,
+          installmentValue: contractData?.installmentValue,
+          paymentDate: contractData?.paymentDate,
+          firstDueDate: contractData?.firstDueDate,
+        },
+        meta: {
+          path: "status",
+          method: "PATCH",
+        },
+        invalidates: ["list"],
       });
-      applyRealtimeSnapshot(updated);
       setNoteDrafts((prev) => ({
         ...prev,
         [updated.id]: "",
@@ -842,12 +837,20 @@ export default function EsteiraDePropostasFeature() {
     setSavingNoteId(proposal.id);
     try {
       const note = noteDrafts[proposal.id] ?? proposal.notes ?? "";
-      const updated = await updateProposalStatus(proposal.id, {
-        status: proposal.status,
-        notes: note || undefined,
-        actor: "admin-console",
+      const { data: updated } = await mutateProposalStatus({
+        resource: "proposals",
+        id: proposal.id,
+        values: {
+          status: proposal.status,
+          notes: note || undefined,
+          actor: "admin-console",
+        },
+        meta: {
+          path: "status",
+          method: "PATCH",
+        },
+        invalidates: ["list"],
       });
-      applyRealtimeSnapshot(updated);
       setNoteDrafts((prev) => ({
         ...prev,
         [updated.id]: "",
@@ -875,8 +878,14 @@ export default function EsteiraDePropostasFeature() {
   const handleDeleteProposal = async (proposal: Proposal) => {
     setDeletingId(proposal.id);
     try {
-      await deleteProposal(proposal.id);
-      setProposals((current) => current.filter((item) => item.id !== proposal.id));
+      await mutateDeleteProposal({
+        resource: "proposals",
+        id: proposal.id,
+        invalidates: ["list"],
+      });
+      if (focusedProposalId === proposal.id) {
+        setFocusedProposalId(null);
+      }
       toast({
         title: "Proposta excluída",
         description: `A proposta de ${proposal.customerName} foi removida.`,
@@ -906,7 +915,13 @@ export default function EsteiraDePropostasFeature() {
     setIsBulkDeleting(true);
     try {
       const results = await Promise.allSettled(
-        targets.map((proposal) => deleteProposal(proposal.id)),
+        targets.map((proposal) =>
+          mutateDeleteProposal({
+            resource: "proposals",
+            id: proposal.id,
+            invalidates: ["list"],
+          }),
+        ),
       );
 
       const succeeded: Proposal[] = [];
@@ -929,11 +944,6 @@ export default function EsteiraDePropostasFeature() {
       });
 
       if (succeeded.length > 0) {
-        const succeededIds = new Set(succeeded.map((proposal) => proposal.id));
-        setProposals((current) =>
-          current.filter((item) => !succeededIds.has(item.id)),
-        );
-
         toast({
           title: "Propostas excluidas",
           description: `${succeeded.length} proposta(s) removida(s) com sucesso.`,
@@ -945,6 +955,12 @@ export default function EsteiraDePropostasFeature() {
           reason: "admin-bulk-delete",
           count: succeeded.length,
         });
+
+        if (focusedProposalId && succeeded.some((proposal) => proposal.id === focusedProposalId)) {
+          setFocusedProposalId(null);
+        }
+
+        void proposalsQuery.refetch();
       }
 
       if (failed.length > 0) {

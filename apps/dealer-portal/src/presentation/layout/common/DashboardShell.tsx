@@ -1,6 +1,9 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
+import { useAuthorization } from "@/application/core/authorization/AuthorizationProvider";
+import { AccessDeniedState } from "@/presentation/layout/common/AccessDeniedState";
 import { useSidebar } from "@/application/core/context/SidebarContext";
 import AppHeader from "@/presentation/layout/header/AppHeader";
 import AppSidebar from "@/presentation/layout/sidebar/AppSidebar";
@@ -19,12 +22,16 @@ export default function DashboardShell({
     customOthersItems,
 }: DashboardShellProps) {
     const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+    const pathname = usePathname();
+    const { canPath, isLoading } = useAuthorization();
 
     const mainContentMargin = isMobileOpen
         ? "ml-0"
         : isExpanded || isHovered
             ? "lg:ml-[290px]"
             : "lg:ml-[90px]";
+
+    const decision = canPath(pathname);
 
     return (
         <div className="min-h-screen xl:flex">
@@ -43,7 +50,9 @@ export default function DashboardShell({
                 <AppHeader />
 
                 {/* Page Content */}
-                <div className="w-full">{children}</div>
+                <div className="w-full">
+                    {isLoading ? null : decision.can ? children : <AccessDeniedState />}
+                </div>
             </div>
         </div>
     );

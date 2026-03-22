@@ -50,6 +50,10 @@ export const ADMIN_LIVE_CHANNELS = {
   PROPOSALS: "admin.proposals",
 } as const;
 
+const RESOURCE_LIVE_CHANNELS = {
+  PROPOSALS: "resources/proposals",
+} as const;
+
 export const ADMIN_LIVE_EVENT_TYPES = {
   PROPOSALS_REFRESH_REQUEST: "PROPOSALS_REFRESH_REQUEST",
   PROPOSAL_CREATED: "PROPOSAL_CREATED",
@@ -134,6 +138,13 @@ const createProposalEvent = (
   date: new Date(),
   meta,
 });
+
+const isProposalChannel = (channel: string) => {
+  return (
+    channel === ADMIN_LIVE_CHANNELS.PROPOSALS ||
+    channel === RESOURCE_LIVE_CHANNELS.PROPOSALS
+  );
+};
 
 const extractProposalBridgeEvent = (
   message: BridgeMessage,
@@ -368,7 +379,7 @@ export const refineLiveProvider: LiveProvider = {
       return subscribeNotifications({ callback, types, meta });
     }
 
-    if (channel === ADMIN_LIVE_CHANNELS.PROPOSALS) {
+    if (isProposalChannel(channel)) {
       return subscribeProposals({ callback, types, meta });
     }
 
@@ -382,7 +393,7 @@ export const refineLiveProvider: LiveProvider = {
   publish: (event) => {
     if (!event) return;
 
-    if (event.channel === ADMIN_LIVE_CHANNELS.PROPOSALS) {
+    if (isProposalChannel(event.channel)) {
       publishProposalEvent(event);
     }
   },

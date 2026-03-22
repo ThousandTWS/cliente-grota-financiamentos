@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from "axios";
+import { createApiClient } from "@workspace/api-client";
+import type { AxiosInstance } from "axios";
 
 const BASE_URL =
   process.env.LOGISTA_API_BASE_URL ??
@@ -10,7 +11,7 @@ const defaultHeaders = {
   Accept: "application/json",
 };
 
-const api: AxiosInstance = axios.create({
+const api: AxiosInstance = createApiClient({
   baseURL: BASE_URL,
   headers: defaultHeaders,
   withCredentials: true,

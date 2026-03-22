@@ -28,17 +28,17 @@ const PANELS: { key: ProposalStatus; title: string; color: string }[] = [
   {
     key: "APPROVED",
     title: "Aprovadas",
-    color: "#10B981",
+    color: "#3B82F6",
   },
   {
     key: "APPROVED_DEDUCTED",
     title: "Aprovada Reduzido",
-    color: "#06B6D4",
+    color: "#3B82F6",
   },
   {
     key: "REJECTED",
     title: "Reprovadas",
-    color: "#EF4444",
+    color: "#3B82F6",
   },
 ];
 
@@ -327,7 +327,7 @@ export function QuickStats() {
           <Card 
             title={
               <Flex align="center" gap={8}>
-                <Avatar style={{ backgroundColor: '#fa8c16' }} icon={<UserOutlined />} />
+                <Avatar style={{ backgroundColor: '#3B82F6' }} icon={<UserOutlined />} />
                 <div>
                   <Text strong>Top 3 Vendedores</Text>
                   <br />
@@ -431,7 +431,7 @@ export function QuickStats() {
           <Card 
             title={
               <Flex align="center" gap={8}>
-                <Avatar style={{ backgroundColor: '#52c41a' }} icon={<FileTextOutlined />} />
+                <Avatar style={{ backgroundColor: '#3B82F6' }} icon={<FileTextOutlined />} />
                 <div>
                   <Text strong>Últimas 5 Propostas</Text>
                   <br />

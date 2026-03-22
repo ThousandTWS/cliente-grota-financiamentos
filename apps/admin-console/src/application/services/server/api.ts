@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from "axios";
+import { createApiClient } from "@workspace/api-client";
+import type { AxiosInstance } from "axios";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL ??
@@ -19,20 +20,13 @@ if (STATIC_BEARER) {
   defaultHeaders.Authorization = `Basic ${BASIC_TOKEN}`;
 }
 
-const api: AxiosInstance = axios.create({
+const api: AxiosInstance = createApiClient({
   baseURL: BASE_URL,
   headers: defaultHeaders,
   withCredentials: true,
-});
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
-      console.warn("[API] Unauthorized:", error.config?.url);
-    }
-    return Promise.reject(error);
+  onUnauthorized: (url) => {
+    console.warn("[API] Unauthorized:", url);
   },
-);
+});
 
 export default api;

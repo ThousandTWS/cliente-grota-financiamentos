@@ -29,19 +29,16 @@ import {
   getAllSellers,
   linkSellerToDealer,
   Seller,
-  deleteSeller,
 } from "@/application/services/Seller/sellerService";
 import {
   getAllManagers,
   linkManagerToDealer,
   Manager,
-  deleteManager,
 } from "@/application/services/Manager/managerService";
 import {
   getAllOperators,
   linkOperatorToDealer,
   Operator,
-  deleteOperator,
 } from "@/application/services/Operator/operatorService";
 import userServices, { AdminUser } from "@/application/services/UserServices/UserServices";
 
@@ -273,29 +270,6 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
     }
   };
 
-  const handleUnlink = async () => {
-    if (!linkingType || !selectedLogista || !selectedLinkId) return;
-    setIsLinking(true);
-    try {
-      if (linkingType === "seller") {
-        await deleteSeller(Number(selectedLinkId));
-        toast({ title: "Vendedor removido!", description: "Usuário apagado do sistema." });
-      } else if (linkingType === "manager") {
-        await deleteManager(Number(selectedLinkId));
-        toast({ title: "Gestor removido!", description: "Usuário apagado do sistema." });
-      } else {
-        await deleteOperator(Number(selectedLinkId));
-        toast({ title: "Operador removido!", description: "Usuário apagado do sistema." });
-      }
-      setLinkModalOpen(false);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível remover.";
-      toast({ title: "Erro ao remover", description: message, variant: "destructive" });
-    } finally {
-      setIsLinking(false);
-    }
-  };
-
   const digitsOnly = (value?: string) => (value ?? "").replace(/\D/g, "");
 
   const handleSave = async (payload: CreateDealerPayload) => {
@@ -361,17 +335,17 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
 
   return (
     <>
-      <div className="space-y-4" data-oid="53n7jzk">
+      <div className="space-y-6" data-oid="53n7jzk">
         {/* Barra de ferramentas */}
         <div
-          className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
+          className="flex flex-col gap-4 rounded-[16px] border border-slate-200 bg-slate-50/80 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between"
           data-oid="xl:hg:d">
 
           <div
-            className="flex flex-1 gap-2 w-full sm:w-auto"
+            className="flex w-full flex-1 flex-col gap-3 sm:flex-row sm:items-center"
             data-oid="mcznbit">
 
-            <div className="relative flex-1 max-w-sm" data-oid="d.zegf3">
+            <div className="relative w-full flex-1 lg:max-w-xl" data-oid="d.zegf3">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
                 data-oid="3m7dtc4" />
@@ -380,7 +354,7 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
                 placeholder="Buscar por nome, razão social, código ou CNPJ..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-9"
+                className="h-11 rounded-lg border-slate-200 pl-9"
                 data-oid="g2y08.g" />
 
             </div>
@@ -394,24 +368,28 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
                 { value: "inativo", label: "Inativo" },
                 { value: "pendente", label: "Pendente" },
               ]}
-              className="w-[160px]"
+              className="w-full sm:w-[180px]"
               suffixIcon={<Filter className="size-4" data-oid="8q9uxkr" />}
               data-oid="-qv_bn6"
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button
               type="primary"
-              
               onClick={onRefresh}
               data-oid="refreshDealer"
-              className="w-full sm:w-auto"
+              className="h-11 rounded-lg px-5 sm:w-auto"
             >
               <RefreshCcw className="mr-2 h-4 w-4" />
               Atualizar
             </Button>
-            <Button onClick={handleCreate} data-oid="addDealer" className="w-full sm:w-auto" type="primary">
+            <Button
+              onClick={handleCreate}
+              data-oid="addDealer"
+              className="h-11 rounded-lg px-5 sm:w-auto"
+              type="primary"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Novo logista
             </Button>
@@ -420,7 +398,7 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
 
         {/* Formulário inline de criação */}
         {dialogMode === "create" && (
-          <div className="mt-4">
+          <div className="-mt-1">
             <LogistaDialog
               logista={null}
               open={dialogOpen}
@@ -434,29 +412,30 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
         )}
 
         {/* Tabela */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm" data-oid="zu73duo">
-          <div className="border-b border-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm" data-oid="zu73duo">
+          <div className="border-b border-slate-100 px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             Resultados ({filteredData.length})
           </div>
-          <div className="md:hidden space-y-3 px-4 py-3" data-oid="tableCards">
+          <div className="space-y-4 px-5 py-5 md:hidden" data-oid="tableCards">
             {paginatedData.length > 0 ? (
               paginatedData.map((logista) => (
                 <LogistaCard key={logista.id} logista={logista} />
               ))
             ) : (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-muted-foreground text-center">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-muted-foreground text-center">
                 Nenhum logista encontrado.
               </div>
             )}
           </div>
 
-          <div className="hidden md:block overflow-hidden" data-oid="tableWrapper">
+          <div className="hidden overflow-hidden md:block" data-oid="tableWrapper">
             <Table
               columns={columns}
               dataSource={paginatedData}
               pagination={false}
               rowKey="id"
-              className="w-full"
+              size="middle"
+              className="w-full [&_.ant-table-cell]:align-middle [&_.ant-table-tbody>tr>td]:px-6 [&_.ant-table-tbody>tr>td]:py-5 [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:px-6 [&_.ant-table-thead>tr>th]:py-4 [&_.ant-table-thead>tr>th]:text-xs [&_.ant-table-thead>tr>th]:font-semibold [&_.ant-table-thead>tr>th]:uppercase [&_.ant-table-thead>tr>th]:tracking-[0.12em] [&_.ant-table-thead>tr>th]:text-slate-500"
               data-oid="xc.amp3"
             />
           </div>
@@ -464,7 +443,7 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
 
         {/* Paginação */}
         <div
-          className="flex flex-col sm:flex-row items-center justify-between gap-4"
+          className="flex flex-col gap-4 rounded-[16px] border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
           data-oid="ob-cfcs">
 
           <div
@@ -478,7 +457,7 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
             </span>
           </div>
 
-          <div className="flex items-center gap-2" data-oid="_mkzj.0">
+          <div className="flex flex-col items-center gap-3 sm:flex-row" data-oid="_mkzj.0">
             <div className="flex items-center gap-2" data-oid="cf0aoe7">
               <span
                 className="text-sm text-muted-foreground"
@@ -498,15 +477,16 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
                   { value: 20, label: "20" },
                   { value: 50, label: "50" },
                 ]}
-                className="w-[70px]"
+                className="w-[78px]"
                 data-oid="io6asxb"
               />
             </div>
 
-            <div className="flex items-center gap-1" data-oid="w:3accq">
+            <div className="flex items-center gap-2" data-oid="w:3accq">
               <Button
                 type="primary"
-               size="large"
+                size="large"
+                className="rounded-lg"
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
                 data-oid="bjx9:cs">
@@ -514,7 +494,7 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
                 <ChevronLeft className="size-4" data-oid="8185hy9" />
               </Button>
 
-              <div className="flex items-center gap-1 px-2" data-oid="p3ojrgk">
+              <div className="flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2" data-oid="p3ojrgk">
                 <span className="text-sm font-medium" data-oid=".lq77rl">
                   {currentPage}
                 </span>
@@ -532,6 +512,7 @@ export function DataTable({ data, onUpdate, onSync, onRefresh }: DataTableProps)
               <Button
                 type="primary"
                 size="large"
+                className="rounded-lg"
                 onClick={() =>
                 setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
@@ -997,8 +978,8 @@ function LogistaCard({ logista }: { logista: Logista }) {
   const referenceNumber =
     logista.referenceCode?.match(/\d+/g)?.join("") || logista.referenceCode || "--";
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-4 rounded-[16px] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Loja {referenceNumber}
