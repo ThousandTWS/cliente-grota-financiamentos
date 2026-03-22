@@ -214,15 +214,16 @@ export default function GestorDashboardPage() {
                   block
                   icon={<ArrowUpRight className="size-4" />}
                   onClick={() => router.push("/gestao/propostas")}
-                  className="!bg-white !text-slate-900 !font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
+                  className="!font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Ver esteira
                 </Button>
                 <Button
+                  type="default"
                   block
                   icon={<FileText className="size-4" />}
                   onClick={() => router.push("/gestor/relatorios")}
-                  className="!rounded-full !h-11 hover:!translate-y-[-1px]"
+                  className="!font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Relatorios
                 </Button>
@@ -246,12 +247,14 @@ export default function GestorDashboardPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 md:pb-1">
                   <Button
+                    type="primary"
                     icon={<ArrowUpRight className="size-4" />}
                     onClick={() => router.push("/gestao/propostas")}
                   >
                     Ver esteira
                   </Button>
                   <Button
+                    type="default"
                     icon={<FileText className="size-4" />}
                     onClick={() => router.push("/gestor/relatorios")}
                   >

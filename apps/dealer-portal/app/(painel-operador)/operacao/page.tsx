@@ -595,25 +595,26 @@ function PainelOperadorContent() {
                   block
                   icon={<Calculator className="size-4" />}
                   onClick={() => router.push("/simulacao")}
-                  className="!bg-white !text-slate-900 !font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
+                  className="!font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Nova simulacao
                 </Button>
                 <Button
+                  type="default"
                   block
                   icon={<FileText className="size-4" />}
                   loading={reportLoading}
                   onClick={handleGenerateReport}
-                  className="!rounded-full !h-11 hover:!translate-y-[-1px]"
+                  className="!font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Gerar relatorio
                 </Button>
                 <Button
+                  type="default"
                   block
-                  type="text"
                   icon={<ArrowUpRight className="size-4" />}
                   onClick={() => router.push("/esteira-propostas")}
-                  className="!text-white !rounded-full !h-11 hover:!translate-y-[-1px]"
+                  className="!font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Ver esteira
                 </Button>
@@ -648,6 +649,7 @@ function PainelOperadorContent() {
                     className="w-44"
                   />
                   <Button
+                    type="primary"
                     icon={<FileText className="size-4" />}
                     onClick={handleGenerateReport}
                     loading={reportLoading}

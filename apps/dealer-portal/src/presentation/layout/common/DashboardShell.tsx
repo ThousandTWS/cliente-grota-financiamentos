@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthorization } from "@/application/core/authorization/AuthorizationProvider";
 import { AccessDeniedState } from "@/presentation/layout/common/AccessDeniedState";
 import { useSidebar } from "@/application/core/context/SidebarContext";
@@ -23,7 +23,8 @@ export default function DashboardShell({
 }: DashboardShellProps) {
     const { isExpanded, isHovered, isMobileOpen } = useSidebar();
     const pathname = usePathname();
-    const { canPath, isLoading } = useAuthorization();
+    const router = useRouter();
+    const { canPath, isLoading, user, error } = useAuthorization();
 
     const mainContentMargin = isMobileOpen
         ? "ml-0"
@@ -32,6 +33,12 @@ export default function DashboardShell({
             : "lg:ml-[90px]";
 
     const decision = canPath(pathname);
+
+    React.useEffect(() => {
+        if (!isLoading && !user) {
+            router.replace("/login");
+        }
+    }, [isLoading, router, user]);
 
     return (
         <div className="min-h-screen xl:flex">
@@ -51,7 +58,14 @@ export default function DashboardShell({
 
                 {/* Page Content */}
                 <div className="w-full">
-                    {isLoading ? null : decision.can ? children : <AccessDeniedState />}
+                    {isLoading ? null : user ? (
+                        decision.can ? children : (
+                            <AccessDeniedState
+                                reason={decision.reason}
+                                role={user.role}
+                            />
+                        )
+                    ) : error ? null : null}
                 </div>
             </div>
         </div>

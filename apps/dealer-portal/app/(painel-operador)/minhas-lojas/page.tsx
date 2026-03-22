@@ -139,7 +139,7 @@ export default function MinhasLojasPage() {
           <div className="flex flex-wrap gap-3">
             <Button
               type="default"
-              className="!border-white/30 !bg-transparent !text-white hover:!bg-white/10"
+              className="!h-11 !rounded-full !font-semibold"
               icon={<ArrowUpRight className="size-4" />}
               onClick={() => router.push("/operacao")}
             >
@@ -147,7 +147,7 @@ export default function MinhasLojasPage() {
             </Button>
             <Button
               type="default"
-              className="!border-white/30 !bg-transparent !text-white hover:!bg-white/10"
+              className="!h-11 !rounded-full !font-semibold"
               icon={<ArrowUpRight className="size-4" />}
               onClick={() => router.push("/esteira-propostas")}
             >

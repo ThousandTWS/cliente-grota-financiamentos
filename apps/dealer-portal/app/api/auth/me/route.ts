@@ -7,6 +7,8 @@ import {
   type SessionPayload,
 } from "../../../../../../packages/auth";
 import {
+  LOGISTA_COOKIE_SAME_SITE,
+  LOGISTA_COOKIE_SECURE,
   LOGISTA_SESSION_COOKIE,
   LOGISTA_SESSION_MAX_AGE,
   LOGISTA_SESSION_SCOPE,
@@ -37,8 +39,8 @@ async function clearSessionCookie() {
     name: LOGISTA_SESSION_COOKIE,
     value: "",
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: LOGISTA_COOKIE_SAME_SITE,
+    secure: LOGISTA_COOKIE_SECURE,
     maxAge: 0,
     path: "/",
   });
@@ -63,7 +65,25 @@ async function refreshTokens(session: SessionPayload) {
 export async function GET() {
   const cookieStore = await cookies();
   const encodedSession = cookieStore.get(LOGISTA_SESSION_COOKIE)?.value;
+
+  console.log(
+    `[Logista Session] Cookie '${LOGISTA_SESSION_COOKIE}' present: ${!!encodedSession}`,
+  );
   const session = await decryptSession(encodedSession, SESSION_SECRET);
+
+  console.log(`[Logista Session] Session decrypted: ${!!session}`);
+  if (session) {
+    console.log(
+      `[Logista Session] Session scope: '${session.scope}', expected: '${LOGISTA_SESSION_SCOPE}'`,
+    );
+    console.log(
+      `[Logista Session] Session userId: ${session.userId}, email: ${session.email}`,
+    );
+  } else {
+    console.log(
+      "[Logista Session] FALHA ao decriptar sessão ou cookie ausente",
+    );
+  }
 
   if (!session || session.scope !== LOGISTA_SESSION_SCOPE) {
     await clearSessionCookie();
@@ -91,8 +111,8 @@ export async function GET() {
       name: LOGISTA_SESSION_COOKIE,
       value: encoded,
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: LOGISTA_COOKIE_SAME_SITE,
+      secure: LOGISTA_COOKIE_SECURE,
       maxAge: LOGISTA_SESSION_MAX_AGE,
       path: "/",
     });
@@ -126,8 +146,8 @@ export async function GET() {
     name: LOGISTA_SESSION_COOKIE,
     value: encoded,
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: LOGISTA_COOKIE_SAME_SITE,
+    secure: LOGISTA_COOKIE_SECURE,
     maxAge: LOGISTA_SESSION_MAX_AGE,
     path: "/",
   });

@@ -9,6 +9,8 @@ import {
   type SessionPayload,
 } from "../../../../../packages/auth";
 import {
+  LOGISTA_COOKIE_SAME_SITE,
+  LOGISTA_COOKIE_SECURE,
   LOGISTA_SESSION_COOKIE,
   LOGISTA_SESSION_MAX_AGE,
   LOGISTA_SESSION_SCOPE,
@@ -51,14 +53,12 @@ async function setLogistaSessionCookie(
   session: SessionPayload,
 ) {
   const encoded = await encryptSession(session, getSessionSecret());
-  const sameSite =
-    process.env.NODE_ENV === "production" ? "none" : ("lax" as const);
   cookieStore.set({
     name: LOGISTA_SESSION_COOKIE,
     value: encoded,
     httpOnly: true,
-    sameSite,
-    secure: process.env.NODE_ENV === "production",
+    sameSite: LOGISTA_COOKIE_SAME_SITE,
+    secure: LOGISTA_COOKIE_SECURE,
     maxAge: LOGISTA_SESSION_MAX_AGE,
     path: "/",
   });
@@ -67,14 +67,12 @@ async function setLogistaSessionCookie(
 async function clearLogistaSessionCookie(
   cookieStore: Awaited<ReturnType<typeof cookies>>,
 ) {
-  const sameSite =
-    process.env.NODE_ENV === "production" ? "none" : ("lax" as const);
   cookieStore.set({
     name: LOGISTA_SESSION_COOKIE,
     value: "",
     httpOnly: true,
-    sameSite,
-    secure: process.env.NODE_ENV === "production",
+    sameSite: LOGISTA_COOKIE_SAME_SITE,
+    secure: LOGISTA_COOKIE_SECURE,
     maxAge: 0,
     path: "/",
   });
@@ -104,7 +102,12 @@ export async function refreshLogistaSession(
 export async function getLogistaSession(): Promise<DealerPortalSession | null> {
   const cookieStore = await cookies();
   const encodedSession = cookieStore.get(LOGISTA_SESSION_COOKIE)?.value;
+  console.log(
+    `[Logista Session Lib] Cookie '${LOGISTA_SESSION_COOKIE}' present: ${!!encodedSession}`,
+  );
   const session = await decryptSession(encodedSession, getSessionSecret());
+
+  console.log(`[Logista Session Lib] Session decrypted: ${!!session}`);
 
   if (!session || session.scope !== LOGISTA_SESSION_SCOPE) {
     await clearLogistaSessionCookie(cookieStore);

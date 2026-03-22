@@ -222,15 +222,16 @@ export default function PainelVendedorPage() {
                   block
                   icon={<Calculator className="size-4" />}
                   onClick={() => router.push("/simulacao-vendedor")}
-                  className="!bg-white !text-slate-900 !font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
+                  className="!font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Nova simulacao
                 </Button>
                 <Button
+                  type="default"
                   block
                   icon={<ArrowUpRight className="size-4" />}
                   onClick={() => router.push("/minhas-propostas")}
-                  className="!rounded-full !h-11 hover:!translate-y-[-1px]"
+                  className="!font-semibold !rounded-full !h-11 hover:!translate-y-[-1px]"
                 >
                   Ver propostas
                 </Button>
@@ -255,13 +256,13 @@ export default function PainelVendedorPage() {
                 <div className="flex flex-wrap items-center gap-2 md:pb-1">
                   <Button
                     type="primary"
-                    className="!bg-slate-900 !text-white"
                     icon={<Calculator className="size-4" />}
                     onClick={() => router.push("/simulacao-vendedor")}
                   >
                     Nova simulacao
                   </Button>
                   <Button
+                    type="default"
                     icon={<ArrowUpRight className="size-4" />}
                     onClick={() => router.push("/minhas-propostas")}
                   >
