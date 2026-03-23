@@ -47,11 +47,6 @@ export const gestorOthersItems: NavItem[] = [
         path: "/gestor/relatorios",
     },
     {
-        name: "Documentos",
-        icon: <FileText />,
-        path: "/documentos",
-    },
-    {
         name: "Configuracoes",
         icon: <Settings />,
         path: "/gestor/configuracoes",

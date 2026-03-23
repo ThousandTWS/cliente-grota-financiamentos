@@ -45,11 +45,6 @@ export const vendedorNavItems: NavItem[] = [
       },
     ],
   },
-  {
-    name: "Documentos",
-    icon: <FileText />,
-    path: "/meus-documentos",
-  },
 ];
 
 export const vendedorOthersItems: NavItem[] = [];
