@@ -49,8 +49,9 @@ const fetchSellersFromEndpoint = async (endpoint: string): Promise<Seller[]> => 
   return [];
 };
 
-export async function fetchAllSellers(): Promise<Seller[]> {
-  return fetchSellersFromEndpoint("/api/sellers");
+export async function fetchAllSellers(dealerId?: number): Promise<Seller[]> {
+  const query = dealerId ? `?dealerId=${dealerId}` : "";
+  return fetchSellersFromEndpoint(`/api/sellers${query}`);
 }
 
 export async function fetchManagerPanelSellers(): Promise<Seller[]> {

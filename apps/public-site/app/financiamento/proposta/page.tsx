@@ -28,6 +28,21 @@ function parseNumericParam(value: string | null) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
+function shouldHideVehicleStep(searchParams: ReturnType<typeof useSearchParams>) {
+  const source = searchParams.get("source");
+  const explicitFlag = searchParams.get("hideVehicleStep");
+  const hasLinkSignature =
+    Boolean(searchParams.get("ref")) && Boolean(searchParams.get("expiresAt"));
+
+  return (
+    explicitFlag === "1" ||
+    explicitFlag === "true" ||
+    source === "admin-console" ||
+    source === "dealer-portal" ||
+    hasLinkSignature
+  );
+}
+
 function PropostaFinanciamentoContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isScrolled = useScrollDetection(100);
@@ -42,13 +57,12 @@ function PropostaFinanciamentoContent() {
   const mode = parseMode(searchParams.get("mode"));
   const vehicleType = parseVehicleType(searchParams.get("vehicleType"));
   const condition = parseCondition(searchParams.get("condition"));
-  const source = searchParams.get("source");
   const proposalReference = searchParams.get("ref") ?? undefined;
   const expiresAt = searchParams.get("expiresAt") ?? undefined;
   const customerName = searchParams.get("customer") ?? undefined;
   const dealerId = parseNumericParam(searchParams.get("dealerId"));
   const sellerId = parseNumericParam(searchParams.get("sellerId"));
-  const hideVehicleStep = source === "admin-console";
+  const hideVehicleStep = shouldHideVehicleStep(searchParams);
 
   return (
     <div className="min-h-screen w-full relative bg-[#F3F4F6]">

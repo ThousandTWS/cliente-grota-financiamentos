@@ -5,6 +5,7 @@ import {
     ClipboardList,
     FileText,
     LayoutDashboard,
+    Link2,
     PieChart,
     Settings,
     Store,
@@ -34,6 +35,7 @@ export const gestorNavItems: NavItem[] = [
         icon: <ClipboardList />,
         subItems: [
             { name: "Esteira", path: "/gestao/propostas", pro: false, icon: <ClipboardCheck size={16} /> },
+            { name: "Link do Cliente", path: "/propostas/link-cliente", pro: false, icon: <Link2 size={16} /> },
         ],
     },
 ];

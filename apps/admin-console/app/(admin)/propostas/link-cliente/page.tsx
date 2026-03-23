@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Copy, ExternalLink, Link2, RefreshCcw, Send } from "lucide-react";
+import { Copy, ExternalLink, RefreshCcw, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Input, Select, Button, Card } from "antd";
 import { type Dealer, getAllLogistics } from "@/application/services/Logista/logisticService";
@@ -151,6 +151,7 @@ export default function ProposalLinkGeneratorPage() {
 
     const params = new URLSearchParams({
       source: "admin-console",
+      hideVehicleStep: "1",
       mode: config.mode,
       vehicleType: config.vehicleType,
       condition: config.condition,

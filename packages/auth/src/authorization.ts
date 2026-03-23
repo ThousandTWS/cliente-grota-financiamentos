@@ -72,6 +72,7 @@ const DEALER_ROUTE_RULES: RouteRule[] = [
   { prefix: "/operador/relatorios", resource: "reports", action: "view" },
   { prefix: "/gestor/relatorios", resource: "reports", action: "view" },
   { prefix: "/gestor/configuracoes", resource: "settings", action: "view" },
+  { prefix: "/propostas/link-cliente", resource: "proposals", action: "show" },
   { prefix: "/gestao/propostas", resource: "proposals", action: "list" },
   { prefix: "/minhas-propostas", resource: "proposals", action: "list" },
   { prefix: "/esteira-propostas", resource: "proposals", action: "list" },
