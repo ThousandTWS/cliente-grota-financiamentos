@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Alert, Button, Form, Input } from "antd"
 import ReCAPTCHA from "react-google-recaptcha"
 import { Building2, Lock, Mail } from "lucide-react"
+import { PanelLoadingScreen } from "@/presentation/layout/common/PanelLoadingScreen"
 
 type LoginFormValues = {
   identifier: string
@@ -28,15 +28,25 @@ const resolveRedirectPath = (role?: string | null) => {
 }
 
 export function LoginForm() {
-  const router = useRouter()
   const [form] = Form.useForm<LoginFormValues>()
   const identifier = Form.useWatch("identifier", form) ?? ""
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null)
+  const [redirectPath, setRedirectPath] = useState<string | null>(null)
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "6Lfuw0osAAAAAKTGxs43SODM04TWR2aKSUC84BlY"
   const isRecaptchaEnabled = recaptchaSiteKey.length > 0
+
+  useEffect(() => {
+    if (!redirectPath) return
+
+    const timer = window.setTimeout(() => {
+      window.location.assign(redirectPath)
+    }, 150)
+
+    return () => window.clearTimeout(timer)
+  }, [redirectPath])
 
   const handleSubmit = async (values: LoginFormValues) => {
     setError(null)
@@ -75,15 +85,24 @@ export function LoginForm() {
         return
       }
 
-      const redirectPath = resolveRedirectPath(
+      const nextRedirectPath = resolveRedirectPath(
         (data as { user?: { role?: string } })?.user?.role,
       )
-      router.push(redirectPath)
+      setRedirectPath(nextRedirectPath)
     } catch (err) {
       setError("Falha ao autenticar. Tente novamente.")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (redirectPath) {
+    return (
+      <PanelLoadingScreen
+        title="Entrando no painel"
+        description="Seu acesso foi confirmado. Estamos carregando a area inicial."
+      />
+    )
   }
 
   const isEmail = identifier.includes("@")

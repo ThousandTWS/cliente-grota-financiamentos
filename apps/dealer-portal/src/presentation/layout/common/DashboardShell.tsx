@@ -4,6 +4,7 @@ import React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthorization } from "@/application/core/authorization/AuthorizationProvider";
 import { AccessDeniedState } from "@/presentation/layout/common/AccessDeniedState";
+import { PanelLoadingScreen } from "@/presentation/layout/common/PanelLoadingScreen";
 import { useSidebar } from "@/application/core/context/SidebarContext";
 import AppHeader from "@/presentation/layout/header/AppHeader";
 import AppSidebar from "@/presentation/layout/sidebar/AppSidebar";
@@ -40,6 +41,15 @@ export default function DashboardShell({
         }
     }, [isLoading, router, user]);
 
+    if (isLoading) {
+        return (
+            <PanelLoadingScreen
+                title="Preparando ambiente"
+                description="Estamos validando sua sessão e liberando o acesso ao painel."
+            />
+        );
+    }
+
     return (
         <div className="min-h-screen xl:flex">
             {/* Sidebar and Backdrop */}
@@ -58,7 +68,7 @@ export default function DashboardShell({
 
                 {/* Page Content */}
                 <div className="w-full">
-                    {isLoading ? null : user ? (
+                    {user ? (
                         decision.can ? children : (
                             <AccessDeniedState
                                 reason={decision.reason}
