@@ -35,7 +35,7 @@ export function LoginForm() {
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null)
   const [redirectPath, setRedirectPath] = useState<string | null>(null)
-  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "6Lfuw0osAAAAAKTGxs43SODM04TWR2aKSUC84BlY"
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "6LepOJQsAAAAAP_BB-ScntTULOWcYbsIXP5X4OEk"
   const isRecaptchaEnabled = recaptchaSiteKey.length > 0
 
   useEffect(() => {
