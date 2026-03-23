@@ -208,16 +208,6 @@ export default function ProposalLinkGeneratorPage() {
   return (
     <div className="px-4 py-6 md:px-8 md:py-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="rounded-2xl bg-[#1976d2] p-6 md:p-8 text-white shadow-lg">
-          <div className="flex items-center gap-3">
-            <Link2 className="w-7 h-7" />
-            <h1 className="text-2xl md:text-3xl font-bold">Modulo de Proposta via Link</h1>
-          </div>
-          <p className="mt-2 text-blue-100">
-            Gere links unicos para o cliente preencher proposta em 4 etapas com controle do admin.
-          </p>
-        </div>
-
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           <Card className="xl:col-span-3 border-gray-200 shadow-sm" styles={{ body: { padding: 24 } }}>
             <h2 className="text-lg font-semibold text-gray-900 mb-5">Configuracoes do link</h2>
