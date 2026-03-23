@@ -1,7 +1,6 @@
 import { 
     LayoutDashboard, 
     ClipboardList, 
-    Users2, 
     Building2, 
     Receipt, 
     Settings, 
@@ -14,7 +13,8 @@ import {
     BarChart3,
     Files,
     Bot,
-    Link2
+    Link2,
+    MessageCircleMore,
 } from "lucide-react";
 import { SearchItem } from "../SearchItem";
 
@@ -126,6 +126,15 @@ export const searchItems: SearchItem[] = [
         href: "/relatorios",
         group: "Dados",
         keywords: ["relatorio", "exportar", "planilha", "pdf"]
+    },
+    {
+        id: "whatsapp-central",
+        title: "Whatsapp Central",
+        description: "Atendimento e monitoramento operacional de conversas",
+        icon: <MessageCircleMore className="size-4" />,
+        href: "/whatsapp-central",
+        group: "Recursos",
+        keywords: ["whatsapp", "atendimento", "conversa", "chat", "central", "equipe"]
     },
     {
         id: "ia-chat",

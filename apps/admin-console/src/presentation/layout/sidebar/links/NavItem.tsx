@@ -12,6 +12,7 @@ import {
   PlusCircle,
   Bot,
   Link2,
+  MessageCircleMore,
 } from "lucide-react";
 
 export const navItems: NavItem[] = [
@@ -105,6 +106,4 @@ export const navItems: NavItem[] = [
       },
     ],
   },
-
-
 ];

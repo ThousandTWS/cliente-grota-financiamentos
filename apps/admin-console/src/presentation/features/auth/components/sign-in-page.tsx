@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { SignInPageProps } from "@/application/core/@types/auth/Props/SignInPageProps"
 import z from "zod"
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/presentation/layout/components/ui/input"
 import { Button } from "@/presentation/layout/components/ui/button"
 import { GlassInputWrapper } from "@/presentation/layout/components/glass-input-wrapper"
+import { PanelLoadingScreen } from "@/presentation/layout/common/PanelLoadingScreen"
 
 const loginSchema = z.object({
   email: z.email("Email inválido"),
@@ -47,6 +48,17 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   const [pendingEmail, setPendingEmail] = useState("")
   const [pendingPassword, setPendingPassword] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
+
+  useEffect(() => {
+    if (!isRedirecting) return;
+
+    const timer = window.setTimeout(() => {
+      window.location.assign("/visao-geral");
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [isRedirecting]);
 
   const handleVerificationCodeChange = (value: string) => {
     const digitsOnly = value.replace(/\D/g, "").slice(0, 6)
@@ -68,7 +80,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
 
       if (result.success) {
         toast.success("Login realizado com sucesso!");
-        router.push("/visao-geral");
+        setIsRedirecting(true);
         return;
       } else if (result.needsVerification) {
         setShowVerification(true);
@@ -137,6 +149,15 @@ export const SignInPage: React.FC<SignInPageProps> = ({
       toast.error("Erro ao reenviar código.");
     }
   };
+
+  if (isRedirecting) {
+    return (
+      <PanelLoadingScreen
+        title="Entrando no painel"
+        description="Seu acesso foi confirmado. Estamos carregando a area inicial."
+      />
+    );
+  }
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-sans w-[100dvw] bg-white">

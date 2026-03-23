@@ -6,6 +6,7 @@ import { UserProvider } from "@/application/core/context/UserContext";
 import { HideValuesProvider } from "@/application/core/context/HideValuesContext";
 import AppHeader from "@/presentation/layout/header/AppHeader";
 import { AccessDeniedState } from "@/presentation/layout/common/AccessDeniedState";
+import { PanelLoadingScreen } from "@/presentation/layout/common/PanelLoadingScreen";
 import AppSidebar from "@/presentation/layout/sidebar/AppSidebar";
 import React from "react";
 import { Layout } from "antd";
@@ -44,6 +45,15 @@ function AdminLayoutContent({
 
   const decision = canPath(pathname);
 
+  if (isLoading) {
+    return (
+      <PanelLoadingScreen
+        title="Preparando ambiente"
+        description="Estamos validando sua sessão e liberando o acesso ao painel."
+      />
+    );
+  }
+
   return (
     <Layout style={{ minHeight: "100vh", background: "#f8fafc" }}>
       <AppSidebar />
@@ -53,7 +63,7 @@ function AdminLayoutContent({
       >
         <AppHeader />
         <Content style={{ minHeight: 280 }}>
-          {isLoading ? null : decision.can ? children : <AccessDeniedState />}
+          {decision.can ? children : <AccessDeniedState />}
         </Content>
         <Footer style={{ textAlign: "center", padding: "24px 50px", color: "rgba(0, 0, 0, 0.45)" }}>
           Grota Financiamentos ©{new Date().getFullYear()}
