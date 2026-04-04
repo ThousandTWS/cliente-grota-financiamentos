@@ -12,6 +12,7 @@ import {
   fetchAllSellers,
   type Seller,
 } from "@/application/services/Sellers/sellerService";
+import userServices from "@/application/services/UserServices/UserServices";
 
 type FlowMode = "simulacao" | "proposta";
 const DEFAULT_VEHICLE_TYPE = "leves";
@@ -65,9 +66,11 @@ export function ProposalLinkGeneratorFeature() {
   const [dealersLoading, setDealersLoading] = useState(false);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [sellersLoading, setSellersLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [generatedLink, setGeneratedLink] = useState("");
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -76,13 +79,27 @@ export function ProposalLinkGeneratorFeature() {
       try {
         setDealersLoading(true);
         setSellersLoading(true);
-        const [dealerList, sellerList] = await Promise.all([
+        const [dealerList, sellerList, user] = await Promise.all([
           fetchAllDealers(),
           fetchAllSellers(),
+          userServices.me().catch(() => null),
         ]);
         if (!mounted) return;
         setDealers(dealerList);
         setSellers(sellerList);
+
+        if (user) {
+          const role = (user.role ?? "").toUpperCase();
+          setUserRole(role);
+          const isOperador = role === "OPERADOR";
+          const firstDealerId = user.allowedDealerIds?.[0] ?? dealerList[0]?.id;
+
+          setConfig((prev) => ({
+            ...prev,
+            dealerId: firstDealerId ? String(firstDealerId) : "",
+            sellerId: isOperador ? String(user.id) : "",
+          }));
+        }
       } catch (error) {
         console.error("[dealer-portal][proposal-link] initial-data", error);
         toast.error("Nao foi possivel carregar lojas e vendedores.");
@@ -101,9 +118,19 @@ export function ProposalLinkGeneratorFeature() {
     };
   }, []);
 
+  const isDealerRequired = true; // Always required to ensure dashboard visibility
+  const isSellerRequired = userRole === "OPERADOR";
+
+  const isMissingDealer = isDealerRequired && !config.dealerId;
+  const isMissingSeller = isSellerRequired && !config.sellerId;
+
   const canGenerate = useMemo(
-    () => config.publicSiteBaseUrl.trim().length > 0 && Number(config.validDays) > 0,
-    [config.publicSiteBaseUrl, config.validDays],
+    () =>
+      config.publicSiteBaseUrl.trim().length > 0 &&
+      Number(config.validDays) > 0 &&
+      !isMissingDealer &&
+      !isMissingSeller,
+    [config.publicSiteBaseUrl, config.validDays, isMissingDealer, isMissingSeller],
   );
 
   const selectedDealerLabel = useMemo(() => {
@@ -154,9 +181,16 @@ export function ProposalLinkGeneratorFeature() {
 
   const generateLink = () => {
     if (!canGenerate) {
-      toast.error("Preencha URL e validade. Loja e vendedor sao opcionais.");
+      setShowValidation(true);
+      if (isMissingDealer || isMissingSeller) {
+        toast.error("Selecione a Loja e o Vendedor para garantir que a proposta apareca na sua esteira.");
+      } else {
+        toast.error("Preencha URL e validade.");
+      }
       return;
     }
+
+    setShowValidation(false);
 
     const now = new Date();
     const validDaysNumber = Number(config.validDays);
@@ -226,10 +260,21 @@ export function ProposalLinkGeneratorFeature() {
     setGeneratedLink("");
     setGeneratedAt(null);
     setExpiresAt(null);
+    setShowValidation(false);
 
     try {
-      setSellersLoading(true);
-      setSellers(await fetchAllSellers());
+        setSellersLoading(true);
+        const [sellerList, user] = await Promise.all([
+          fetchAllSellers(),
+          userServices.me().catch(() => null),
+        ]);
+        setSellers(sellerList);
+        if (user) {
+          const isOperador = (user.role ?? "").toUpperCase() === "OPERADOR";
+          if (isOperador) {
+            setConfig((prev) => ({ ...prev, sellerId: String(user.id) }));
+          }
+        }
     } catch (error) {
       console.error("[dealer-portal][proposal-link] reset", error);
       toast.error("Nao foi possivel restaurar a lista de vendedores.");
@@ -310,6 +355,7 @@ export function ProposalLinkGeneratorFeature() {
                 className="w-full"
                 placeholder="Selecione uma loja"
                 loading={dealersLoading}
+                status={showValidation && isMissingDealer ? "error" : ""}
                 value={config.dealerId || undefined}
                 onChange={(value) => void handleDealerChange(String(value ?? ""))}
                 options={dealers.map((dealer) => ({
@@ -318,6 +364,11 @@ export function ProposalLinkGeneratorFeature() {
                 }))}
                 optionFilterProp="label"
               />
+              {showValidation && isMissingDealer && (
+                <Typography.Text type="danger" className="mt-1 block text-xs">
+                  Loja obrigatoria para vincular a proposta.
+                </Typography.Text>
+              )}
             </div>
 
             <div>
@@ -331,6 +382,7 @@ export function ProposalLinkGeneratorFeature() {
                 className="w-full"
                 placeholder="Selecione um vendedor"
                 loading={sellersLoading}
+                status={showValidation && isMissingSeller ? "error" : ""}
                 value={config.sellerId || undefined}
                 onChange={(value) =>
                   setConfig((prev) => ({ ...prev, sellerId: String(value ?? "") }))
@@ -341,6 +393,11 @@ export function ProposalLinkGeneratorFeature() {
                 }))}
                 optionFilterProp="label"
               />
+              {showValidation && isMissingSeller && (
+                <Typography.Text type="danger" className="mt-1 block text-xs">
+                  Vendedor obrigatorio para operadores.
+                </Typography.Text>
+              )}
             </div>
 
             <div>
