@@ -95,7 +95,7 @@ const statusBadges = Object.fromEntries(
   ]),
 ) as Record<ProposalStatus, { label: string; className: string }>;
 
-type LocalFilters = ProposalFilters & {
+type LocalFilters = Omit<ProposalFilters, "status" | "dealerId" | "search"> & {
   search: string;
   operatorId?: string;
   dealerId?: string;
@@ -108,7 +108,6 @@ type LocalFilters = ProposalFilters & {
 
 const initialFilters: LocalFilters = {
   search: "",
-  //@ts-ignore
   status: "ALL",
   operatorId: undefined,
   dealerId: undefined,
@@ -318,7 +317,6 @@ export function EsteiraDePropostasFeature({
   const filteredProposals = useMemo(() => {
     return proposals.filter((proposal) => {
       const matchesStatus =
-      //@ts-ignore
         filters.status === "ALL" || proposal.status === filters.status;
       const searchInput = filters.search.trim().toLowerCase();
       const matchesSearch = searchInput
@@ -428,6 +426,32 @@ export function EsteiraDePropostasFeature({
     }));
   };
 
+  const hasActiveFilters = useMemo(() => {
+    return (
+      Boolean(filters.search.trim()) ||
+      Boolean(filters.operatorId) ||
+      Boolean(filters.dealerId) ||
+      Boolean(filters.dealerCode?.trim()) ||
+      filters.status !== "ALL" ||
+      filters.dateField !== "CREATED" ||
+      Boolean(filters.dateFrom) ||
+      Boolean(filters.dateTo)
+    );
+  }, [
+    filters.search,
+    filters.operatorId,
+    filters.dealerId,
+    filters.dealerCode,
+    filters.status,
+    filters.dateField,
+    filters.dateFrom,
+    filters.dateTo,
+  ]);
+
+  const clearFilters = useCallback(() => {
+    setFilters(initialFilters);
+  }, []);
+
   const handleRefresh = () => {
     loadProposals();
     publish?.({
@@ -458,7 +482,6 @@ export function EsteiraDePropostasFeature({
         operators={availableOperators}
         dealers={availableDealers}
         statuses={statusOptions}
-        //@ts-ignore
         onFiltersChange={handleFiltersChange}
         onRefresh={handleRefresh}
         onCreate={handleCreate}
@@ -471,6 +494,9 @@ export function EsteiraDePropostasFeature({
         isLoading={isLoading}
         dealersById={dealerIndex}
         sellersById={sellerIndex}
+        totalUnfiltered={proposals.length}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={clearFilters}
       />
     </div>
   );

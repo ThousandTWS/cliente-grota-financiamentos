@@ -159,6 +159,41 @@ export const createProposal = async (
   return ProposalSchema.parse(payloadResponse);
 };
 
+export const updateProposal = async (
+  proposalId: number,
+  payload: CreateProposalPayload,
+): Promise<Proposal> => {
+  const request = () =>
+    fetch(`${PROPOSALS_ENDPOINT}/${proposalId}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+
+  let response = await request();
+  if (response.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      response = await request();
+    }
+  }
+
+  const payloadResponse = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (payloadResponse as { error?: string })?.error ??
+      "Não foi possível atualizar a proposta.";
+    throw new Error(message);
+  }
+
+  return ProposalSchema.parse(payloadResponse);
+};
+
 export const updateProposalStatus = async (
   proposalId: number,
   payload: UpdateProposalStatusPayload,

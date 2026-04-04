@@ -33,6 +33,7 @@ interface AuthenticatedUser {
   canUpdate?: boolean;
   canDelete?: boolean;
   canChangeProposalStatus?: boolean;
+  allowedDealerIds?: number[];
 }
 
 const API_BASE_URL = getLogistaApiBaseUrl();
@@ -172,6 +173,9 @@ export async function POST(request: NextRequest) {
       canUpdate: user.canUpdate ?? true,
       canDelete: user.canDelete ?? true,
       canChangeProposalStatus: user.canChangeProposalStatus ?? true,
+      allowedDealerIds: Array.isArray(user.allowedDealerIds)
+        ? user.allowedDealerIds.map((value) => Number(value)).filter(Number.isFinite)
+        : undefined,
       scope: LOGISTA_SESSION_SCOPE,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,

@@ -69,7 +69,6 @@ export async function decryptSession(
     return null;
   }
 }
-
 export function isSessionNearExpiry(
   session: SessionPayload,
   skewMs = 300_000, // 5 minutos para renovar antes de expirar

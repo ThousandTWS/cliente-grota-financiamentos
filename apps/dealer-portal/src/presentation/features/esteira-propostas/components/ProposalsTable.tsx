@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
-import { Card, Empty, Pagination, Skeleton, Typography } from "antd";
+import { Button, Card, Empty, Pagination, Skeleton, Typography } from "antd";
 import { Clock3 } from "lucide-react";
 import { StatusBadge } from "./status-badge";
 import { ProposalTimelineSheet } from "./ProposalTimelineSheet";
@@ -13,6 +13,9 @@ type ProposalsTableProps = {
   isLoading?: boolean;
   dealersById?: Record<number, { name: string; enterprise?: string }>;
   sellersById?: Record<number, string>;
+  totalUnfiltered?: number;
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
 };
 
 const statusLabels: Record<ProposalStatus, string> = {
@@ -77,6 +80,9 @@ export function ProposalsTable({
   isLoading,
   dealersById = {},
   sellersById = {},
+  totalUnfiltered,
+  hasActiveFilters = false,
+  onClearFilters,
 }: ProposalsTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -131,9 +137,22 @@ export function ProposalsTable({
   }
 
   if (cards.length === 0) {
+    const showClear = Boolean(onClearFilters && hasActiveFilters);
+    const totalHint =
+      typeof totalUnfiltered === "number" && totalUnfiltered > 0
+        ? ` Você tem ${totalUnfiltered} proposta(s) no total.`
+        : "";
     return (
       <Card className="dealer-proposal-card">
-        <Empty description="Nenhuma proposta encontrada com os filtros selecionados." />
+        <Empty
+          description={`Nenhuma proposta encontrada com os filtros selecionados.${totalHint}`}
+        >
+          {showClear ? (
+            <Button type="primary" onClick={onClearFilters}>
+              Limpar filtros
+            </Button>
+          ) : null}
+        </Empty>
       </Card>
     );
   }

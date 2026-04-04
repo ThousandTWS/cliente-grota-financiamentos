@@ -4,7 +4,6 @@ import {
   Calculator,
   ClipboardCheck,
   ClipboardList,
-  FileText,
   LayoutDashboard,
   Link2,
 } from "lucide-react";

@@ -92,6 +92,11 @@ export interface UpdateProposalStatusPayload {
   actor?: string;
   notes?: string;
   contractNumber?: string;
+  financedValue?: number;
+  installmentCount?: number;
+  installmentValue?: number;
+  paymentDate?: string;
+  firstDueDate?: string;
 }
 
 export interface ProposalEvent {

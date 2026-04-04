@@ -138,6 +138,9 @@ export async function GET() {
     canUpdate: user?.canUpdate ?? true,
     canDelete: user?.canDelete ?? true,
     canChangeProposalStatus: user?.canChangeProposalStatus ?? true,
+    allowedDealerIds: Array.isArray(user?.allowedDealerIds)
+      ? user.allowedDealerIds.map((value: unknown) => Number(value)).filter(Number.isFinite)
+      : activeSession.allowedDealerIds,
   };
 
   const encoded = await encryptSession(activeSession, SESSION_SECRET);

@@ -10,6 +10,7 @@ export interface SessionPayload {
   canUpdate?: boolean;
   canDelete?: boolean;
   canChangeProposalStatus?: boolean;
+  allowedDealerIds?: number[];
   scope: SessionScope;
   accessToken: string;
   refreshToken: string;

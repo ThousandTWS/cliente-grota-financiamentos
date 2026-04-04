@@ -271,6 +271,48 @@ export async function resolveAllowedDealerIds(
   const role = `${(session as { role?: string })?.role ?? ""}`.toUpperCase();
   if (role !== "OPERADOR") return [];
 
+  const sessionAllowed = Array.isArray((session as any)?.allowedDealerIds)
+    ? ((session as any).allowedDealerIds as unknown[])
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value))
+    : [];
+  if (sessionAllowed.length > 0) {
+    return sessionAllowed;
+  }
+
+  const extractIds = (payload: unknown): number[] => {
+    const direct = (payload as { allowedDealerIds?: unknown })?.allowedDealerIds;
+    const nested = (payload as { user?: { allowedDealerIds?: unknown } })?.user
+      ?.allowedDealerIds;
+    const candidates = Array.isArray(direct)
+      ? direct
+      : Array.isArray(nested)
+        ? nested
+        : [];
+    if (candidates.length > 0) {
+      return candidates
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value));
+    }
+
+    const dealerObjects =
+      (payload as { allowedDealers?: unknown })?.allowedDealers ??
+      (payload as { dealers?: unknown })?.dealers ??
+      (payload as { user?: { allowedDealers?: unknown; dealers?: unknown } })
+        ?.user?.allowedDealers ??
+      (payload as { user?: { allowedDealers?: unknown; dealers?: unknown } })
+        ?.user?.dealers ??
+      null;
+
+    if (Array.isArray(dealerObjects)) {
+      return dealerObjects
+        .map((dealer: any) => Number(dealer?.id ?? dealer?.dealerId))
+        .filter((value) => Number.isFinite(value));
+    }
+
+    return [];
+  };
+
   try {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: {
@@ -280,12 +322,7 @@ export async function resolveAllowedDealerIds(
     });
     if (!response.ok) return [];
     const payload = await response.json().catch(() => null);
-    const ids = Array.isArray((payload as { allowedDealerIds?: unknown })?.allowedDealerIds)
-      ? ((payload as { allowedDealerIds: unknown[] }).allowedDealerIds ?? [])
-      : [];
-    return ids
-      .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id));
+    return extractIds(payload);
   } catch (error) {
     console.warn("[logista][session] falha ao carregar dealers do operador", error);
     return [];

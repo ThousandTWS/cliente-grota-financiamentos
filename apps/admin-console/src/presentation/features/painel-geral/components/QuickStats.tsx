@@ -32,6 +32,7 @@ import { Dealer, getAllLogistics } from "@/application/services/Logista/logistic
 import { useUser } from "@/application/core/context/UserContext";
 import { HideValue } from "@/presentation/components/HideValue/HideValue";
 import { StatusBadge } from "../../logista/components/status-badge";
+import AnimationWelcome from "../../lottie/animation/welcome";
 
 const { Title, Text } = Typography;
 
@@ -208,8 +209,9 @@ export function QuickStats() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <Space orientation="vertical" size={0}>
-          <Title level={4} style={{ margin: 0 }}>
-            Olá, {firstName || "Bem-vindo"}
+          <Title level={4} style={{ margin: 0,  }}>
+            Olá, {firstName || "Bem-vindo"} <AnimationWelcome />
+            
           </Title>
           <Text type="secondary">Aqui está o resumo do que está acontecendo hoje.</Text>
         </Space>
@@ -259,7 +261,7 @@ export function QuickStats() {
           <Card
             title={
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center rounded-lg bg-orange-100 p-2 text-orange-600">
+                <div className="flex items-center justify-center rounded-lg bg-[#3B82F6] p-2 text-white">
                   <Trophy className="size-5" />
                 </div>
                 <div>
@@ -319,7 +321,7 @@ export function QuickStats() {
           <Card
             title={
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-600">
+                <div className="flex items-center justify-center rounded-lg bg-[#3B82F6] p-2 text-white">
                   <Store className="size-5" />
                 </div>
                 <div>
@@ -379,7 +381,7 @@ export function QuickStats() {
           <Card
             title={
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center rounded-lg bg-green-100 p-2 text-green-600">
+                <div className="flex items-center justify-center rounded-lg bg-[#3B82F6] p-2 text-white">
                   <Clock className="size-5" />
                 </div>
                 <div>
