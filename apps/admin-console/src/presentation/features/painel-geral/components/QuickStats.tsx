@@ -299,11 +299,10 @@ export function QuickStats() {
                       dataIndex: "index",
                       width: 50,
                       render: (_, __, index) => (
-                        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
-                          index === 0 ? "bg-amber-100 text-amber-700" : 
-                          index === 1 ? "bg-slate-100 text-slate-700" : 
-                          "bg-orange-100 text-orange-700"
-                        }`}>
+                        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${index === 0 ? "bg-amber-100 text-amber-700" :
+                            index === 1 ? "bg-slate-100 text-slate-700" :
+                              "bg-orange-100 text-orange-700"
+                          }`}>
                           {index + 1}º
                         </div>
                       )
@@ -314,7 +313,7 @@ export function QuickStats() {
                       ellipsis: true,
                       render: (name, record) => (
                         <div>
-                          <Text strong size="small" className="block text-xs leading-none">{name}</Text>
+                          <Text strong className="block text-xs leading-none">{name}</Text>
                           <Text type="secondary" className="text-[10px]">{record.count} propostas</Text>
                         </div>
                       )
@@ -374,11 +373,10 @@ export function QuickStats() {
                       dataIndex: "index",
                       width: 50,
                       render: (_, __, index) => (
-                        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
-                          index === 0 ? "bg-amber-100 text-amber-700" : 
-                          index === 1 ? "bg-slate-100 text-slate-700" : 
-                          "bg-orange-100 text-orange-700"
-                        }`}>
+                        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${index === 0 ? "bg-amber-100 text-amber-700" :
+                            index === 1 ? "bg-slate-100 text-slate-700" :
+                              "bg-orange-100 text-orange-700"
+                          }`}>
                           {index + 1}º
                         </div>
                       )
@@ -389,7 +387,7 @@ export function QuickStats() {
                       ellipsis: true,
                       render: (name, record) => (
                         <div>
-                          <Text strong size="small" className="block text-xs leading-none">{name}</Text>
+                          <Text strong className="block text-xs leading-none">{name}</Text>
                           <Text type="secondary" className="text-[10px]">{record.count} propostas</Text>
                         </div>
                       )
@@ -451,9 +449,9 @@ export function QuickStats() {
                       render: (status) => (
                         <Badge
                           status={
-                            status === "APPROVED" ? "success" : 
-                            status === "REJECTED" ? "error" : 
-                            status === "PAID" ? "processing" : "warning"
+                            status === "APPROVED" ? "success" :
+                              status === "REJECTED" ? "error" :
+                                status === "PAID" ? "processing" : "warning"
                           }
                         />
                       )
