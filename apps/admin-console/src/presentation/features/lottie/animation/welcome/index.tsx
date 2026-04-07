@@ -5,7 +5,7 @@ import animation from "images/logo/welcome.json";
 
 const AnimationWelcome = () => {
     return (
-        <div className="flex h-full w-full items-center justify-center">
+        <div className="inline-flex items-center justify-center">
             <Lottie
                 animationData={animation}
                 loop={true}

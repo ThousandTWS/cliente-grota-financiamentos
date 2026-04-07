@@ -107,9 +107,18 @@ export function QuickStats() {
     load();
   }, []);
 
-  const firstName = useMemo(() => {
-    return user?.fullName?.split(/\s+/)[0] ?? "";
+  const fullName = useMemo(() => {
+    const parts = user?.fullName?.split(/\s+/) || [];
+    if (parts.length <= 1) return user?.fullName ?? "";
+    return `${parts[0]} ${parts[parts.length - 1]}`;
   }, [user?.fullName]);
+
+  const timeGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Bom dia";
+    if (hour >= 12 && hour < 18) return "Boa tarde";
+    return "Boa noite";
+  }, []);
 
   const statsSummary = useMemo(() => {
     const now = Date.now();
@@ -209,9 +218,8 @@ export function QuickStats() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <Space orientation="vertical" size={0}>
-          <Title level={4} style={{ margin: 0,  }}>
-            Olá, {firstName || "Bem-vindo"} <AnimationWelcome />
-            
+          <Title level={4} style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+            {timeGreeting}, {fullName || "Bem-vindo"} <AnimationWelcome />
           </Title>
           <Text type="secondary">Aqui está o resumo do que está acontecendo hoje.</Text>
         </Space>
