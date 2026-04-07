@@ -1,4 +1,4 @@
- 
+
 "use client";
 
 import { useDelete, useList, useUpdate, type HttpError } from "@refinedev/core";
@@ -21,6 +21,7 @@ import { StatusLegend } from "./components/StatusLegend";
 import { QueueFilters } from "./components/QueueFilters";
 import { ProposalsTable } from "./components/ProposalsTable";
 import { Alert, Modal, Input, InputNumber, DatePicker, Row, Col } from "antd";
+import { BannerCarousel } from "../../components/Dashboard/BannerCarousel";
 import { getAllLogistics } from "@/application/services/Logista/logisticService";
 import { getAllSellers } from "@/application/services/Seller/sellerService";
 import { getAllOperators } from "@/application/services/Operator/operatorService";
@@ -28,6 +29,7 @@ import {
   ADMIN_LIVE_CHANNELS,
   ADMIN_LIVE_EVENT_TYPES,
 } from "@/application/core/realtime/refine-live-provider";
+import { Trophy } from "lucide-react";
 
 const ADMIN_PROPOSALS_IDENTITY = "admin-esteira";
 
@@ -238,7 +240,7 @@ export default function EsteiraDePropostasFeature() {
     const AudioContextCtor =
       typeof window !== "undefined"
         ? window.AudioContext ||
-          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
         : null;
 
     if (!AudioContextCtor) return null;
@@ -343,7 +345,7 @@ export default function EsteiraDePropostasFeature() {
       });
       recentTimeouts.current = {};
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => { });
         audioContextRef.current = null;
       }
     };
@@ -351,7 +353,7 @@ export default function EsteiraDePropostasFeature() {
 
   useEffect(() => {
     const unlock = () => {
-      ensureAudioContext().catch(() => {});
+      ensureAudioContext().catch(() => { });
     };
     window.addEventListener("pointerdown", unlock);
     window.addEventListener("keydown", unlock);
@@ -490,8 +492,8 @@ export default function EsteiraDePropostasFeature() {
       const searchInput = deferredSearch.trim().toLowerCase();
       const matchesSearch = searchInput
         ? (proposal.customerName || "").toLowerCase().includes(searchInput) ||
-          (proposal.customerCpf || "").toLowerCase().includes(searchInput) ||
-          (proposal.vehiclePlate || "").toLowerCase().includes(searchInput)
+        (proposal.customerCpf || "").toLowerCase().includes(searchInput) ||
+        (proposal.vehiclePlate || "").toLowerCase().includes(searchInput)
         : true;
       const matchesDealer = filters.dealerId
         ? String(proposal.dealerId ?? "") === filters.dealerId
@@ -746,7 +748,7 @@ export default function EsteiraDePropostasFeature() {
         ...prev,
         [updated.id]: "",
       }));
-      
+
       // Se o filtro atual não incluir o novo status, ajusta para "ALL" para manter a proposta visível
       if (filters.status !== "ALL" && filters.status !== nextStatus) {
         setFilters((prev) => ({
@@ -754,7 +756,7 @@ export default function EsteiraDePropostasFeature() {
           status: "ALL",
         }));
       }
-      
+
       publishBridgeEvent(ADMIN_LIVE_EVENT_TYPES.PROPOSALS_REFRESH_REQUEST, {
         source: ADMIN_PROPOSALS_IDENTITY,
         reason: "admin-note-update",
@@ -782,16 +784,16 @@ export default function EsteiraDePropostasFeature() {
 
   const handleContractNumberModalOk = async () => {
     if (!contractNumberModal.proposal || !contractNumberModal.nextStatus) return;
-    
+
     const contractNumber = contractNumberModal.contractNumber.trim() || undefined;
-    const financedValue = contractNumberModal.financedValue 
-      ? Number(contractNumberModal.financedValue) 
+    const financedValue = contractNumberModal.financedValue
+      ? Number(contractNumberModal.financedValue)
       : undefined;
-    const installmentCount = contractNumberModal.installmentCount 
-      ? Number(contractNumberModal.installmentCount) 
+    const installmentCount = contractNumberModal.installmentCount
+      ? Number(contractNumberModal.installmentCount)
       : undefined;
-    const installmentValue = contractNumberModal.installmentValue 
-      ? Number(contractNumberModal.installmentValue) 
+    const installmentValue = contractNumberModal.installmentValue
+      ? Number(contractNumberModal.installmentValue)
       : undefined;
     const paymentDate = contractNumberModal.paymentDate || undefined;
     const firstDueDate = contractNumberModal.firstDueDate || undefined;
@@ -1006,15 +1008,18 @@ export default function EsteiraDePropostasFeature() {
         onExport={handleExport}
         isRefreshing={isRefreshing}
       />
-      <div className="mb-5">
-      <Alert
-        type="info"
-        showIcon
-        className="rounded-2xl border-slate-200 bg-white/70 "
-        title="Conteudo disponivel"
-        description="Utilize o botao Exportar CSV para compartilhar a lista filtrada com sua equipe, ou abra o historico para revisar o processo completo do cliente."
+      <BannerCarousel
+        height={200}
+        slides={[
+          {
+            id: 2,
+            backgroundImageUrl: "https://res.cloudinary.com/dao3brh15/image/upload/q_auto/f_auto/v1775532982/pros-e-contras-carro-novo-ou-usado_vixbbg.jpg",
+            tag: "Parceria Estratégica",
+            title: "BANCO DAYCOVAL",
+            subtitle: "Correspondente Autorizado",
+          },
+        ]}
       />
-      </div>
 
       <ProposalsTable
         proposals={filteredProposals}
@@ -1053,7 +1058,7 @@ export default function EsteiraDePropostasFeature() {
             A proposta de <strong>{contractNumberModal.proposal?.customerName}</strong> será marcada como {contractNumberModal.nextStatus === "PAID" ? "paga" : "contrato emitido"}.
             Preencha os dados do contrato abaixo.
           </p>
-          
+
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12}>
               <label className="block text-sm font-medium mb-2">

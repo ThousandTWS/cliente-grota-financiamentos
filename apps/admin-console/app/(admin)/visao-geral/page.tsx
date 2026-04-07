@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  ConversionFunnel, 
-  FinancingChart, 
-  ManagersList, 
-  OperatorsList, 
-  QuickStats, 
+import {
+  ConversionFunnel,
+  FinancingChart,
+  ManagersList,
+  OperatorsList,
+  QuickStats,
   SellersList,
 } from "@/presentation/features/painel-geral";
+import { BannerCarousel } from "@/presentation/components/Dashboard/BannerCarousel";
 import { Skeleton, Row, Col, ConfigProvider, theme } from "antd";
 
 export default function Dashboard() {
@@ -35,7 +36,30 @@ export default function Dashboard() {
     >
       <div className="min-h-screen bg-[#f8fafc] p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          <QuickStats  />
+          <BannerCarousel
+            height={300}
+            slides={[
+              {
+                id: 1,
+                backgroundImageUrl: "https://res.cloudinary.com/dao3brh15/image/upload/q_auto/f_auto/v1775532982/pros-e-contras-carro-novo-ou-usado_vixbbg.jpg",
+                tag: "Crédito Automotivo",
+                title: "Financiamento Rápido e Seguro",
+              },
+              {
+                id: 2,
+                backgroundImageUrl: "https://res.cloudinary.com/dao3brh15/image/upload/q_auto/f_auto/v1775533288/antecipacao-de-recebiveis_vnshtz.jpg",
+                tag: "Parceria Financeira",
+                title: "Bancos Parceiros",
+              },
+              {
+                id: 3,
+                backgroundImageUrl: "https://res.cloudinary.com/dao3brh15/image/upload/q_auto/f_auto/v1775533627/como-pagar-boleto-online_stnrtc.jpg",
+                tag: "Experiência e Confiança",
+                title: "+30 Anos no Mercado",
+              },
+            ]}
+          />
+          <QuickStats />
 
           <Row gutter={[24, 24]}>
             <Col xs={24} xl={24}>

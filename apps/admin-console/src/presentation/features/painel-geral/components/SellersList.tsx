@@ -297,7 +297,7 @@ export function SellersList({ dealerId }: { dealerId?: number }) {
               columns={columns}
               dataSource={filteredSellers}
               rowKey="id"
-              pagination={{ pageSize: 5, showSizeChanger: false, position: ["bottomCenter"] }}
+              pagination={{ pageSize: 5, showSizeChanger: false, placement: ["bottomCenter"] }}
               scroll={{ x: "max-content", y: 400 }}
               locale={{
                 emptyText: (

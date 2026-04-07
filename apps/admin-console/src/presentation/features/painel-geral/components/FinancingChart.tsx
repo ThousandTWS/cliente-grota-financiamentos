@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Card, Typography, Spin, Empty, Alert, Space, DatePicker, Segmented } from "antd";
-import dayjs, { Dayjs } from "dayjs";
+import { Card, Typography, Spin, Empty, Alert, Space, DatePicker, Segmented, Table } from "antd";
+import  { Dayjs } from "dayjs";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal } from "@/application/core/@types/Proposals/Proposal";
 import { getAllSellers, Seller } from "@/application/services/Seller/sellerService";
@@ -147,6 +147,7 @@ export function FinancingChart() {
       .map(([id, data]) => {
         const seller = sellers.find((item) => item.id === Number(id));
         return {
+          key: id,
           id: Number(id),
           name: seller?.fullName ?? `Vendedor #${id}`,
           value: data.value,
@@ -154,10 +155,42 @@ export function FinancingChart() {
         };
       })
       .sort((a, b) => (metric === "sales" ? b.value - a.value : b.count - a.count))
-      .slice(0, 7);
+      .slice(0, 10);
   }, [filteredProposals, sellers, metric]);
 
   const hasData = useMemo(() => filteredProposals.length > 0, [filteredProposals]);
+
+  const columns = [
+    {
+      title: "Posição",
+      dataIndex: "index",
+      key: "index",
+      render: (_: any, __: any, index: number) => (
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-600">
+           {index + 1}
+        </div>
+      )
+    },
+    {
+      title: "Vendedor",
+      dataIndex: "name",
+      key: "name",
+      render: (text: string) => <Text strong>{text}</Text>
+    },
+    {
+      title: metric === "sales" ? "Volume Total" : "Quantidade",
+      dataIndex: metric === "sales" ? "value" : "count",
+      key: "metric",
+      align: "right" as const,
+      render: (val: number) => (
+        <HideValue 
+           value={metric === "sales" ? formatCurrency(val) : val.toLocaleString("pt-BR")}
+           isCurrency={metric === "sales"}
+           placeholder="••••••"
+        />
+      )
+    }
+  ];
 
   return (
     <Card 
@@ -200,7 +233,7 @@ export function FinancingChart() {
       ) : error ? (
         <Alert title={error} type="error" showIcon />
       ) : hasData ? (
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <div className="space-y-8">
           <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
@@ -232,37 +265,19 @@ export function FinancingChart() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Text className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Ranking</Text>
-              <Text type="secondary" className="text-xs">
-                {metric === "sales" ? "Volume" : "Quantidade"}
-              </Text>
+          
+          <div className="border-t border-slate-100 pt-6">
+            <div className="mb-4 flex items-center justify-between">
+              <Text className="text-sm font-semibold uppercase tracking-wider text-slate-500">Ranking de Vendedores</Text>
+              <Text type="secondary" className="text-xs">Exibindo os top 10 resultados</Text>
             </div>
-            <div className="space-y-3">
-              {ranking.map((item, index) => (
-                <div key={item.id} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-600">
-                      {index + 1}
-                    </div>
-                    <Text>{item.name}</Text>
-                  </div>
-                  <Text strong>
-                    <HideValue 
-                      value={metric === "sales"
-                        ? formatCurrency(item.value)
-                        : item.count.toLocaleString("pt-BR")}
-                      isCurrency={metric === "sales"}
-                      placeholder={metric === "sales" ? "R$ ••••••" : "••••••"}
-                    />
-                  </Text>
-                </div>
-              ))}
-              {ranking.length === 0 ? (
-                <Empty description="Nenhum vendedor encontrado" />
-              ) : null}
-            </div>
+            <Table
+               columns={columns}
+               dataSource={ranking}
+               pagination={false}
+               size="small"
+               className="border border-slate-50 rounded-xl overflow-hidden"
+            />
           </div>
         </div>
       ) : (

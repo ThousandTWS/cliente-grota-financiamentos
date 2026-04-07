@@ -24,6 +24,7 @@ import {
   Modal,
   Pagination,
   Button,
+  Table,
 } from "antd";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
 import { Proposal, ProposalStatus } from "@/application/core/@types/Proposals/Proposal";
@@ -285,40 +286,55 @@ export function QuickStats() {
             styles={{ header: { borderBottom: "1px solid #f0f0f0", padding: "12px 16px" } }}
           >
             {topSellersDisplay.length > 0 ? (
-              <>
-                <div className="divide-y divide-slate-100">
-                  {topSellersDisplay.map((item, index) => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index === 0
-                            ? "bg-amber-100 text-amber-700"
-                            : index === 1
-                              ? "bg-slate-100 text-slate-700"
-                              : "bg-orange-100 text-orange-700"
-                            }`}
-                        >
+              <div className="mt-2">
+                <Table
+                  dataSource={topSellersDisplay}
+                  pagination={false}
+                  size="small"
+                  rowKey="id"
+                  className="border-none"
+                  columns={[
+                    {
+                      title: "Pos.",
+                      dataIndex: "index",
+                      width: 50,
+                      render: (_, __, index) => (
+                        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                          index === 0 ? "bg-amber-100 text-amber-700" : 
+                          index === 1 ? "bg-slate-100 text-slate-700" : 
+                          "bg-orange-100 text-orange-700"
+                        }`}>
                           {index + 1}º
                         </div>
-                        <div className="min-w-0">
-                          <Text ellipsis style={{ maxWidth: 140, display: "block" }}>
-                            {item.name}
-                          </Text>
-                          <Text type="secondary"><HideValue value={item.count} placeholder="•••" /> propostas</Text>
+                      )
+                    },
+                    {
+                      title: "Vendedor",
+                      dataIndex: "name",
+                      ellipsis: true,
+                      render: (name, record) => (
+                        <div>
+                          <Text strong size="small" className="block text-xs leading-none">{name}</Text>
+                          <Text type="secondary" className="text-[10px]">{record.count} propostas</Text>
                         </div>
-                      </div>
-                      <Text strong type="success"><HideValue value={currency(item.total)} isCurrency /></Text>
-                    </div>
-                  ))}
-                </div>
+                      )
+                    },
+                    {
+                      title: "Volume",
+                      dataIndex: "total",
+                      align: "right",
+                      render: (val) => <Text strong className="text-xs text-emerald-600"><HideValue value={currency(val)} isCurrency /></Text>
+                    }
+                  ]}
+                />
                 {topSellersAll.length > 3 && (
-                  <div className="mt-2">
-                    <Button type="text" className="w-full text-blue-600 hover:bg-blue-50" onClick={() => setSellersModalOpen(true)}>
-                      Ver todas ({topSellersAll.length - 3} restantes)
+                  <div className="mt-2 border-t border-slate-50 pt-2">
+                    <Button type="link" size="small" className="w-full text-blue-600 text-xs" onClick={() => setSellersModalOpen(true)}>
+                      Ver todos ({topSellersAll.length - 3} restantes)
                     </Button>
                   </div>
                 )}
-              </>
+              </div>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhum vendedor encontrado" />
             )}
@@ -345,40 +361,55 @@ export function QuickStats() {
             styles={{ header: { borderBottom: "1px solid #f0f0f0", padding: "12px 16px" } }}
           >
             {topDealersDisplay.length > 0 ? (
-              <>
-                <div className="divide-y divide-slate-100">
-                  {topDealersDisplay.map((item, index) => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index === 0
-                            ? "bg-amber-100 text-amber-700"
-                            : index === 1
-                              ? "bg-slate-100 text-slate-700"
-                              : "bg-orange-100 text-orange-700"
-                            }`}
-                        >
+              <div className="mt-2">
+                <Table
+                  dataSource={topDealersDisplay}
+                  pagination={false}
+                  size="small"
+                  rowKey="id"
+                  className="border-none"
+                  columns={[
+                    {
+                      title: "Pos.",
+                      dataIndex: "index",
+                      width: 50,
+                      render: (_, __, index) => (
+                        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                          index === 0 ? "bg-amber-100 text-amber-700" : 
+                          index === 1 ? "bg-slate-100 text-slate-700" : 
+                          "bg-orange-100 text-orange-700"
+                        }`}>
                           {index + 1}º
                         </div>
-                        <div className="min-w-0">
-                          <Text ellipsis style={{ maxWidth: 140, display: "block" }}>
-                            {item.name}
-                          </Text>
-                          <Text type="secondary"><HideValue value={item.count} placeholder="•••" /> propostas</Text>
+                      )
+                    },
+                    {
+                      title: "Loja",
+                      dataIndex: "name",
+                      ellipsis: true,
+                      render: (name, record) => (
+                        <div>
+                          <Text strong size="small" className="block text-xs leading-none">{name}</Text>
+                          <Text type="secondary" className="text-[10px]">{record.count} propostas</Text>
                         </div>
-                      </div>
-                      <Text strong type="success"><HideValue value={currency(item.total)} isCurrency /></Text>
-                    </div>
-                  ))}
-                </div>
+                      )
+                    },
+                    {
+                      title: "Volume",
+                      dataIndex: "total",
+                      align: "right",
+                      render: (val) => <Text strong className="text-xs text-emerald-600"><HideValue value={currency(val)} isCurrency /></Text>
+                    }
+                  ]}
+                />
                 {topDealersAll.length > 3 && (
-                  <div className="mt-2">
-                    <Button type="text" className="w-full text-blue-600 hover:bg-blue-50" onClick={() => setDealersModalOpen(true)}>
-                      Ver todas ({topDealersAll.length - 3} restantes)
+                  <div className="mt-2 border-t border-slate-50 pt-2">
+                    <Button type="link" size="small" className="w-full text-blue-600 text-xs" onClick={() => setDealersModalOpen(true)}>
+                      Ver todos ({topDealersAll.length - 3} restantes)
                     </Button>
                   </div>
                 )}
-              </>
+              </div>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma loja encontrada" />
             )}
@@ -405,43 +436,54 @@ export function QuickStats() {
             styles={{ header: { borderBottom: "1px solid #f0f0f0", padding: "12px 16px" } }}
           >
             {lastProposals.length > 0 ? (
-              <>
-                <div className="divide-y divide-slate-100">
-                  {lastProposals.map(item => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
+              <div className="mt-2">
+                <Table
+                  dataSource={lastProposals}
+                  pagination={false}
+                  size="small"
+                  rowKey="id"
+                  showHeader={false}
+                  className="border-none"
+                  columns={[
+                    {
+                      dataIndex: "status",
+                      width: 20,
+                      render: (status) => (
                         <Badge
                           status={
-                            item.status === "APPROVED"
-                              ? "success"
-                              : item.status === "REJECTED"
-                                ? "error"
-                                : item.status === "PAID"
-                                  ? "processing"
-                                  : "warning"
+                            status === "APPROVED" ? "success" : 
+                            status === "REJECTED" ? "error" : 
+                            status === "PAID" ? "processing" : "warning"
                           }
                         />
-                        <div className="min-w-0">
-                          <Text ellipsis style={{ maxWidth: 120, display: "block" }}>
-                            {item.customerName}
-                          </Text>
-                          <Text type="secondary">
-                            {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                      )
+                    },
+                    {
+                      dataIndex: "customerName",
+                      render: (name, record) => (
+                        <div>
+                          <Text strong className="block text-xs leading-none">{name}</Text>
+                          <Text type="secondary" className="text-[10px]">
+                            {new Date(record.createdAt).toLocaleDateString("pt-BR")}
                           </Text>
                         </div>
-                      </div>
-                      <StatusBadge status={item.status} className="m-0" />
-                    </div>
-                  ))}
-                </div>
+                      )
+                    },
+                    {
+                      dataIndex: "statusDetail",
+                      align: "right",
+                      render: (_, record) => <StatusBadge status={record.status} className="m-0 scale-90" />
+                    }
+                  ]}
+                />
                 {allProposalsSorted.length > 5 && (
-                  <div className="mt-2">
-                    <Button type="text" className="w-full text-blue-600 hover:bg-blue-50" onClick={() => setProposalsModalOpen(true)}>
+                  <div className="mt-2 border-t border-slate-50 pt-2">
+                    <Button type="link" size="small" className="w-full text-blue-600 text-xs" onClick={() => setProposalsModalOpen(true)}>
                       Ver todas ({allProposalsSorted.length - 5} restantes)
                     </Button>
                   </div>
                 )}
-              </>
+              </div>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma proposta encontrada" />
             )}
