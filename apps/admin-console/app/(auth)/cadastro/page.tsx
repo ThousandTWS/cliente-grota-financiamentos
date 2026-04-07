@@ -1,4 +1,9 @@
-import SignUpPage from "@/presentation/features/auth/components/sign-up-page"
+import dynamic from 'next/dynamic'
+
+const SignUpPage = dynamic(
+  () => import('@/presentation/features/auth/components/sign-up-page'),
+  { ssr: false }
+)
 
 export default function SignUp() {
   return (

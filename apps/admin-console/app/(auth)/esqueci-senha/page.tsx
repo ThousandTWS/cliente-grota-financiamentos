@@ -1,4 +1,9 @@
-import { ResetPasswordPage } from "@/presentation/features/auth/components/reset-password-page"
+import dynamic from 'next/dynamic'
+
+const ResetPasswordPage = dynamic(
+  () => import('@/presentation/features/auth/components/reset-password-page').then((mod) => mod.ResetPasswordPage),
+  { ssr: false }
+)
 
 export default function EsqueciSenha() {
   return (

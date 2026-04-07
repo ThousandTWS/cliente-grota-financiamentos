@@ -1,4 +1,9 @@
-import { SignInPage } from "@/presentation/features/auth/components/sign-in-page"
+import dynamic from 'next/dynamic'
+
+const SignInPage = dynamic(
+  () => import('@/presentation/features/auth/components/sign-in-page').then((mod) => mod.SignInPage),
+  { ssr: false }
+)
 
 export default function Login() {
   return (
