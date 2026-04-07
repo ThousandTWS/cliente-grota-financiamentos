@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+
+export const dynamic = "force-dynamic";
 import { decryptSession } from "../../../../../../packages/auth";
 import {
   ADMIN_SESSION_COOKIE,
@@ -25,7 +27,7 @@ function unauthorized() {
   return NextResponse.json({ error: "Usuário não autenticado." }, { status: 401 });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await resolveSession();
   if (!session) {
     return unauthorized();
@@ -38,8 +40,13 @@ export async function GET() {
         Authorization: `Bearer ${session.accessToken}`,
       },
       cache: "no-store",
+      signal: request.signal,
     },
   ).catch((error) => {
+    if (error.name === "AbortError") {
+      console.log("[admin][notifications] Conexão SSE encerrada pelo cliente.");
+      return null;
+    }
     console.error("[admin][notifications] Falha ao abrir SSE", error);
     return null;
   });
