@@ -1,4 +1,4 @@
-import { VerifyTokenPage } from "@/presentation/features/auth/components/verify-token-page"
+import { VerifyTokenPageWrapper } from "./VerifyTokenPageWrapper";
 
 type VerificationTokenParams = {
   tipo?: "verificacao" | "redefinicao-senha";
@@ -15,7 +15,7 @@ export default async function VerificationToken({
   const params = await searchParams;
 
   return (
-    <VerifyTokenPage
+    <VerifyTokenPageWrapper
       heroImageSrc="https://res.cloudinary.com/dx1659yxu/image/upload/v1760451243/linda-mulher-comprando-um-carro_lp9oo0.jpg"
       tokenType={params.tipo ?? "verificacao"}
       email={params.email ?? ""}
