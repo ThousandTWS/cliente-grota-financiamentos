@@ -1,4 +1,4 @@
-import { SignUpPage } from "@/presentation/features/auth/components/sign-up-page"
+import SignUpPage from "@/presentation/features/auth/components/sign-up-page"
 
 export default function SignUp() {
   return (

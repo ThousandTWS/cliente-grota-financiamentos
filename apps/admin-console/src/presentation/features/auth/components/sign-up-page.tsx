@@ -1,8 +1,7 @@
 "use client"
 
-import type React from "react"
 import { useState } from "react"
-import { Eye, EyeOff, Loader2,  } from "lucide-react"
+import { Eye, EyeOff, Loader2, } from "lucide-react"
 import { SignUpPageProps } from "@/application/core/@types/auth/Props/SignUpPageProps"
 import z from "zod"
 import { useForm } from "react-hook-form"
@@ -29,9 +28,7 @@ const registerSchema = z
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
 
-export const SignUpPage: React.FC<SignUpPageProps> = ({
-  heroImageSrc,
-}) => {
+export default function SignUpPage({ heroImageSrc }: SignUpPageProps) {
   const { signUp, isLoading } = useAuth();
   const {
     register,
@@ -49,7 +46,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
     mode: "onChange",
   });
   const router = useRouter();
-  
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
@@ -163,7 +160,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
                       disabled={isLoading}
                     >
                       {showConfirmPassword ? (
-                       <EyeOff className="w-5 h-5 text-[#1B4B7C] hover:text-[#0F2C55] transition-colors duration-300" />
+                        <EyeOff className="w-5 h-5 text-[#1B4B7C] hover:text-[#0F2C55] transition-colors duration-300" />
                       ) : (
                         <Eye className="w-5 h-5 text-[#1B4B7C] hover:text-[#0F2C55] transition-colors duration-300" />
                       )}
