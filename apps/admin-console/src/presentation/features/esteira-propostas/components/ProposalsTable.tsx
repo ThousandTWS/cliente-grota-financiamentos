@@ -18,6 +18,7 @@ type ProposalsTableProps = {
   savingNoteId?: number | null;
   recentIds?: Record<number, boolean>;
   unconfirmedIds?: Record<number, boolean>;
+  newProposalIds?: Record<number, boolean>;
   onConfirmArrival?: (proposalId: number) => void;
   onStatusChange: (proposal: Proposal, status: ProposalStatus) => void;
   onDelete: (proposal: Proposal) => Promise<void> | void;
@@ -141,6 +142,7 @@ export function ProposalsTable({
   sellersById = {},
   operatorsByDealerId = {},
   unconfirmedIds = {},
+  newProposalIds = {},
   onConfirmArrival,
   isBulkDeleting = false,
   focusedProposalId = null,
@@ -371,9 +373,11 @@ export function ProposalsTable({
                 ? "ring-2 ring-emerald-400 border-emerald-300"
                 : unconfirmedIds[proposal.id]
                   ? "proposal-flash ring-2 ring-amber-400 border-amber-300"
-                  : recentIds[proposal.id]
-                    ? "ring-2 ring-sky-300/50 border-sky-200"
-                    : ""
+                  : newProposalIds[proposal.id]
+                    ? "new-proposal-flash ring-2 ring-emerald-400 border-emerald-300"
+                    : recentIds[proposal.id]
+                      ? "ring-2 ring-sky-300/50 border-sky-200"
+                      : ""
             }`}
             styles={{ body: { padding: 24 } }}
           >
@@ -591,6 +595,23 @@ export function ProposalsTable({
           animation: proposal-blink 1.5s ease-in-out infinite;
           background-color: #fffbeb !important;
           border-color: #f59e0b !important;
+        }
+
+        @keyframes new-proposal-blink {
+          0%, 100% {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: scale(1);
+          }
+          50% {
+            box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.1), 0 10px 15px -3px rgba(34, 197, 94, 0.4);
+            transform: scale(1.002);
+          }
+        }
+
+        .new-proposal-flash {
+          animation: new-proposal-blink 1.5s ease-in-out infinite;
+          background-color: #f0fdf4 !important;
+          border-color: #22c55e !important;
         }
       `}</style>
     </div>

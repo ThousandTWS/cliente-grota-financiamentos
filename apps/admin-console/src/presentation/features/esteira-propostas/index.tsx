@@ -181,6 +181,7 @@ export default function EsteiraDePropostasFeature() {
   const [operatorByDealerIndex, setOperatorByDealerIndex] = useState<Record<number, string>>({});
   const [recentIds, setRecentIds] = useState<Record<number, boolean>>({});
   const [unconfirmedIds, setUnconfirmedIds] = useState<Record<number, boolean>>({});
+  const [newProposalIds, setNewProposalIds] = useState<Record<number, boolean>>({});
   const recentTimeouts = useRef<Record<number, number>>({});
   const audioContextRef = useRef<AudioContext | null>(null);
   const publish = usePublish();
@@ -295,6 +296,7 @@ export default function EsteiraDePropostasFeature() {
   const markRecent = useCallback((proposalId: number) => {
     setRecentIds((prev) => ({ ...prev, [proposalId]: true }));
     setUnconfirmedIds((prev) => ({ ...prev, [proposalId]: true }));
+    setNewProposalIds((prev) => ({ ...prev, [proposalId]: true }));
     playNotificationSound();
     const existing = recentTimeouts.current[proposalId];
     if (existing) {
@@ -302,6 +304,11 @@ export default function EsteiraDePropostasFeature() {
     }
     recentTimeouts.current[proposalId] = window.setTimeout(() => {
       setRecentIds((prev) => {
+        const next = { ...prev };
+        delete next[proposalId];
+        return next;
+      });
+      setNewProposalIds((prev) => {
         const next = { ...prev };
         delete next[proposalId];
         return next;
@@ -1039,6 +1046,7 @@ export default function EsteiraDePropostasFeature() {
         operatorsByDealerId={operatorByDealerIndex}
         recentIds={recentIds}
         unconfirmedIds={unconfirmedIds}
+        newProposalIds={newProposalIds}
         onConfirmArrival={handleConfirmArrival}
         focusedProposalId={focusedProposalId}
       />
