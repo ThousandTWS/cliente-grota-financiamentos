@@ -15,6 +15,37 @@ import {
 
 
 const API_BASE_URL = getAdminApiBaseUrl();
+const OPERATOR_POST_TIMEOUT_MS = 25000;
+
+class UpstreamTimeoutError extends Error {
+  constructor() {
+    super("Tempo esgotado ao criar operador.");
+    this.name = "UpstreamTimeoutError";
+  }
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new UpstreamTimeoutError();
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 
 
@@ -229,7 +260,7 @@ export async function POST(request: NextRequest) {
 
       console.log("[admin][operators] POST: Fazendo requisicao para", `${API_BASE_URL}/operators`);
 
-      return fetch(`${API_BASE_URL}/operators`, {
+      return fetchWithTimeout(`${API_BASE_URL}/operators`, {
 
         method: "POST",
 
@@ -245,7 +276,7 @@ export async function POST(request: NextRequest) {
 
         cache: "no-store",
 
-      });
+      }, OPERATOR_POST_TIMEOUT_MS);
 
     };
 
@@ -352,6 +383,14 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+
+    if (error instanceof UpstreamTimeoutError) {
+      console.error("[admin][operators] Timeout ao criar operador");
+      return NextResponse.json(
+        { error: "O cadastro demorou demais para responder. Tente novamente em instantes." },
+        { status: 504 },
+      );
+    }
 
     console.error("[admin][operators] Falha ao criar operador", error);
 
@@ -622,8 +661,6 @@ export async function DELETE(request: NextRequest) {
   }
 
 }
-
-
 
 
 

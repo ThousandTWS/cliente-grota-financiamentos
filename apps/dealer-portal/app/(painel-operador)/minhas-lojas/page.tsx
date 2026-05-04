@@ -31,7 +31,7 @@ type DealerSummaryRow = {
 };
 
 const buildDealerName = (dealer: DealerSummary) =>
-  dealer.fullName ?? dealer.fullNameEnterprise ?? dealer.enterprise ?? `Loja #${dealer.id}`;
+  dealer.enterprise ?? dealer.fullNameEnterprise ?? dealer.fullName ?? `Loja #${dealer.id}`;
 
 export default function MinhasLojasPage() {
   const router = useRouter();
