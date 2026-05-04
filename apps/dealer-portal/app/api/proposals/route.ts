@@ -12,8 +12,13 @@ const API_BASE_URL = getLogistaApiBaseUrl();
 const VALID_STATUSES = new Set([
   "SUBMITTED",
   "PENDING",
+  "ANALYSIS",
   "APPROVED",
+  "APPROVED_DEDUCTED",
+  "CONTRACT_ISSUED",
+  "PAID",
   "REJECTED",
+  "WITHDRAWN",
 ]);
 
 type SessionLike = Awaited<ReturnType<typeof getLogistaSession>>;

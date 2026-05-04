@@ -66,7 +66,6 @@ export function ProposalLinkGeneratorFeature() {
   const [dealersLoading, setDealersLoading] = useState(false);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [sellersLoading, setSellersLoading] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [generatedLink, setGeneratedLink] = useState("");
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -89,15 +88,11 @@ export function ProposalLinkGeneratorFeature() {
         setSellers(sellerList);
 
         if (user) {
-          const role = (user.role ?? "").toUpperCase();
-          setUserRole(role);
-          const isOperador = role === "OPERADOR";
           const firstDealerId = user.allowedDealerIds?.[0] ?? dealerList[0]?.id;
 
           setConfig((prev) => ({
             ...prev,
             dealerId: firstDealerId ? String(firstDealerId) : "",
-            sellerId: isOperador ? String(user.id) : "",
           }));
         }
       } catch (error) {
@@ -119,7 +114,7 @@ export function ProposalLinkGeneratorFeature() {
   }, []);
 
   const isDealerRequired = true; // Always required to ensure dashboard visibility
-  const isSellerRequired = userRole === "OPERADOR";
+  const isSellerRequired = false;
 
   const isMissingDealer = isDealerRequired && !config.dealerId;
   const isMissingSeller = isSellerRequired && !config.sellerId;
@@ -264,17 +259,8 @@ export function ProposalLinkGeneratorFeature() {
 
     try {
         setSellersLoading(true);
-        const [sellerList, user] = await Promise.all([
-          fetchAllSellers(),
-          userServices.me().catch(() => null),
-        ]);
+        const sellerList = await fetchAllSellers();
         setSellers(sellerList);
-        if (user) {
-          const isOperador = (user.role ?? "").toUpperCase() === "OPERADOR";
-          if (isOperador) {
-            setConfig((prev) => ({ ...prev, sellerId: String(user.id) }));
-          }
-        }
     } catch (error) {
       console.error("[dealer-portal][proposal-link] reset", error);
       toast.error("Nao foi possivel restaurar a lista de vendedores.");

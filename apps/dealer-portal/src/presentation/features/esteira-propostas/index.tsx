@@ -13,7 +13,6 @@ import {
   ProposalStatus,
 } from "@/application/core/@types/Proposals/Proposal";
 import { fetchProposals } from "@/application/services/Proposals/proposalService";
-import userServices from "@/application/services/UserServices/UserServices";
 import { QueueStats, ProposalsDashboardSummary } from "./components/QueueStats";
 import { StatusLegend } from "./components/StatusLegend";
 import { QueueFilters } from "./components/QueueFilters";
@@ -171,7 +170,6 @@ export function EsteiraDePropostasFeature({
   >([]);
   const [dealerIndex, setDealerIndex] = useState<Record<number, { name: string; enterprise?: string }>>({});
   const [sellerIndex, setSellerIndex] = useState<Record<number, string>>({});
-  const [currentUser, setCurrentUser] = useState<{ id: number; role: string } | null>(null);
   const publish = usePublish();
 
   const loadProposals = useCallback(
@@ -217,24 +215,10 @@ export function EsteiraDePropostasFeature({
   useEffect(() => {
     const loadEntitiesAndUser = async () => {
       try {
-        const [sellers, dealers, user] = await Promise.all([
+        const [sellers, dealers] = await Promise.all([
           useManagerSellers ? fetchManagerPanelSellers() : fetchAllSellers(),
           fetchAllDealers(),
-          userServices.me().catch(() => null),
         ]);
-
-        if (user) {
-          const role = (user.role ?? "").toUpperCase();
-          setCurrentUser({ id: user.id, role });
-          
-          // For operators, default the filter to their own ID
-          if (role === "OPERADOR") {
-            setFilters((prev) => ({
-              ...prev,
-              operatorId: String(user.id),
-            }));
-          }
-        }
 
         setOperatorOptions(
           sellers.map((seller) => ({
@@ -410,7 +394,7 @@ export function EsteiraDePropostasFeature({
 
     return Array.from(ids).map((value) => ({
       value,
-      label: `Operador #${value}`,
+      label: `Vendedor #${value}`,
     }));
   }, [proposals]);
 

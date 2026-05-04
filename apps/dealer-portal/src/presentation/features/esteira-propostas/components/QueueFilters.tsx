@@ -68,7 +68,7 @@ export function QueueFilters({
         </div>
         <div className="grid flex-1 grid-cols-2 gap-3 lg:grid-cols-3">
           <div className="space-y-1">
-            <Text className="text-xs font-medium text-muted-foreground">Operador</Text>
+            <Text className="text-xs font-medium text-muted-foreground">Vendedor</Text>
             <Select
               value={filters.operatorId ?? "all"}
               onChange={(value) =>
