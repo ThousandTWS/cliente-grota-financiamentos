@@ -354,6 +354,46 @@ export function EsteiraDePropostasFeature({
     });
   }, [filters, proposals]);
 
+  useEffect(() => {
+    if (isLoading || proposals.length === 0 || filters.status === "ALL") {
+      return;
+    }
+
+    const statusHasMatches = proposals.some(
+      (proposal) => proposal.status === filters.status,
+    );
+    if (statusHasMatches) {
+      return;
+    }
+
+    const hasOtherFilters =
+      Boolean(filters.search.trim()) ||
+      Boolean(filters.operatorId) ||
+      Boolean(filters.dealerId) ||
+      Boolean(filters.dealerCode?.trim()) ||
+      filters.dateField !== "CREATED" ||
+      Boolean(filters.dateFrom) ||
+      Boolean(filters.dateTo);
+
+    if (!hasOtherFilters) {
+      setFilters((prev) => ({
+        ...prev,
+        status: "ALL",
+      }));
+    }
+  }, [
+    filters.dateField,
+    filters.dateFrom,
+    filters.dateTo,
+    filters.dealerCode,
+    filters.dealerId,
+    filters.operatorId,
+    filters.search,
+    filters.status,
+    isLoading,
+    proposals,
+  ]);
+
   const summary = useMemo<ProposalsDashboardSummary>(() => {
     const overallTotal = proposals.length;
     const statusTotals = Object.entries(statusConfig).map(([key, config]) => {
