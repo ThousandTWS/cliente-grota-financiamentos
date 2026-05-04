@@ -203,9 +203,6 @@ export default function MinhasLojasPage() {
               >
                 <div className="space-y-3">
                   <div>
-                    <Text className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                      Loja #{dealer.id}
-                    </Text>
                     <p className="text-lg font-semibold text-slate-800">
                       {dealer.name}
                     </p>
