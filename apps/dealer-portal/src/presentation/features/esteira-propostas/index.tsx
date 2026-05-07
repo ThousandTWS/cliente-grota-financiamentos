@@ -12,7 +12,10 @@ import {
   ProposalFilters,
   ProposalStatus,
 } from "@/application/core/@types/Proposals/Proposal";
-import { fetchProposals } from "@/application/services/Proposals/proposalService";
+import {
+  fetchProposals,
+  normalizeProposalStatus,
+} from "@/application/services/Proposals/proposalService";
 import { QueueStats, ProposalsDashboardSummary } from "./components/QueueStats";
 import { StatusLegend } from "./components/StatusLegend";
 import { QueueFilters } from "./components/QueueFilters";
@@ -78,6 +81,10 @@ const statusConfig: Record<
     bulletColor: "bg-gray-400",
     barColor: "bg-gray-400",
   },
+};
+
+const isProposalStatus = (value: unknown): value is ProposalStatus => {
+  return typeof value === "string" && value in statusConfig;
 };
 
 const statusOptions: { value: ProposalStatus | "ALL"; label: string }[] = [
@@ -197,14 +204,21 @@ export function EsteiraDePropostasFeature({
 
   const applyRealtimeSnapshot = useCallback((snapshot: Proposal) => {
     if (!snapshot?.id) return;
+    const normalizedStatus = normalizeProposalStatus(snapshot.status);
+    const normalizedSnapshot: Proposal = {
+      ...snapshot,
+      status: isProposalStatus(normalizedStatus)
+        ? normalizedStatus
+        : snapshot.status,
+    };
     setProposals((current) => {
-      const index = current.findIndex((item) => item.id === snapshot.id);
+      const index = current.findIndex((item) => item.id === normalizedSnapshot.id);
       if (index >= 0) {
         const clone = [...current];
-        clone[index] = snapshot;
+        clone[index] = normalizedSnapshot;
         return clone;
       }
-      return [snapshot, ...current];
+      return [normalizedSnapshot, ...current];
     });
   }, []);
 

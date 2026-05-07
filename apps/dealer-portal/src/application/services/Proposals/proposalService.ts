@@ -13,6 +13,46 @@ const statusSchema = z.enum(
   ["SUBMITTED", "PENDING", "ANALYSIS", "APPROVED", "APPROVED_DEDUCTED", "CONTRACT_ISSUED", "PAID", "REJECTED", "WITHDRAWN"] satisfies ProposalStatus[],
 );
 
+const statusAliases: Record<string, ProposalStatus> = {
+  ENVIADA: "SUBMITTED",
+  ENVIADO: "SUBMITTED",
+  SUBMETIDA: "SUBMITTED",
+  SUBMETIDO: "SUBMITTED",
+  RECEBIDA: "SUBMITTED",
+  RECEBIDO: "SUBMITTED",
+  RECEIVED: "SUBMITTED",
+  RECEIVED_BY_AI: "SUBMITTED",
+  RECEIVED_BY_IA: "SUBMITTED",
+  RECEBIDA_IA: "SUBMITTED",
+  RECEBIDA_PELA_IA: "SUBMITTED",
+  RECEBIDO_PELA_IA: "SUBMITTED",
+  IA_RECEIVED: "SUBMITTED",
+  AI_RECEIVED: "SUBMITTED",
+  EM_ANALISE: "ANALYSIS",
+  EM_ANALISE_IA: "ANALYSIS",
+  EM_ANALISE_PELA_IA: "ANALYSIS",
+  APROVADA_REDUZIDO: "APPROVED_DEDUCTED",
+  APROVADO_REDUZIDO: "APPROVED_DEDUCTED",
+  CONTRATO_EMITIDO: "CONTRACT_ISSUED",
+};
+
+export const normalizeProposalStatus = (value: unknown): ProposalStatus | unknown => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[\s-]+/g, "_");
+
+  return statusAliases[normalized] ?? normalized;
+};
+
+const normalizedStatusSchema = z.preprocess(normalizeProposalStatus, statusSchema);
+
 const nullableStringToEmpty = z.preprocess(
   (value) => (value == null ? "" : value),
   z.string(),
@@ -39,7 +79,7 @@ const ProposalSchema = z.object({
   financedValue: z.coerce.number(),
   termMonths: z.coerce.number().nullable().optional(),
   vehicle0km: z.coerce.boolean().nullable().optional(),
-  status: statusSchema,
+  status: normalizedStatusSchema,
   notes: z.string().nullable().optional(),
   maritalStatus: z.string().nullable().optional(),
   cep: z.string().nullable().optional(),
@@ -62,8 +102,8 @@ const ProposalEventSchema = z.object({
   id: z.coerce.number(),
   proposalId: z.coerce.number(),
   type: z.string(),
-  statusFrom: statusSchema.nullable().optional(),
-  statusTo: statusSchema.nullable().optional(),
+  statusFrom: normalizedStatusSchema.nullable().optional(),
+  statusTo: normalizedStatusSchema.nullable().optional(),
   note: z.string().nullable().optional(),
   actor: z.string().nullable().optional(),
   payload: z.unknown().nullable().optional(),
