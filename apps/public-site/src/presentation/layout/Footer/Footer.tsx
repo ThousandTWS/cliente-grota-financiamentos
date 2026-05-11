@@ -236,7 +236,9 @@ export default function Footer() {
                 {link.name}
               </Link>
             ))}
-            <span className="text-white text-xs ml-4">| Desenvolvido por <span className="font-bold text-white">TWS</span></span>
+            <Link href="https://wa.me/5519992837133?text=Olá!%20Quero%20mais%20informações%20sobre%20o%20desenvolvimento%20de%20sites." className="text-white text-xs ml-4" target="_blank">
+              | Desenvolvido por <span className="font-bold text-white">Clarituz | Agência de Marketing e Tecnologia</span>
+            </Link>
           </div>
         </div>
       </div>
