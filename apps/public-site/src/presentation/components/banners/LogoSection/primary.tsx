@@ -140,7 +140,7 @@ export function BlurredInfiniteSlider({
 
 
 const LOGOS = [
-    { src: "https://res.cloudinary.com/dx1659yxu/image/upload/v1759428329/Logotipo_bancos_10_qwqsyy.svg", alt: "OpenAI Logo", width: 120, height: 30 },
+    { src: "https://res.cloudinary.com/dao3brh15/image/upload/v1778873295/banco-daycoval-logo-png_seeklogo-259781_jmybde.png", alt: "OpenAI Logo", width: 120, height: 30 },
     { src: "https://res.cloudinary.com/dx1659yxu/image/upload/v1759428328/Logotipo_bancos_9_p0u6bp.svg", alt: "Nvidia Logo", width: 120, height: 30 },
     { src: "https://res.cloudinary.com/dx1659yxu/image/upload/v1759428329/Logotipo_bancos_11_sxc8pc.svg", alt: "Column Logo", width: 120, height: 30 },
     { src: "https://res.cloudinary.com/dx1659yxu/image/upload/v1759428328/Logotipo_bancos_4_ukdky6.svg", alt: "GitHub Logo", width: 120, height: 30 },
