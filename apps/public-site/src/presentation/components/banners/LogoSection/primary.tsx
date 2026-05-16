@@ -143,7 +143,7 @@ const LOGOS = [
     { src: "https://res.cloudinary.com/dao3brh15/image/upload/v1778873295/banco-daycoval-logo-png_seeklogo-259781_jmybde.png", alt: "OpenAI Logo", width: 120, height: 30 },
     { src: "https://res.cloudinary.com/dao3brh15/image/upload/v1778901821/Logo_SIMCOM_branco_cbfniw.png", alt: "Nvidia Logo", width: 120, height: 30 },
     { src: "https://res.cloudinary.com/dao3brh15/image/upload/v1778901911/banco-bbc-digital_y78dim.svg", alt: "Column Logo", width: 120, height: 30 },
-    { src: "https://res.cloudinary.com/dx1659yxu/image/upload/v1759428328/Logotipo_bancos_4_ukdky6.svg", alt: "GitHub Logo", width: 120, height: 30 },
+    { src: "https://res.cloudinary.com/dao3brh15/image/upload/v1778902023/logo-safra_inuh8q.svg", alt: "GitHub Logo", width: 120, height: 30 },
     { src: "https://res.cloudinary.com/dx1659yxu/image/upload/v1759428328/Logotipo_bancos_8_hsubyy.svg", alt: "Nike Logo", width: 120, height: 30 },
     { src: "https://res.cloudinary.com/dx1659yxu/image/upload/v1759428327/Logotipo_bancos_6_vz6pnl.svg", alt: "Lemon Squeezy Logo", width: 120, height: 30 },
     { src: "https://res.cloudinary.com/dx1659yxu/image/upload/v1759428327/Logotipo_bancos_7_kftxir.svg", alt: "Laravel Logo", width: 120, height: 30 },
