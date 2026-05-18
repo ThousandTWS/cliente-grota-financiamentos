@@ -4,7 +4,6 @@
       "mode": "auto"
     }
   ],
-  "jira-plugin.workingProject": "",
   "java.compile.nullAnalysis.mode": "automatic",
   "java.debug.settings.onBuildFailureProceed": true
 }

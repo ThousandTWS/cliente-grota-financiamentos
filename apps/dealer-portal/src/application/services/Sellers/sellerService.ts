@@ -1,10 +1,38 @@
+import { requestJson } from "@/application/services/http/requestJson";
+
 export type Seller = {
-  name: string;
+  name?: string;
   id: number;
   fullName?: string;
   email?: string;
   phone?: string;
+  CPF?: string;
+  dealerId?: number | null;
   status?: string;
+  createdAt?: string;
+};
+
+export type CreateSellerPayload = {
+  dealerId: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  CPF: string | null;
+  birthData: string | null;
+  address: {
+    zipCode: string | null;
+    street: string | null;
+    number: string | null;
+    complement: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    state: string | null;
+  };
+  canView: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
 };
 
 const refreshSession = async () => {
@@ -56,4 +84,16 @@ export async function fetchAllSellers(dealerId?: number): Promise<Seller[]> {
 
 export async function fetchManagerPanelSellers(): Promise<Seller[]> {
   return fetchSellersFromEndpoint("/api/sellers/manager-panel");
+}
+
+export async function fetchOperatorPanelSellers(dealerId?: number): Promise<Seller[]> {
+  const query = dealerId ? `?dealerId=${dealerId}` : "";
+  return fetchSellersFromEndpoint(`/api/sellers/operator-panel${query}`);
+}
+
+export async function createSeller(payload: CreateSellerPayload): Promise<unknown> {
+  return requestJson("/api/sellers", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
