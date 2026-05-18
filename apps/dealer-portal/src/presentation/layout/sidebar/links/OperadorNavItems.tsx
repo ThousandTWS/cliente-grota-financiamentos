@@ -10,6 +10,7 @@ import {
     Link2,
     PlusCircle,
     Store,
+    UserPlus,
 } from "lucide-react";
 
 export const operadorNavItems: NavItem[] = [
@@ -23,6 +24,7 @@ export const operadorNavItems: NavItem[] = [
         icon: <Store />,
         subItems: [
             { name: "Cadastrar lojas", path: "/minhas-lojas", icon: <PlusCircle size={16} /> },
+            { name: "Cadastrar vendedores", path: "/vendedores", icon: <UserPlus size={16} /> },
         ]
     },
     {
