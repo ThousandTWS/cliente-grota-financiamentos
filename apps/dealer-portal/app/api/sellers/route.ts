@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLogistaApiBaseUrl } from "@/application/server/auth/config";
 import {
   getLogistaSession,
+  resolveAllowedDealerIds,
   resolveDealerId,
   unauthorizedResponse,
 } from "../_lib/session";
@@ -161,6 +162,90 @@ export async function GET(request: NextRequest) {
     console.error("[logista][sellers] Falha ao buscar vendedores", error);
     return NextResponse.json(
       { error: "Erro interno ao carregar vendedores." },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getLogistaSession();
+    if (!session) {
+      return unauthorizedResponse();
+    }
+
+    const role = `${session.role ?? ""}`.toUpperCase();
+    if (role !== "OPERADOR" && role !== "GESTOR" && role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Apenas operador, gestor ou admin podem cadastrar vendedores." },
+        { status: 403 },
+      );
+    }
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Payload invalido." },
+        { status: 400 },
+      );
+    }
+
+    const dealerId = Number(body?.dealerId);
+    if (role === "OPERADOR") {
+      if (!Number.isFinite(dealerId)) {
+        return NextResponse.json(
+          { error: "Selecione uma loja para vincular o vendedor." },
+          { status: 400 },
+        );
+      }
+
+      const allowedDealerIds = await resolveAllowedDealerIds(session);
+      if (!allowedDealerIds.includes(dealerId)) {
+        return NextResponse.json(
+          { error: "Loja nao permitida para este operador." },
+          { status: 403 },
+        );
+      }
+    }
+
+    const upstreamResponse = await fetch(`${API_BASE_URL}/sellers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify(body ?? {}),
+      cache: "no-store",
+    });
+
+    const payload = await upstreamResponse.json().catch(() => null);
+
+    if (!upstreamResponse.ok) {
+      const errors = Array.isArray((payload as { errors?: unknown })?.errors)
+        ? (payload as { errors: unknown[] }).errors.filter(
+            (item): item is string => typeof item === "string",
+          )
+        : [];
+      const baseMessage =
+        errors.length > 0
+          ? errors.join("; ")
+          : (payload as { message?: string; error?: string })?.message ??
+            (payload as { message?: string; error?: string })?.error ??
+            "Nao foi possivel cadastrar o vendedor.";
+
+      return NextResponse.json(
+        { error: baseMessage, errors },
+        { status: upstreamResponse.status },
+      );
+    }
+
+    return NextResponse.json(payload ?? {}, { status: upstreamResponse.status });
+  } catch (error) {
+    console.error("[logista][sellers] Falha ao criar vendedor", error);
+    return NextResponse.json(
+      { error: "Erro interno ao cadastrar vendedor." },
       { status: 500 },
     );
   }

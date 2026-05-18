@@ -83,6 +83,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/dealers/public/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/grota-financiamentos/dealers/public/*/vehicles").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/admin-register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/grota-financiamentos/dealers/operator-register").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers(HttpMethod.GET, "/").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
 

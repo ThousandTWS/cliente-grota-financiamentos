@@ -62,6 +62,26 @@ public class DealerController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
+    @PostMapping("/operator-register")
+    @Operation(
+            summary = "Cadastro de Lojista (operador)",
+            description = "Permite ao operador cadastrar uma loja e vincula-la automaticamente ao seu painel."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Lojista cadastrado e vinculado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "401", description = "Não autorizado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
+    })
+    public ResponseEntity<DealerRegistrationResponseDTO> createFromOperator(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody DealerAdminRegistrationRequestDTO dto
+    ) {
+        DealerRegistrationResponseDTO responseDTO = dealerService.createFromOperator(user, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
+    }
+
     @GetMapping
     @Operation(
             summary = "Listar Lojistas",
@@ -287,4 +307,3 @@ public class DealerController {
 
 
 }
-

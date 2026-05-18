@@ -21,6 +21,8 @@ import org.example.server.modules.document.repository.DocumentRepository;
 import org.example.server.modules.auth.repository.RefreshTokenRepository;
 import org.example.server.modules.seller.repository.SellerRepository;
 import org.example.server.modules.manager.repository.ManagerRepository;
+import org.example.server.modules.operator.model.OperatorDealerLink;
+import org.example.server.modules.operator.repository.OperatorDealerLinkRepository;
 import org.example.server.modules.operator.repository.OperatorRepository;
 import org.example.server.modules.proposal.repository.ProposalRepository;
 import org.example.server.modules.vehicle.repository.VehicleRepository;
@@ -48,6 +50,7 @@ public class DealerService {
     private final SellerRepository sellerRepository;
     private final ManagerRepository managerRepository;
     private final OperatorRepository operatorRepository;
+    private final OperatorDealerLinkRepository operatorDealerLinkRepository;
     private final ProposalRepository proposalRepository;
     private final VehicleRepository vehicleRepository;
     private final ProposalEventRepository proposalEventRepository;
@@ -66,6 +69,7 @@ public class DealerService {
             SellerRepository sellerRepository,
             ManagerRepository managerRepository,
             OperatorRepository operatorRepository,
+            OperatorDealerLinkRepository operatorDealerLinkRepository,
             ProposalRepository proposalRepository,
             VehicleRepository vehicleRepository,
             ProposalEventRepository proposalEventRepository
@@ -83,6 +87,7 @@ public class DealerService {
         this.sellerRepository = sellerRepository;
         this.managerRepository = managerRepository;
         this.operatorRepository = operatorRepository;
+        this.operatorDealerLinkRepository = operatorDealerLinkRepository;
         this.proposalRepository = proposalRepository;
         this.vehicleRepository = vehicleRepository;
         this.proposalEventRepository = proposalEventRepository;
@@ -170,6 +175,40 @@ public class DealerService {
         dealerRepository.save(dealer);
 
         return dealerRegistrationMapper.toDTO(dealer);
+    }
+
+    @Transactional
+    public DealerRegistrationResponseDTO createFromOperator(User requester, DealerAdminRegistrationRequestDTO dto) {
+        if (requester == null || requester.getRole() == null) {
+            throw new org.example.server.modules.auth.exception.AccessDeniedException("Usuario nao autenticado.");
+        }
+
+        if (requester.getRole().equals(UserRole.ADMIN)) {
+            return createFromAdmin(dto);
+        }
+
+        if (!requester.getRole().equals(UserRole.OPERADOR)) {
+            throw new org.example.server.modules.auth.exception.AccessDeniedException(
+                    "Apenas OPERADOR ou ADMIN podem cadastrar loja por esta rota.");
+        }
+
+        DealerRegistrationResponseDTO responseDTO = createFromAdmin(dto);
+        Operator operator = operatorRepository.findByUserId(requester.getId())
+                .orElseThrow(() -> new RecordNotFoundException("Operador nao encontrado."));
+        Dealer dealer = dealerRepository.findById(responseDTO.id())
+                .orElseThrow(() -> new RecordNotFoundException("Lojista nao encontrado."));
+
+        if (!operatorDealerLinkRepository.existsByOperatorIdAndDealerId(operator.getId(), dealer.getId())) {
+            OperatorDealerLink link = new OperatorDealerLink(operator, dealer);
+            operator.getDealerLinks().add(link);
+        }
+
+        if (operator.getDealer() == null) {
+            operator.setDealer(dealer);
+        }
+
+        operatorRepository.save(operator);
+        return responseDTO;
     }
 
     public List<DealerRegistrationResponseDTO> findAll() {
@@ -379,5 +418,3 @@ public class DealerService {
         return (prefix.length() > 6 ? prefix.substring(0, 6) : prefix) + "-" + phoneSuffix;
     }
 }
-
-

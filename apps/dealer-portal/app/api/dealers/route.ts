@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   getLogistaApiBaseUrl,
 } from "@/application/server/auth/config";
@@ -121,6 +121,71 @@ export async function GET() {
     console.error("[logista][dealers] Falha ao buscar lojistas", error);
     return NextResponse.json(
       { error: "Erro interno ao carregar lojistas." },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getLogistaSession();
+    if (!session) {
+      return unauthorizedResponse();
+    }
+
+    const role = `${session.role ?? ""}`.toUpperCase();
+    if (role !== "OPERADOR" && role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Apenas operadores podem cadastrar lojas por este painel." },
+        { status: 403 },
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Payload invalido." },
+        { status: 400 },
+      );
+    }
+
+    const upstreamResponse = await fetch(`${API_BASE_URL}/dealers/operator-register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify(body ?? {}),
+      cache: "no-store",
+    });
+
+    const payload = await upstreamResponse.json().catch(() => null);
+
+    if (!upstreamResponse.ok) {
+      const errors = Array.isArray((payload as { errors?: unknown })?.errors)
+        ? (payload as { errors: unknown[] }).errors.filter(
+            (item): item is string => typeof item === "string",
+          )
+        : [];
+      const baseMessage =
+        (payload as { message?: string; error?: string })?.message ??
+        (payload as { message?: string; error?: string })?.error ??
+        "Nao foi possivel cadastrar a loja.";
+      const message = errors.length > 0 ? `${baseMessage} - ${errors.join("; ")}` : baseMessage;
+
+      return NextResponse.json(
+        { error: message, errors },
+        { status: upstreamResponse.status },
+      );
+    }
+
+    return NextResponse.json(payload ?? {}, { status: upstreamResponse.status });
+  } catch (error) {
+    console.error("[logista][dealers] Falha ao criar loja pelo operador", error);
+    return NextResponse.json(
+      { error: "Erro interno ao cadastrar loja." },
       { status: 500 },
     );
   }
