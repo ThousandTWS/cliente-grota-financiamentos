@@ -141,10 +141,10 @@ export default function OperadorRelatoriosPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="operator-panel-page space-y-6">
       {contextHolder}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-slate-800">Relatorios</h1>
+        <h1 className="operator-panel-hero-title font-bold text-slate-800">Relatorios</h1>
         <p className="text-sm text-slate-500">
           Baixe relatorios das propostas das suas lojas.
         </p>

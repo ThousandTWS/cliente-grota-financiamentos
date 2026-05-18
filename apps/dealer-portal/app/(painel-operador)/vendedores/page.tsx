@@ -259,19 +259,19 @@ export default function VendedoresPage() {
   ];
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="rounded-2xl bg-slate-950 px-6 py-7 text-white shadow-sm">
+    <div className="operator-panel-page space-y-6">
+      <div className="operator-panel-hero bg-slate-950 text-white shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <Text className="!text-xs !uppercase !tracking-[0.35em] !text-white">
               Painel do operador
             </Text>
-            <h1 className="text-3xl font-semibold text-white">Cadastro de vendedores</h1>
+            <h1 className="operator-panel-hero-title font-semibold text-white">Cadastro de vendedores</h1>
             <p className="max-w-2xl text-sm text-white">
               Crie vendedores e vincule cada acesso a uma loja cadastrada no seu painel.
             </p>
           </div>
-          <Space wrap>
+          <Space wrap className="operator-panel-actions">
             <Button
               className="!h-11 !font-semibold"
               icon={<ArrowUpRight className="size-4" />}
@@ -292,7 +292,7 @@ export default function VendedoresPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="operator-pricing-grid">
         <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
           <Users className="size-4" />
           {sellers.length} vendedor{sellers.length !== 1 ? "es" : ""}
@@ -313,7 +313,7 @@ export default function VendedoresPage() {
               Gerencie acessos por loja
             </p>
           </div>
-          <Space wrap>
+          <Space wrap className="operator-panel-controls">
             <Select
               allowClear
               className="min-w-64"

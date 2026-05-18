@@ -520,7 +520,7 @@ function PainelOperadorContent() {
   return (
     <>
       {contextHolder}
-      <div className="min-h-screen">
+      <div className="operator-panel-page min-h-screen">
         <Layout className="rounded-3xl border border-slate-100 shadow-xl bg-white" style={{ minHeight: "calc(100vh - 2rem)" }}>
           <Sider
             breakpoint="lg"
@@ -629,7 +629,7 @@ function PainelOperadorContent() {
                   <p className="text-xs uppercase tracking-[0.35em] text-slate-500">
                     Painel de operacao
                   </p>
-                  <h1 className="text-3xl font-semibold text-slate-900">
+                  <h1 className="operator-panel-hero-title font-semibold text-slate-900">
                     Visao geral em tempo real
                   </h1>
                   <p className="text-sm text-slate-500">
@@ -850,7 +850,7 @@ function PainelOperadorContent() {
                   }
                 >
                   {isLoading ? (
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="operator-product-grid">
                       {Array.from({ length: 3 }).map((_, index) => (
                         <Card key={`seller-skeleton-${index}`}>
                           <Skeleton active title paragraph={{ rows: 2 }} />
@@ -860,7 +860,7 @@ function PainelOperadorContent() {
                   ) : sellers.length === 0 ? (
                     <Empty description="Nenhum vendedor encontrado nas lojas vinculadas." />
                   ) : (
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="operator-product-grid">
                       {sellers.map((seller, index) => (
                         <Card
                           key={seller.id}

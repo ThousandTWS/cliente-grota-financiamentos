@@ -138,7 +138,7 @@ const AppSidebar = ({
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
-                  className={`ml-auto h-5 w-5 text-white transition-transform duration-200 group-hover:text-[#E0F2FF] ${
+                  className={`operator-panel-chevron ml-auto h-5 w-5 text-white transition-transform duration-200 group-hover:text-[#E0F2FF] ${
                     openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
                       ? "rotate-180 text-[#E0F2FF]"
