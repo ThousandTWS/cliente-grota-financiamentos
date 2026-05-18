@@ -344,7 +344,7 @@ export default function MinhasLojasPage() {
       <div className="rounded-2xl bg-slate-950 px-6 py-7 text-white shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
-            <Text className="text-xs uppercase tracking-[0.35em] text-white/65">
+            <Text className="text-xs uppercase tracking-[0.35em] text-white">
               Painel do operador
             </Text>
             <h1 className="text-3xl font-semibold">Cadastro de lojas</h1>
