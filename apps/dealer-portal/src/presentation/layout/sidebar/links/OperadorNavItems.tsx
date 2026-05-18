@@ -8,6 +8,7 @@ import {
     FileText,
     LayoutDashboard,
     Link2,
+    PlusCircle,
     Store,
 } from "lucide-react";
 
@@ -18,10 +19,10 @@ export const operadorNavItems: NavItem[] = [
         path: "/operacao",
     },
     {
-        name: "Minhas Lojas",
+        name: "Lojas",
         icon: <Store />,
         subItems: [
-            { name: "Lojas vinculadas", path: "/minhas-lojas", icon: <Store size={16} /> },
+            { name: "Cadastrar lojas", path: "/minhas-lojas", icon: <PlusCircle size={16} /> },
         ]
     },
     {
